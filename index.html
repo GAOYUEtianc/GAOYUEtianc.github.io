@@ -268,6 +268,9 @@
     <!-- 注意：name属性的值-->
     <textarea id="my-editormd-html-code" name="my-editormd-html-code" style="display:none;"></textarea>
   </div>
+  <div id="doc-content">
+    <textarea style="display:none;">${message.detail }</textarea>
+  </div>
 
   <script type="text/javascript">
     $(function() {
@@ -280,6 +283,19 @@
         });
     });
   </script>
+  <script type="text/javascript">
+    var testEditor;
+    $(function () {
+        testEditor = editormd.markdownToHTML("doc-content", {//注意：这里是上面DIV的id
+            htmlDecode: "style,script,iframe",
+            emoji: true,
+            taskList: true,
+            tex: true, // 默认不解析
+            flowChart: true, // 默认不解析
+            sequenceDiagram: true, // 默认不解析
+            codeFold: true,
+    });});
+ </script>
 
   <!-- Bootstrap core JavaScript -->
   <script src="vendor/jquery/jquery.min.js"></script>
