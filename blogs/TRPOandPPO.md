@@ -10,4 +10,6 @@ Generally speaking, goal of reinforcement learning is to find an optimal behavio
 ### Introduction to TRPO
 An essential idea of TRPO is monotinic improvement guarantee for policy, and to achieve monotonic improvement, an intuitive thought is to decompose the reward (or cost) of new policy into reward (or cost) of old policy plus an ''advantage term''.
 
-Let \(\mathcal{S}\) be the finite set of states, \(\mathcal{A}\) be the finite set of actions, \(P:\mathcal{S}\times \mathcal{A}\times\mathcal{S}\rightarrow \mathbb{R}\) be the transition probability distribution, \(c:\mathcal{S}\rightarrow \mathbb{R}\) be the cost function, \(\rho_{0}:\mathcal{S}\rightarrow\mathbb{R}\) be the distribution of the initial state \(s_{0}\), \(\gamma\in (0,1)\) be the discount factor.
+Let $$\mathcal{S}$$ be the finite set of states, $$\mathcal{A}$$ be the finite set of actions, $$P:\mathcal{S}\times \mathcal{A}\times\mathcal{S}\rightarrow \mathbb{R}$$ be the transition probability distribution, $$c:\mathcal{S}\rightarrow \mathbb{R}$$ be the cost function, $$\rho_{0}:\mathcal{S}\rightarrow\mathbb{R}$$ be the distribution of the initial state $$s_{0}$$, $$\gamma\in (0,1)$$ be the discount factor. 
+
+
