@@ -18,7 +18,7 @@
   <meta name="author" content="">
   <meta name="blogs" content="v1.2">
 
-  <title>Anna's Web</title>
+  <title>Anna's Blog</title>
 
   <!-- Bootstrap core CSS -->
   <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -35,31 +35,7 @@
   <link href="css/editormd.preview.css" rel="stylesheet">
   <link rel="stylesheet" href="css/editormd.css" />
 
-  <script type="text/javascript">
-    $(function() {
-        editormd("my-editormd", {//注意1：这里的就是上面的DIV的id属性值
-            width   : "90%",
-            height  : 640,
-            syncScrolling : "single",
-            path    : "editor.md/lib/",//注意2：你的路径
-            saveHTMLToTextarea : true//注意3：这个配置，方便post提交表单
-        });
-    });
-  </script>
 
-  <script type="text/javascript">
-    var testEditor;
-    $(function () {
-        testEditor = editormd.markdownToHTML("doc-content", {//注意：这里是上面DIV的id
-            htmlDecode: "style,script,iframe",
-            emoji: true,
-            taskList: true,
-            tex: true, // 默认不解析
-            flowChart: true, // 默认不解析
-            sequenceDiagram: true, // 默认不解析
-            codeFold: true,
-    });});
- </script>
 
   <!-- Bootstrap core JavaScript -->
   <script src="vendor/jquery/jquery.min.js"></script>
@@ -102,59 +78,16 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav">
         <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="#about">About Me</a>
+          <a class="nav-link js-scroll-trigger" href="#about">Welcome to my blog</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="#education">Education</a>
+          <a class="nav-link js-scroll-trigger" href="blogs/TRPOandPPO.md">TRPO and PPO</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="#experience">Research/Internship Experience</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="awards.html">Awards</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="#skills">Skills</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="#Hobbies">Hobbies</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link js-scroll-trigger" href="">Blogs</a> 
-        </li>
+
       </ul>
     </div>
   </nav>
 
-  <div class="container-fluid p-0">
-
-    <section class="resume-section p-3 p-lg-5 d-flex align-items-center" id="about">
-      <div class="w-100">
-        <h1 class="mb-0">GAO
-          <span class="text-primary">YUE (ANNA)</span>
-        </h1>
-        <div class="subheading mb-5">Office : Athabasca Hall 2-05·University of Alberta·Edmonton·Canada <a href="mailto:gao12@ualberta.ca">gao12@ualberta.ca</a>
-        </div>
-        <p class="lead mb-5">I'm a Thesis-Based Master student in Computing Science Department of UAlberta. My research interests include differential privacy, machine learning and reinforcement learning.
-          I enjoy working on theoretical topics a lot. It's delightful to work in CS department of UA, where you can always be inspired by brilliant ideas proposed by terrific scholars and students.
-          <br></br>
-          Before joining UAlberta, I got my B.Sc. degree from The Chinese University of Hong Kong. Studying in CUHK is the most meaningful experience to me. During the 4 years, I not only gained a wealth of knowledge, but also became more self-motivated, more rigorous and more efficient, and most importantly, I gained my most meaningful friendships there.
-          <br></br>
-          <a href="https://calendar.google.com/calendar/embed?src=gao12%40ualberta.ca&ctz=America%2FEdmonton"> Here is my schedule. </a>
-        </p>
-        <div class="social-icons">
-          <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107">
-            <i class="fab fa-linkedin-in"></i>
-          </a>
-          <a href="https://github.com/GAOYUEtianc/my-git-summary">
-            <i class="fab fa-github"></i>
-          </a>
-          <a href="https://www.facebook.com/yue.gao.925">
-            <i class="fab fa-facebook-f"></i>
-          </a>
-        </div>
-      </div>
-    </section>
 
      <hr class="m-0">
 
@@ -248,52 +181,6 @@
 
     </section>
 
-   
-
-    <hr class="m-0">
-
-    <section class="resume-section p-3 p-lg-5 d-flex align-items-center" id="skills">
-      <div class="w-100">
-        <h2 class="mb-5">Skills</h2>
-       <div class="subheading mb-3">Programming Languages &amp; Tools</div>
-       Although my interests mainly lie on theoretical topics, I do enjoy programming a lot, and I'm skilled in using the following languages &amp; tools :
-       <br></br>
-       <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            Python</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            C/C++</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            MATLAB</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            HTML &amp; CSS</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            LaTeX</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            TensorFlow</li>
-      <br></br>      
-      <div class="subheading mb-3">Languages</div>
-       
-       
-       <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            Mandarin : Native</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            English : Full Professional Proficiency</li>
-          <li>
-            <i class="fa-li fa fa-trophy text-warning"></i>
-            Cantonese : Entry Level</li>    
-  
-      </div>
-    </section>
-
-    <hr class="m-0">
 
   </div>
 
