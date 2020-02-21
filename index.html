@@ -40,11 +40,12 @@
             width   : "90%",
             height  : 640,
             syncScrolling : "single",
-            path    : "lib/",//注意2：你的路径
+            path    : "editor.md/lib/",//注意2：你的路径
             saveHTMLToTextarea : true//注意3：这个配置，方便post提交表单
         });
     });
   </script>
+
   <script type="text/javascript">
     var testEditor;
     $(function () {
@@ -312,14 +313,6 @@
 
   </div>
 
-  <div id="my-editormd" >
-    <textarea id="my-editormd-markdown-doc" name="my-editormd-markdown-doc" style="display:none;"></textarea>
-    <!-- 注意：name属性的值-->
-    <textarea id="my-editormd-html-code" name="my-editormd-html-code" style="display:none;"></textarea>
-  </div>
-  <div id="doc-content">
-    <textarea style="display:none;">${message.detail }</textarea>
-  </div>
 
   <script type="text/javascript">
     $(function() {
