@@ -1,6 +1,6 @@
 baseurl: https://GAOYUEtianc.github.io/blogs/
 languageCode: en
-title: Anna's Web
+title: Anna's Blog
 theme: soho
 summarylength: 7
 # paginate: 7
@@ -19,8 +19,9 @@ googleAnalytics: UA-55543164-1
 params:
   author: Gao Yue (Anna)
   themeColor: "#BD5D38"
-  # description: Anna's Webpage
+  # description: Anna's BLOG
   gravatar: gao12@ualberta.ca
+  profilePicture: https://GAOYUEtianc.github.io/blogs/img/profile1.jpg
 
   copyright: Gao Yue
   license: CC BY-SA 4.0
@@ -50,7 +51,7 @@ menu:
     weight: 100
     identifier: posts
     url: https://GAOYUEtianc.github.io/blogs/public/blogs/posts/
-  - name: Home
+  - name: My Webpage
     weight: 100
     identifier: web
     url: https://GAOYUEtianc.github.io/
