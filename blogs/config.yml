@@ -39,7 +39,7 @@ params:
     
 
   customCss:
-    - 'css/blog.css'
+    - 'public/css/blog.css'
 
   # customJs:
   #   - '#'
@@ -50,10 +50,7 @@ menu:
     weight: 100
     identifier: posts
     url: /posts/
-  - name: About Me
-    identifier: about
-    weight: 300
-    url: /about/
+  
  
 
 markup:
