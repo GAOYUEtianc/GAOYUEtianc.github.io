@@ -47,10 +47,6 @@ params:
 
 menu:
   main:
-  - name: Posts
-    weight: 100
-    identifier: posts
-    url: https://GAOYUEtianc.github.io/blogs/public/blogs/posts/
   - name: My Webpage
     weight: 100
     identifier: web
