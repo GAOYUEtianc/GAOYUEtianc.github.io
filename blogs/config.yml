@@ -18,7 +18,7 @@ googleAnalytics: UA-55543164-1
 
 params:
   author: Gao Yue (Anna)
-  # themeColor: "#FF8C00"
+  themeColor: "#BD5D38"
   # description: Anna's Webpage
   gravatar: gao12@ualberta.ca
 
@@ -39,7 +39,7 @@ params:
     
 
   customCss:
-    - 'public/css/blog.css'
+    - 'css/blog.css'
 
   # customJs:
   #   - '#'
@@ -49,8 +49,11 @@ menu:
   - name: Posts
     weight: 100
     identifier: posts
-    url: /posts/
-  
+    url: https://GAOYUEtianc.github.io/blogs/public/blogs/posts/
+  - name: My Webpage
+    weight: 100
+    identifier: web
+    url: https://GAOYUEtianc.github.io/
  
 
 markup:
@@ -63,4 +66,4 @@ markup:
     lineNumbersInTable: true
     noClasses: true
     style: monokai
-    tabWidth: 4
+    tabWidth: 3

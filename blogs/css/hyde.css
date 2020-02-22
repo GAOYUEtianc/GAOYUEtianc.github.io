@@ -173,7 +173,7 @@ footer {
 footer a,
 .content a,
 .related-posts li a:hover {
-  color: #49757a;
+  color: #BD5D38;
 }
 
 .read-more-link {
@@ -183,7 +183,7 @@ footer a,
 .read-more-link a {
   padding: 8px 16px;
   border: 1px solid;
-  border-color: #49757a;
+  border-color: #BD5D38;
   border-radius: 4px;
 }
 
