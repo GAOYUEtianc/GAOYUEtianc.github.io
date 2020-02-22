@@ -19,7 +19,7 @@ googleAnalytics: UA-55543164-1
 params:
   author: Gao Yue (Anna)
   themeColor: "#BD5D38"
-  description: Anna's BLOG
+  #description: Anna's BLOG
   gravatar: gao12@ualberta.ca
   profilePicture: https://GAOYUEtianc.github.io/blogs/img/profile1.jpg
 
