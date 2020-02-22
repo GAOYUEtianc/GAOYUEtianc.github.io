@@ -58,13 +58,16 @@
     "description": "TRPO and PPO -- A Reading Summary Introduction Generally speaking, goal of reinforcement learning is to find an optimal behaviour strategy which maximizes rewards."
   }
   </script>
+  
+  
+
   <script type="text/javascript"
         async
         src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 MathJax.Hub.Config({
   tex2jax: {
-    inlineMath: [['$','$'], ['\\(','\\)']],
-    displayMath: [['$$','$$'], ['\[\[','\]\]']],
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$'], ['\[','\]']],
     processEscapes: true,
     processEnvironments: true,
     skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
@@ -93,7 +96,6 @@ code.has-jax {
     color: #515151;
 }
 </style>
-
 
 
   <link type="text/css"
@@ -222,30 +224,32 @@ V_{\pi}(s_{t}) &=& \mathbb{E}_{a_{t},s_{t+1},...}\left[\sum_{l=0}^{\infty}\gamma
 A_{\pi}(s,a) &=& Q_{\pi}(s,a) - V_{\pi}(s), \;where\; a_{t}\sim \pi(a_{t}, s_{t}), s_{t+1}\sim P[s_{t+1}|s_{t},a_{t}]
 \end{array}\)</span></p>
 
-<p>Kakade &amp; Langford raised up an identity that express the expected cost of another policy $\tilde{\pi}$ in terms of the accumulated advantage over $\pi$ :
-<span  class="math">\(\begin{array}{cc}
+<p>Kakade &amp; Langford raised up an identity that express the expected cost of another policy $\tilde{\pi}$ in terms of the accumulated advantage over $\pi$ :</p>
+
+<p><span  class="math">\(\begin{array}{cc}
 \eta(\tilde{\pi}) &=& \eta(\pi) + \mathbb{E}_{s_{0},a_{0},s_{1},a_{1},...}\left[\sum_{t=0}^{\infty}\gamma^{t}A_{\pi}(s_{t},a_{t})\right]
-\end{array}\)</span>
-where $s_{0}\sim \rho_{0}(s_{0})$, $a_{t}\sim \tilde{\pi}(a_{t}|s_{t})$, $s_{t+1}\sim P[s_{t+1}|s_{t},a_{t}]$.</p>
+\end{array}\)</span></p>
+
+<p>where $s_{0}\sim \rho_{0}(s_{0})$, $a_{t}\sim \tilde{\pi}(a_{t}|s_{t})$, $s_{t+1}\sim P[s_{t+1}|s_{t},a_{t}]$.</p>
 
 <p>The proof is as follows (let $\tau|\tilde{\pi}$ denote the trajectory $\tau = (s_{0},a_{0},s_{1},a_{1})$ generated from $\tilde{\pi}$):</p>
 
-<p><span  class="math">\[\begin{array}{c}
+<p><span  class="math">\(\begin{array}{c}
 & \mathbb{E}_{\tau|\tilde{\pi}}\left[\sum_{t=0}^{\infty}\gamma^{t}A_{\pi}(s_{t},a_{t})\right] \\
 =&\mathbb{E}_{\tau|\tilde{\pi}}\left[\sum_{t=0}^{\infty}\gamma^{t} (r(s_{t}) +\gamma V_{\pi}(s_{t+1})-V_{\pi}(s_{t}))\right]\\
 =&\mathbb{E}_{\tau|\tilde{\pi}}\left[-V_{\pi}(s_{0})+\sum_{t=0}^{\infty}\gamma^{t}\cdot r(s_{t})\right]\\
 =& -\mathbb{E}_{s_{0}}\left[V_{\pi}(s_{0})\right] +\mathbb{E}_{\tau|\tilde{\pi}}\left[\sum_{t=0}^{\infty}\gamma^{t}\cdot r(s_{t})\right] \\
 =& -\eta(\pi) + \eta(\tilde{\pi})
-\end{array}\]</span></p>
+\end{array}\)</span></p>
 
 <p>Let $\rho_{\pi}(s)=P[s_{0}=s]+\gamma P[s_{1}=s]+\gamma^{2} P[s_{2}=s]+...$ be the (unnormalized) discounted visitaion frequencies. Then,</p>
 
-<p><span  class="math">\[\begin{array}{cc}
+<p><span  class="math">\(\begin{array}{cc}
 \eta(\tilde{\pi}) &=& \eta(\pi) +\mathbb{E}_{\tau|\tilde{\pi}}\left[\sum_{t=0}^{\infty}\gamma^{t}A_{\pi}(s_{t},a_{t})\right]\\
 &=& \eta(\pi) + \sum_{t=0}^{\infty}\sum_{s}P[s_{t}=s|\tilde{\pi}]\sum_{a}\tilde{\pi}(a|s)\gamma^{t}A_{\pi}(s,a)\\
 &=& \eta(\pi) + \sum_{s}\sum_{t=0}^{\infty}\gamma^{t}P[s_{t}=s|\tilde{\pi}]\sum_{a}\tilde{\pi}(a|s)A_{\pi}(s,a)\\
 &=& \eta(\pi) + \sum_{s}\rho_{\tilde{\pi}}(s)\sum_{a}\tilde{\pi}(a|s)A_{\pi}(s,a) 
-\end{array}\]</span></p>
+\end{array}\)</span></p>
 
 <p>However, since we don't have $\rho_{\tilde{\pi}}$, this equation is difficult to optimize, hence, we introduce a local approximation to $\eta$, and note that this is the first 'approximation trick' in TRPO :
 <span  class="math">\(\begin{array}{cc}
@@ -254,30 +258,39 @@ L_{\pi}(\tilde{\pi}) = \eta(\pi) + \sum_{s}\rho_{\pi}(s)\sum_{a}\tilde{\pi}(a|s)
 
 <p>Compared to the equations above, $L_{\pi}$ uses $\rho_{\pi}$ as a local approximation of $\rho_{\tilde{\pi}}$, intuitively this is reasonable since within 1 iteration, the new policy won't be that different from the old one, so the visitation frequencies under those two policies would be similar. More precisely, if the parameterized policy $\pi_{\theta}(a|s)$ is a differentiable function of the parameter vector $\theta$, then $L_{\pi}$ matches $\eta$ to the first order, i.e., for any $\theta_{0}$,</p>
 
-<p><span  class="math">\[\begin{array}{cc}
+<p><span  class="math">\(\begin{array}{cc}
 L_{\pi_{\theta_{0}}}(\pi_{\theta_{0}}) &=& \eta(\pi_{\theta_{0}})\\
 \nabla_{\theta}L_{\pi_{\theta_{0}}}(\pi_{\theta})|_{\theta=\theta_{0}} &=& \nabla_{\theta}\eta(\pi_{\theta})|_{\theta=\theta_{0}}
-\end{array}\]</span></p>
+\end{array}\)</span></p>
 
 <p>According to the thoughts behind Minorize-Maximization algorithms, by iteratively maximizing lower bound function of the expected reward, an algorithm can guarantee that any policy update always improve the expected reward. Let
 <span  class="math">\(\begin{array}{cc}
-\pi^{'}&=&\underset{\pi^{'}}{\argmax}\;L_{\pi_{old}}(\pi^{'})\\
+\pi^{'}&=&\underset{\pi^{'}}{\operatorname{argmax}}\;L_{\pi_{old}}(\pi^{'})\\
 \pi_{new}(a|s) &=& (1-\alpha)\pi_{old}(a|s)+\alpha\pi^{'}(a|s)
-\end{array}\)</span>
-Kakade &amp; Langford derived the following lower bound :<span  class="math">\(\begin{array}{cc}
+\end{array}\)</span></p>
+
+<p>Kakade &amp; Langford derived the following lower bound :</p>
+
+<p><span  class="math">\(\begin{array}{cc}
 \eta(\pi_{new}) &\geq & L_{\pi_{old}}(\pi_{new}) - \frac{2\epsilon\gamma}{(1-\gamma)^{2}}\alpha^{2}\\
 where\;\epsilon &=& \underset{s}{\max}\;|\mathbb{E}_{a\sim\pi^{'}(a|s)}[A_{\pi}(s,a)]|
-\end{array}\)</span>
-However, mixer policies are rarely used in practice, so based on this bound, Schulman et al. extended this to general stochastic policies by replacing $\alpha$ by $ D_{TV}^{max}(\pi_{old}, \pi_{new})$, where $D_{TV}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{TV}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$ and $D_{TV}(p||q)=\frac{1}{2}\sum_{i}|p_{i}-q_{i}|$ be the total variation divergence. Pollard has proved that $D_{KL}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{KL}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$. Hence in the lower bound we can replace $D_{TV}^{max}(\pi_{old}, \pi_{new})$ by $D_{KL}^{max}(\pi_{old}, \pi_{new})$.</p>
+\end{array}\)</span></p>
+
+<p>However, mixer policies are rarely used in practice, so based on this bound, Schulman et al. extended this to general stochastic policies by replacing $\alpha$ by $ D_{TV}^{max}(\pi_{old}, \pi_{new})$, where $D_{TV}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{TV}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$ and $D_{TV}(p||q)=\frac{1}{2}\sum_{i}|p_{i}-q_{i}|$ be the total variation divergence. Pollard has proved that $D_{KL}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{KL}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$. Hence in the lower bound we can replace $D_{TV}^{max}(\pi_{old}, \pi_{new})$ by $D_{KL}^{max}(\pi_{old}, \pi_{new})$.</p>
 
 <p>An intuitive thought is that by iteratively returning the policies maximizing $L_{\pi_{old}}(\pi)-\frac{2\epsilon\gamma}{(1-\gamma)<sup>{2}}\;D_{KL}</sup>{max}(\pi_{old}, \pi)$, we can guarantee monotonic improvement. However, computing the maximum KL divergence needs to iterate over all states, which is super intractable, fortunately, Schulman et al. showed that here mean KL divergence over state space is a valid approximation to maximum KL divergence <font color=red>empirically. (I have a doubt here, I didn't find any theoretical evidence that replacing max KL divergence by average KL divergence is 'theoretically valid'. The paper only mentioned that under those two types of divergence, the algorithms have similar performance empirically.)</font></p>
 
-<p>Finally, we arrive at the optimization problem :<span  class="math">\(\begin{array}{c}
-\underset{\theta}{maximize}\left[L_{\theta_{old}}(\theta) - \frac{2\epsilon\gamma}{(1-\gamma)^{2}}\cdot\bar{D}_{KL}^{\rho_{old}}(\theta_{old}, \theta)\right]
-\end{array}\)</span>
-where  $\bar{D}<em>{KL}^{\rho}(\theta</em>{1},\theta_{2})=\mathbb{E}<em>{s\sim\rho}\left[D</em>{KL}(\pi_{\theta_{1}}(\cdot|s)||\pi_{\theta_{2}}(\cdot|s))\right]$.</p>
+<p>Finally, we arrive at the optimization problem :</p>
 
-<p>There are two basic iterative approaches to find a local minimum/maximum of an objective function, line search and trust region. The method adopted in this paper is trust region, i.e.,determine the maximum step size we want to explore then locate the optimal point within this trust region :<span  class="math">\(\begin{array}{cc}\underset{\theta}{maximize}\; \sum_{s}\rho_{\theta_{old}}(s)\sum_{a}\pi_{\theta}(a|s)A_{\theta_{old}}(s,a)\\
+<p><span  class="math">\(\begin{array}{c}
+\underset{\theta}{maximize}\left[L_{\theta_{old}}(\theta) - \frac{2\epsilon\gamma}{(1-\gamma)^{2}}\cdot\bar{D}_{KL}^{\rho_{old}}(\theta_{old}, \theta)\right]
+\end{array}\)</span></p>
+
+<p>where  $\bar{D}_{KL}^{\rho}(\theta_{1},\theta_{2})=\mathbb{E}_{s\sim\rho}\left[D_{KL}(\pi_{\theta_{1}}(\cdot|s)||\pi_{\theta_{2}}(\cdot|s))\right]$.</p>
+
+<p>There are two basic iterative approaches to find a local minimum/maximum of an objective function, line search and trust region. The method adopted in this paper is trust region, i.e.,determine the maximum step size we want to explore then locate the optimal point within this trust region :</p>
+
+<p><span  class="math">\(\begin{array}{cc}\underset{\theta}{maximize}\; \sum_{s}\rho_{\theta_{old}}(s)\sum_{a}\pi_{\theta}(a|s)A_{\theta_{old}}(s,a)\\
  subject\;to\; \bar{D}_{KL}^{\rho_{\theta_{old}}}(\theta_{old},\theta) \leq \delta
 \end{array}\)</span></p>
 
@@ -298,15 +311,21 @@ where  $\bar{D}<em>{KL}^{\rho}(\theta</em>{1},\theta_{2})=\mathbb{E}<em>{s\sim\r
 <p>Let $r_{t}(\theta) = \frac{\pi_{\theta}(a_{t}|s_{t})}{\pi_{\theta_{old}}(a_{t}|s_{t})}$, then the surrogate objective of TRPO is <span  class="math">\(\begin{array}{cc}
 L^{CPI}(\theta) = \hat{\mathbb{E}}_{t}\left[r_{t}(\theta)\hat{A}_{t}\right]
 \end{array}\)</span>
-Note that without a limitation on the distance between $\theta$ and $\theta_{old}$, maximizing $L^{CPI}$ will lead to excessively large parameter updates and big policy ratios. PPO penalize changes to policy by forcing $r_{t}(\theta)$ to stay within interval $[1-\epsilon, 1+\epsilon]$ (where $\epsilon$ is a hyperparameter). The objective function is : <span  class="math">\(\begin{array}{cc}
-L^{CLIP}(\theta) = \hat{\mathbb{E}}_{t}\left[\min\; (r_{t}(\theta)\hat{A}_{t},\; clip(r_{t}(\theta),1-\epsilon, 1+\epsilon)\hat{A}_{t})\right]
-\end{array}\)</span>
-where the function $clip(r_{t}(\theta),1-\epsilon, 1+\epsilon)$ clips the ratio $r_{t}(\theta)$ within $[1-\epsilon, 1+\epsilon]$. The objective function takes the minimum between the clipped and unclipped objective, so the final objective is a pessimistic bound on the unclipped one. Gradient Descent like Adam can be used to optimize it.</p>
+Note that without a limitation on the distance between $\theta$ and $\theta_{old}$, maximizing $L^{CPI}$ will lead to excessively large parameter updates and big policy ratios. PPO penalize changes to policy by forcing $r_{t}(\theta)$ to stay within interval $[1-\epsilon, 1+\epsilon]$ (where $\epsilon$ is a hyperparameter). The objective function is :</p>
 
-<p>When applying PPO on the network architecture with shared parameters for both policy and value function, the objective function can be further augmented with an error term on the value estimation and an entropy bonus to ensure sufficient exploration : <span  class="math">\(\begin{array}{cc}
+<p><span  class="math">\(\begin{array}{cc}
+L^{CLIP}(\theta) = \hat{\mathbb{E}}_{t}\left[\min\; (r_{t}(\theta)\hat{A}_{t},\; clip(r_{t}(\theta),1-\epsilon, 1+\epsilon)\hat{A}_{t})\right]
+\end{array}\)</span></p>
+
+<p>where the function $clip(r_{t}(\theta),1-\epsilon, 1+\epsilon)$ clips the ratio $r_{t}(\theta)$ within $[1-\epsilon, 1+\epsilon]$. The objective function takes the minimum between the clipped and unclipped objective, so the final objective is a pessimistic bound on the unclipped one. Gradient Descent like Adam can be used to optimize it.</p>
+
+<p>When applying PPO on the network architecture with shared parameters for both policy and value function, the objective function can be further augmented with an error term on the value estimation and an entropy bonus to ensure sufficient exploration :</p>
+
+<p><span  class="math">\(\begin{array}{cc}
 L_{t}^{LIP+VF+S}(\theta) = \hat{\mathbb{E}}_{t}\left[L_{t}^{CLIP}(\theta) - c_{1}(V_{\theta}(s_{t}) - V_{t}^{target})^{2} + c_{2}S[\pi_{\theta}](s_{t})\right]
-\end{array}\)</span>
-where $c_{1},c_{2}$ are coefficients, and $S$ is the entropy bonus.</p>
+\end{array}\)</span></p>
+
+<p>where $c_{1},c_{2}$ are coefficients, and $S$ is the entropy bonus.</p>
 
 <h3 id="controversies-in-ppo">Controversies in PPO</h3>
 
@@ -340,7 +359,7 @@ where $c_{1},c_{2}$ are coefficients, and $S$ is the entropy bonus.</p>
 
   </main>
 
-  <head>{0xc000774b40 0xc000777d80}</head>
+  <head>{0xc0006db200 0xc000727200}</head>
 <footer>
   <div class="copyright">
     &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
@@ -351,7 +370,7 @@ where $c_{1},c_{2}$ are coefficients, and $S$ is the entropy bonus.</p>
 MathJax.Hub.Config({
 tex2jax: {
 inlineMath: [['$','$'],['\\(','\\)']],
-displayMath: [['$$','$$'],],
+displayMath: [['$$','$$']],
 processEscapes: true,
 processEnvironments: true,
 skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
@@ -371,23 +390,8 @@ for(i = 0; i < all.length; i += 1) {
 });
 </script>
 </footer>
+      
 
-  
-
-
-
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
-          integrity="sha256-MAgcygDRahs+F/Nk5Vz387whB4kSK9NXlDN3w58LLq0="
-          crossorigin="anonymous"></script>
-
-  <script type="text/javascript"
-          src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-        </script>        
-
-  
-
-  
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
