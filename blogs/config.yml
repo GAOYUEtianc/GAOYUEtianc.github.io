@@ -50,7 +50,7 @@ menu:
     weight: 100
     identifier: posts
     url: https://GAOYUEtianc.github.io/blogs/public/blogs/posts/
-  - name: My Webpage
+  - name: Home
     weight: 100
     identifier: web
     url: https://GAOYUEtianc.github.io/
