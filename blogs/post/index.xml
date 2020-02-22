@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Anna&#39;s Blog</title>
+    <link>https://GAOYUEtianc.github.io/blogs/post/</link>
+    <description>Recent content in Posts on Anna&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 22 Feb 2020 01:02:50 -0700</lastBuildDate>
+    
+	<atom:link href="https://GAOYUEtianc.github.io/blogs/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>A project on Differential Privacy</title>
+      <link>https://GAOYUEtianc.github.io/blogs/post/dpgeo/</link>
+      <pubDate>Sat, 22 Feb 2020 01:02:50 -0700</pubDate>
+      
+      <guid>https://GAOYUEtianc.github.io/blogs/post/dpgeo/</guid>
+      <description>A upcoming pre-print of my work on differential privacy.</description>
+    </item>
+    
+    <item>
+      <title>TRPO and PPO</title>
+      <link>https://GAOYUEtianc.github.io/blogs/post/trpoandppo/</link>
+      <pubDate>Fri, 21 Feb 2020 03:23:35 -0700</pubDate>
+      
+      <guid>https://GAOYUEtianc.github.io/blogs/post/trpoandppo/</guid>
+      <description>TRPO and PPO -- A Reading Summary Introduction Generally speaking, goal of reinforcement learning is to find an optimal behaviour strategy which maximizes rewards.</description>
+    </item>
+    
+    <item>
+      <title>Welcome to my blog</title>
+      <link>https://GAOYUEtianc.github.io/blogs/post/first/</link>
+      <pubDate>Fri, 21 Feb 2020 03:23:35 -0700</pubDate>
+      
+      <guid>https://GAOYUEtianc.github.io/blogs/post/first/</guid>
+      <description>Welcome to my blog 😊
+I&amp;rsquo;ll share my reading summaries and maybe also some random research thoughts/feelings, hopefully, in every two weeks.</description>
+    </item>
+    
+  </channel>
+</rss>
