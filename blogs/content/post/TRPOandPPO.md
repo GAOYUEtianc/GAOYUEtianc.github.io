@@ -1,6 +1,6 @@
 
 ---
-title: "2020 Resolutions"
+title: "TRPO and PPO"
 date: 2020-02-21
 draft: false
 type: "post"
@@ -57,7 +57,7 @@ $$\begin{array}{cc}
 &=& \eta(\pi) + \sum_{s}\rho_{\tilde{\pi}}(s)\sum_{a}\tilde{\pi}(a|s)A_{\pi}(s,a) 
 \end{array}$$
 
-However, since we don't have $\rho_{\tilde{\pi}}$, eqn (13) is difficult to optimize, hence, we introduce a local approximation to $\eta$, and note that this is the first 'approximation trick' in TRPO :
+However, since we don't have $\rho_{\tilde{\pi}}$, this equation is difficult to optimize, hence, we introduce a local approximation to $\eta$, and note that this is the first 'approximation trick' in TRPO :
 $$\begin{array}{cc}
 L_{\pi}(\tilde{\pi}) = \eta(\pi) + \sum_{s}\rho_{\pi}(s)\sum_{a}\tilde{\pi}(a|s)A_{\pi}(s,a)
 \end{array}$$
@@ -78,7 +78,7 @@ Kakade \& Langford derived the following lower bound :$$\begin{array}{cc}
 \eta(\pi_{new}) &\geq & L_{\pi_{old}}(\pi_{new}) - \frac{2\epsilon\gamma}{(1-\gamma)^{2}}\alpha^{2}\\
 where\;\epsilon &=& \underset{s}{\max}\;|\mathbb{E}_{a\sim\pi^{'}(a|s)}[A_{\pi}(s,a)]|
 \end{array}$$
-However, mixer policies are rarely used in practice, so based on this bound, Schulman et al. extended this to general stochastic policies by replacing $\alpha$ in eqn (19) by $ D_{TV}^{max}(\pi_{old}, \pi_{new})$, where $D_{TV}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{TV}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$ and $D_{TV}(p||q)=\frac{1}{2}\sum_{i}|p_{i}-q_{i}|$ be the total variation divergence. Pollard has proved that $D_{KL}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{KL}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$. Hence in the lower bound we can replace $D_{TV}^{max}(\pi_{old}, \pi_{new})$ by $D_{KL}^{max}(\pi_{old}, \pi_{new})$.
+However, mixer policies are rarely used in practice, so based on this bound, Schulman et al. extended this to general stochastic policies by replacing $\alpha$ by $ D_{TV}^{max}(\pi_{old}, \pi_{new})$, where $D_{TV}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{TV}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$ and $D_{TV}(p||q)=\frac{1}{2}\sum_{i}|p_{i}-q_{i}|$ be the total variation divergence. Pollard has proved that $D_{KL}^{max}(\pi,\tilde{\pi})=\underset{s}{\max}\;D_{KL}(\pi(\cdot|s)||\tilde{\pi}(\cdot|s))$. Hence in the lower bound we can replace $D_{TV}^{max}(\pi_{old}, \pi_{new})$ by $D_{KL}^{max}(\pi_{old}, \pi_{new})$.
 
 An intuitive thought is that by iteratively returning the policies maximizing $L_{\pi_{old}}(\pi)-\frac{2\epsilon\gamma}{(1-\gamma)^{2}}\;D_{KL}^{max}(\pi_{old}, \pi)$, we can guarantee monotonic improvement. However, computing the maximum KL divergence needs to iterate over all states, which is super intractable, fortunately, Schulman et al. showed that here mean KL divergence over state space is a valid approximation to maximum KL divergence <font color=red>empirically. (I have a doubt here, I didn't find any theoretical evidence that replacing max KL divergence by average KL divergence is 'theoretically valid'. The paper only mentioned that under those two types of divergence, the algorithms have similar performance empirically.)</font>
 
@@ -124,7 +124,7 @@ PPO is controversial though, it has shown great practical promise, however, ther
 
 ## Reflections
 
-This issue in PPO points to a broader problem: we don't really understand how the parts comprising deep RL algorithms impact agent training, either as individuals or as a whole. When designing deep RL algorithms, it's necessary for us to understand precisely how each component impacts agent training and designing algorithms in a modular manner. \\
+This issue in PPO points to a broader problem: we don't really understand how the parts comprising deep RL algorithms impact agent training, either as individuals or as a whole. When designing deep RL algorithms, it's necessary for us to understand precisely how each component impacts agent training and designing algorithms in a modular manner. 
 
 We've also noticed that although in PPO the clipping technique is designed to limit the distance between $\theta$ and $\theta_{old}$, actually clipping technique does not enforce the KL region as it's supposed to. Then an overarching question is : To what degree does current practice in deep RL reflect the principles informing its development? Motivated by this question, the work 'A closer look at deep policy gradients' proposed a fine-grained analysis of state-of-the-art methods, and (sadly), the results show that the  behaviour of deep policy gradient algorithms often deviates from the prediction of their motivating framework : 
     1. Deep policy gradient methods operate with relatively poor estimates of the gradient, especially as task complexity increases and as training progresses. Better gradient estimates can require lower learning rates and can induce degenerate agent behaviour. 
