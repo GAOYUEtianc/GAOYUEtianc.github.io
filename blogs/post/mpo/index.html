@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>TRPO and PPO &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="MPO"/>
+  <meta property="og:description" content="Maximum a Posterior Policy Optimization Background Policy gradient algorithms like TRPO or PPO in practice require carefully runed entropy regularization to prevent policy collaspe, moreover, there are works showing that the plausible performace of PPO comes from the code-level optimization."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/mpo/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2020-04-20T17:29:59-0600"/>
+  <meta property="article:modified_time" content="2020-04-20T17:29:59-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+    {
+      "@context": "http://schema.org",
+      "@type": "BlogPosting",
+      "name": "MPO",
+      "headline": "MPO",
+      "datePublished": "2020-04-20T17:29:59-0600",
+      "dateModified": "2020-04-20T17:29:59-0600",
+      "author": {
+        "@type": "Person",
+        "name": "Gao Yue (Anna)",
+        "url": "https://GAOYUEtianc.github.io/blogs/"
+      },
+      "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+      "url": "https://GAOYUEtianc.github.io/blogs/post/mpo/",
+      "description": "Maximum a Posterior Policy Optimization Background Policy gradient algorithms like TRPO or PPO in practice require carefully runed entropy regularization to prevent policy collaspe, moreover, there are works showing that the plausible performace of PPO comes from the code-level optimization."
+    }
+    </script>
+  
+  
+
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$'], ['\[','\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+<main class="content container">
+    <div class="post">
+    <h1>MPO</h1>
+  
+    <div class="post-date">
+      <time datetime="2020-04-20T17:29:59-0600">Apr 20, 2020</time> · 8 min read
+    </div>
+  
+    <h1 id="maximum-a-posterior-policy-optimization">Maximum a Posterior Policy Optimization</h1>
+  
+  <h2 id="background">Background</h2>
+  
+  <p>Policy gradient algorithms like TRPO or PPO in practice require carefully runed entropy regularization to prevent policy collaspe, moreover, there are works showing that the plausible performace of PPO comes from the code-level optimization. We cannot help doubting, is 'Linearization/Quadratization + Trust Region' a good idea? As an alternative to policy gradient methods, V-MPO is an on-policy adaption of MPO (Maximum a Posterior Policy Optimization) that performs policy iteration based on a learned state-value function.</p>
+  
+  <p>In this post I'll only concentrate on introducing MPO, a data-efficient off-policy method.</p>
+  
+  <h2 id="introduction-to-mpo">Introduction to MPO</h2>
+  
+  <p>A key inspiration of this method is the duality between control and estimation, say, replacing the question &quot;what are the actions which maximize future rewards?&quot; with the question &quot;assuming future success in maximizing rewards, what are the actions most likely to have been taken?&quot;. By casting RL learning problem as that of inference in a particular probablistic model, we can apply EM (Expectation Maximum) algorithm to solve control problems.</p>
+  
+  <h3 id="review-on-em-algorithm">Review on EM algorithm</h3>
+  
+  <p>In a probabilistic model, there are visible variables (y), latent variables (z) and associating parameter ($\theta$). We aim to maximize the likelihood $p(y|\theta)$. Let $q(z)$ be any arbitrary distribution of the latent variable z. By Bayes's rule and some rearranging, we have
+  <span  class="math">\(\begin{array}{cc}
+  p(z|y,\theta) = \frac{p(y|z,\theta)p(z|\theta)p(\theta)}{p(y|\theta)p(\theta)}=\frac{p(y|z,\theta)p(z|\theta)}{p(y|\theta)}\\
+  p(y|\theta) = \frac{p(y|z,\theta)p(z|\theta)}{p(z|y,\theta)}\\
+  p(y|\theta)=\frac{p(y|z,\theta)p(z|\theta)}{q(z)}\frac{q(z)}{p(z|y,\theta)}
+  \end{array}\)</span>
+
+  <p>By taking logarithms on both sides, we get</p>
+  <span  class="math">\(\begin{array}{cc}
+  \log p(y|\theta)
+  \end{array} = \log\frac{p(y|z,\theta)p(z|\theta)}{q(z)}+\log\frac{q(z)}{p(z|y,\theta)}\)</span>
+  <p>By computing the expectation of both sieds w.r.t. $q(z)$, we get </p>
+  <span  class="math">\(\begin{array}{cc}
+  \mathbb{E}[\log p(y|\theta)] = \int q(z)\log\frac{p(y|z,\theta)p(z|\theta)}{q(z)}dz + \int q(z)\log\frac{q(z)}{p(z|y,\theta)}dz
+  \end{array}\)</span>
+
+  <p>By Jensen's inequality, since log function is concave, we have</p>
+
+  <span  class="math">\(\begin{array}{cc}
+  \mathbb{E}[\log p(y|\theta)]\leq \log \mathbb{E}[ p(y|\theta)]
+  \end{array}\)</span></p>
+  
+  <p>Since the term $\int q(z)\log\frac{q(z)}{p(z|y,\theta)}dz$ is the KL divergence between $q(z)$ and $p(z|y,\theta)$ and is hence always non-negative, therefore, we can derive that log likelihood of the $y$ given $\theta$ has a lower bound :
+  <span  class="math">\(\begin{array}{cc}
+  F(q(z),\theta)=\int q(z)\log\frac{p(y|z,\theta)p(z|\theta)}{q(z)}dz
+  \end{array}\)</span>
+
+  <p>Note that the maximum of the lower bound is not the maximum of the actual log likelihood, but it can be shown that by executing E-step and M-step, you are already maximizing the expectation of the log-likelihood functions.</p>
+  </p>
+
+  <h4 id="estep">E-step</h4>
+  
+  <p>E-step starts with a fixed $\theta(t)$ and attempts to maximize $F(q(z),\theta)$ w.r.t. $q(z)$. Obviously, this maximal is attained when the lower bound function $F(q(z),\theta)$ meets the objective likelihood function, i.e., when the KL divergence between $q(z)$ and $p(z|y,\theta)$ is 0.</p>
+  
+  <p>Hence E-step gives $q(z)=p(z|y,\theta(t))$.</p>
+  
+  <h4 id="mstep">M-step</h4>
+  
+  <p>M-step attepmts to maximize $F(q(z),\theta)$ w.r.t. $\theta(t)$ bases on the fixed $q(z)$. We can ignore $q(z)$ in the denominator of $F(q(z),\theta)$ since it's independent of $\theta$. So the M-step can be seen as
+  <span  class="math">\(\begin{array}{cc}
+  \theta_{t}= arg\; max \int q_{t}(z)\log(p(y|z,\theta_{t-1})p(z|\theta_{t-1})) dz
+  \end{array}\)</span></p>
+  
+  <h4 id="convergence-of-em">Convergence of EM</h4>
+  
+  <p>Repeatly executing E-step and M-step until the new solution does not change, EM is guaranteed to converge to a point with zero gradient (may be local min / local max / saddle point).</p>
+  
+  <p>Intuitively, since in each iteration t, EM requires the lower bound $F(q_{t}(z),\theta)$ touches the likelihood function $L(\theta,y)= \mathbb{E}[\log p(y|\theta)]$ at the solution $\theta_{t-1}$, so their gradients are the same too, i.e., $g=\nabla F(q_{t}(z),\theta_{t-1})=\nabla L(\theta_{t-1})$. So $\theta_{t}$ is at least as good as $\theta_{t-1}+\eta g$ , hence EM is at least as good as gradient ascent. If EM converges to $\theta^{*}$ then $\theta^{</em>}$ is a convergent point for gradient ascent too.</p>
+  
+  <h3 id="mpo-algorithm">MPO Algorithm</h3>
+  
+  <p>Conventional formulations of RL aim to find a trajectory that maximizes expected reward, and in contrast, inference formulations start from a prior distribution over trajectories condition a desired outcome (such as achieving a goal state), and then estimate the posterior distribution over trajectories consistent with this outcome.</p>
+  
+  <p>Let $O$ be the event of succeeding at the RL task, $O=1$ if it success, and 0 otherwise. A finite-horizon undisconted reward formulation can be cast as inference problem by constructing a suitable probabilistic model via a likelihood function</p>
+  <span  class="math">\(\begin{array}{cc}p(O=1|\tau) \propto exp(\sum_{t}\frac{r_{t}}{\alpha})\end{array}\)</span>
+
+  <p>where $\alpha$ is a temperature parameter and $r_{t}$ is the shorthand of $r(s_{t},a_{t})$.
+  Then follow from the idea of EM, we can define a lower bound on the likelihood of optimality for the policy $\pi$ :</p>
+
+  <span  class="math">\(\begin{array}{cc}
+  \log p_{\pi}(O=1) = \log \int p_{\pi}(\tau)p(O=1|\tau) d\tau\\
+  \geq \int q(\tau) [\log p(O=1|\tau)+\log\frac{p_{\pi}(\tau)}{q(\tau)}] d\tau \\
+  = \mathbb{E}_{q}[\sum_{t} \frac{r_{t}}{\alpha}] - KL(q(\tau) || p_{\pi}(\tau))\\
+  = \mathcal{J}(q,\pi)
+  \end{array}\)</span>
+
+  <p>where $p_{\pi}$ is the trajectory distribution induced by policy $\pi(a|s)$ :
+
+  <span  class="math">\(\begin{array}{cc}
+  p_{\pi}(\tau) = p(s_{0})\prod_{t\geq 0}p(s_{t+1}|s_{t},a_{t})\pi(a_{t}|s_{t})
+  \end{array}\)</span>
+
+  and $q(\tau)$ is an auxiliary distribution over trajectories.</p>
+  
+  <p>Note that optimizing $\mathcal{J}$ w.r.t. $q$ can be seen as a KL regularized RL problem, and $\mathcal{J}$ can be optimized with the familiy of EM algorithms which alternate between improving $\mathcal{J}$ with respect to $q$ and $\pi$. Recall that EM does not require gradient of objective function, so in contrast to typical off-policy value-gradient algorithms, MPO does not require gradient of the Q-function. Instead, it uses samples from the Q-function to compare different actions in a given state, intuitively, it updates the policy s.t. better actions in that state will have better probabilities to be chosen.</p>
+  
+  <p>Now we need to derive an infinite -horizon analogue of the KL-regularized expected reward objective. Let $q(\tau) = p(s_{0})\prod_{t&gt;0} p(s_{t+1}|s_{t},a_{t})q(a_{t}|s_{t})$, then the structure of $q(\tau)$ is the same as $p_{\pi}$, the KL over trajectories decomposes into a KL over the induvidual state-conditional action distributions, which yields :</p>
+  <span  class="math">\(\begin{array}{cc}
+  \mathcal{J}(q, \theta) = \mathbb{E}_{q}\left[\sum_{t=0}^{\infty} \gamma^{t}[r_{t} - \alpha KL(q(a|s_{t}) || \pi(a|s_{t},\theta))]\right] + \log p(\theta).
+  \end{array}\)</span>
+  
+  <p>The additional term $\log p(\theta)$ is a prior over policy parameters and can be motivated by a maximum a-posteriori estimation problem.</p>
+  
+  <p>In shorthand, $KL(q_{t} || \pi_{t}) = KL(q(a|s_{t}) || \pi(a|s_{t},\theta))$. As associated with $\mathcal{J}(q,\theta)$, we also define the regularized Q-value function :
+  <span  class="math">\(\begin{array}{cc}
+  Q_{\theta}^{q}(s,a) = r_{0} + \mathbb{E}_{q(\tau),s_{0}=s,a_{0}=a}\left[\sum_{t\geq 1}^{\infty} \gamma^{t}(r_{t} - \alpha KL(q_{t}||\pi_{t}))\right].
+  \end{array}\)</span></p>
+  
+  <p>MPO algorithm treats $\pi$ as the primary object of interest, and $q$ as an auxiliary distribution, analogous to EM method, it optimizes $\mathcal{J}$ via alternate coordinate ascent in $q$ and $\pi_{\theta}$. ( Note that EM and MPO are 'methods' rather than specific algorithms, different optimizations in E-step and M-step lead to different algorithms.)</p>
+  
+  <h4 id="estep-of-mpo">E-step of MPO</h4>
+  
+  <p>The E-step (of iteration i) improves $\mathcal{J}(q, \theta)$ w.r.t. $q$ given $\theta = \theta_{i}$.</p>
+  
+  <p>Start by setting $q = \pi_{\theta_{i}}$, then $KL(q||\pi_{i}) = 0$, estimate the unregularized action-value function :
+  <span  class="math">\(\begin{array}{cc}
+  Q_{\theta_{i}}^{q}(s,a) = Q_{\theta_{i}}(s,a) = \mathbb{E}_{\tau_{\pi_{i}},s_{0}=s,a_{0}=a}[\sum_{t\geq 1}^{\infty}\gamma^{t}r_{t}].
+  \end{array}\)</span>
+  $Q_{\theta_{i}}$ can be estimated from off-policy data, which greately increases the data efficiency of our algorithm.</p>
+  
+  <p>A partial E-step can be implemented by optimizing the 'one-step' KL regularized objective :</p>
+  <span  class="math">\(\begin{array}{cc}
+  \underset{q}{\max} \bar{\mathcal{J}}_{s}(q,\theta_{i}) = \underset{q}{\max} T^{\pi,q} Q_{\theta_{i}}(s,a) = \underset{q}{\max}\mathbb{E}_{\mu(s)}[\mathbb{E}_{q(\cdot|s)}[Q_{\theta_{i}}(s,a)] - \alpha KL(q||\pi_{i})] 
+  \end{array}\)</span><br>
+  <p>where $T^{\pi,q}$ is the regularized Bellman operator : </p>
+    <span  class="math">\(\begin{array}{cc}    
+        T^{\pi,q} = \mathbb{E}_{q(a|s)}[r(s,a) - \alpha KL(q||\pi_{i}) + \gamma\mathbb{E}_{p(s^{'}|s,a)}[V_{\theta_{i}}(s^{'})]]
+        \end{array}\)</span>
+
+  <p><font color=blue>We can view $\pi$ here as the current best policy, and $q$ is regularized towards it. </font></p>
+  
+  <p>By maximizing the above equation, we obtain $q_{i} = arg\; max \bar{\mathcal{J}}(q,\theta_{i})$. However, note that we treat $Q_{\theta_{i}}$ as a constant w.r.t. $q$, which is not true, $q_{i}$ does not fully optimize $\mathcal{J}$, hence this is a partial E-step.</p>
+  
+  <h5 id="constrained-estep">Constrained E-step</h5>
+  
+  <p>Note that in the above steps, when we try to optimize the KL regularized objective, the temperature parameter $\alpha$ need to be selected, however, in practice the reward and KL terms are on an arbitrary relative scale, making it difficult to choose $\alpha$. The soft KL regularization can be replaced with a hard constraint :</p>
+  <span  class="math">\(\begin{array}{cc}
+  \underset{q}{\max}\mathbb{E}_{\mu(s)}[\mathbb{E}_{q(a|s)}[Q_{\theta_{i}}(s,a)]]\\
+  constrained\;on: \mathbb{E}_{\mu(s)}[KL(q(a|s),\pi(a|s,\theta_{i}))]<\epsilon
+  \end{array}\)</span>
+  <p>Different from TRPO/PPO, we can choose a non-parametric representation of $q(a|s)$ given by sample based distribution over actions for a state $s$ :
+  <span  class="math">\(\begin{array}{cc}
+  q_{i}(a|s)\propto \pi(a|s,\theta_{i})exp(\frac{Q_{\theta_{i}}(s,a)}{\eta^{*}})
+  \end{array}\)</span>
+  where $\eta^{*}$ can be obtained by minimizing the convex dual function :
+  <span  class="math">\(\begin{array}{cc}
+  g(\eta) = \eta\epsilon +\eta\int \mu(s)\log \int\pi(a|s,\theta_{i})exp(\frac{Q_{\theta_{i}}(s,a)}{\eta})da\;ds
+  \end{array}\)</span></p>
+  
+  <p><font color=blue>In E-step, we fixed $\mu_{q}(s)$ to the stationary distribution given by previously collected experience, and we use the Q function of the old policy to evaluate the integral over $a$, this allows us to estimate the integral over actions with multiple samples without additional environment interaction. As mentioned before, treating $Q_{\theta_{i}}$ as a constant w.r.t. $q$ makes the optimization of $\mathcal{J}$ a partial optimization, but this method greatly reduces the variance of the estimation, and allows for fully off-policy learning, making this step both scalable as well as data efficient. </font></p>
+  
+  <h4 id="mstep-of-mpo">M-step of MPO</h4>
+  
+  <p>M-step optimize the lower bound $\mathcal{J}$ w.r.t. $\theta$ given $q=q_{i}$ (from E-step). Recall that
+  <span  class="math">\(\begin{array}{cc}
+  \mathcal{J}(q,\theta) = \int q(\tau) [\log p(O = 1|\tau) + \log \frac{p_{\pi_{\theta}}(\tau)}{q(\tau)}]d\tau + \log p(\theta)
+  \end{array}\)</span>.
+  <p>Since $p(O=1|\tau)$ and $q$ are independent of $\theta$, then we want to solve :</p>
+  <span  class="math">\(\begin{array}{cc}
+  \theta^{*} = \underset{\theta}{arg\;max}\;\mathbb{E}_{\mu_{q}(s)}[\mathbb{E}_{q(a|s)} [\log \pi(a|s,\theta)]] + \log p(\theta).
+  \end{array}\)</span>
+  <p>It's noted that this is actually a Maximum a Posterior (MAP) estimation where samples are weighted by the variational distribution from the E-step. Since this is a supervised learning problem, it allows us to employ various regularization techniques.</p>
+  
+  <p>We set $p(\theta)$ to be a Gaussian prior around the current policy $\theta_{i}$, this suggests the following generalized M-step:
+  <span  class="math">\(\begin{array}{cc}
+  \underset{\pi}{\max} \mathbb{E}_{\mu_{q}(s)}[\mathbb{E}_{q(a|s)}[\log \pi(a|s,\theta)] - \lambda KL(\pi(a|s,\theta_{i}),\pi(a|s,\theta))]
+  \end{array}\)</span>
+  <p>We can also enforce the hard KL constraint :</p>
+  <span  class="math">\(\begin{array}{cc}
+  \underset{\pi}{\max}\mathbb{E}_{\mu_{q}(s)}[\mathbb{E}_{q(a|s)}[\log \pi(a|s,\theta)]]\\
+  constrained\;on\;\mathbb{E}_{\mu_{q}(s)}[KL(\pi(a|s,\theta_{i}),\pi(a|s,\theta))]<\epsilon
+  \end{array}\)</span>
+  
+  <p>This constraint can reduce overfitting risk, thus increasing stability of the algorithm.</p>
+  
+  <h2 id="summary">Summary</h2>
+  
+  <p>Compared to typicall off-policy value-gradient algorithms, MPO does not require gradient of Q-function, and it has some desirable properties including low variance, low sample complexity, robustness, policy updates via supervised learning in M-step (thus allowing various regularization techs) and so on.</p>
+  
+  <p>Moreover, if the prior on $\theta$ is uninformative, our algorithm has a monotonic improvement guarantee (the math is complicated, I will not show it here).</p>
+  
+  <h2 id="references">References</h2>
+  
+  <p>Abdolmaleki, A., Springenberg, J. T., Tassa, Y., Munos, R., Heess, N., and Riedmiller, M. Maximum a posteriori policy optimisation. arXiv preprint arXiv:1806.06920, 2018.</p>
+  
+  <p>Bi, C. (2019, February 7). The EM Algorithm Explained. Retrieved from <a href="https://medium.com/@chloebee/the-em-algorithm-explained-52182dbb19d9">https://medium.com/@chloebee/the-em-algorithm-explained-52182dbb19d9</a></p>
+  
+  </div>
+	  
+	  <div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+  </main>
+
+  <head>{0xc0006db200 0xc000727200}</head>
+<footer>
+  <div class="copyright">
+    &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  </div>
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$'],['\\(','\\)']],
+displayMath: [['$$','$$']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+</footer>
+      
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-151032737-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
