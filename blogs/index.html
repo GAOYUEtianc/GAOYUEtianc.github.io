@@ -35,6 +35,42 @@
 
   
 
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\[\[','\]\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
 
   <link type="text/css"
         rel="stylesheet"
@@ -96,6 +132,7 @@
         <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
       </div>
       
+      
 
       <h1>Anna&#39;s Blog</h1>
 
@@ -136,6 +173,24 @@
   <div class="posts">
   <article class="post">
       <h1 class="post-title">
+        <a href="https://GAOYUEtianc.github.io/blogs/post/mpo-extension/">MPO Extension</a>
+      </h1>
+
+      <div class="post-date">
+        <time datetime="2020-04-23T10:53:21-0600">Apr 25, 2020</time> · 4 min read
+      </div>
+
+      
+        MPO Extension -- A more intuitive interpretation of MPO Introduction As stated in the last post, MPO is motivated from the perspective of &quot;RL as inference&quot;.
+      
+
+      
+      <div class="read-more-link">
+        <a href="/blogs/post/mpo-extension/">Read More</a>
+      </div>
+      
+    </article><article class="post">
+      <h1 class="post-title">
         <a href="https://GAOYUEtianc.github.io/blogs/post/mpo/">MPO</a>
       </h1>
 
@@ -144,17 +199,15 @@
       </div>
 
       
-        Maximum a Posterior Policy Optimization Background Policy gradient algorithms like TRPO or PPO in practice require carefully runed entropy regularization to prevent policy collaspe                                                                                     
-	  
+        Maximum a Posterior Policy Optimization Background Policy gradient algorithms like TRPO or PPO in practice require carefully runed entropy regularization to prevent policy collaspe, moreover, there are works showing that the plausible performace of PPO comes from the code-level optimization.
       
 
       
       <div class="read-more-link">
         <a href="/blogs/post/mpo/">Read More</a>
       </div>
-	  
-	  
-  <article class="post">
+      
+    </article><article class="post">
       <h1 class="post-title">
         <a href="https://GAOYUEtianc.github.io/blogs/post/dpgeo/">A project on Differential Privacy</a>
       </h1>
@@ -213,10 +266,70 @@ I&rsquo;ll share my reading summaries and maybe also some random research though
 </div>
   </main>
 
-  <head>{0xc000774b40 0xc000777d80}</head>
+  <head>{0xc000723680 0xc00051bcc0}</head>
 <footer>
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
   <div class="copyright">
-    &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    &copy; Gao Yue 2020 · 
   </div>
   <script type="text/javascript" async
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
