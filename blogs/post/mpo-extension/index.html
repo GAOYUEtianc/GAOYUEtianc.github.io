@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>MPO-Extension &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="MPO Extension"/>
+  <meta property="og:description" content="MPO Extension -- A more intuitive interpretation of MPO Introduction As stated in the last post, MPO is motivated from the perspective of &quot;RL as inference&quot;."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/mpo-extension/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2020-04-25T10:53:21-0600"/>
+  <meta property="article:modified_time" content="2020-04-25T10:53:21-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+    {
+      "@context": "http://schema.org",
+      "@type": "BlogPosting",
+      "name": "MPO",
+      "headline": "MPO",
+      "datePublished": "2020-04-20T17:29:59-0600",
+      "dateModified": "2020-04-20T17:29:59-0600",
+      "author": {
+        "@type": "Person",
+        "name": "Gao Yue (Anna)",
+        "url": "https://GAOYUEtianc.github.io/blogs/"
+      },
+      "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+      "url": "https://GAOYUEtianc.github.io/blogs/post/mpo/",
+      "description": "Maximum a Posterior Policy Optimization Background Policy gradient algorithms like TRPO or PPO in practice require carefully runed entropy regularization to prevent policy collaspe, moreover, there are works showing that the plausible performace of PPO comes from the code-level optimization."
+    }
+    </script>
+  
+  
+
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$'], ['\[','\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+
+<main class="content container">
+  <div class="post">
+  <h1>MPO Extension</h1>
+
+  <div class="post-date">
+    <time datetime="2020-04-23T10:53:21-0600">Apr 23, 2020</time> · 4 min read
+  </div>
+
+  <h1 id="mpo-extension--a-more-intuitive-interpretation-of-mpo">MPO Extension -- A more intuitive interpretation of MPO</h1>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>As stated in the last post, MPO is motivated from the perspective of &quot;RL as inference&quot;. A following work, which can be seen as an extension of MPO, provides an alternative perspective — an intuitive perspective (policy evaluation and improvement) of this algorithm.</p>
+
+<p>Generally speaking, many off-policy algorithms are implemented by alternating between two steps :</p>
+
+<ol>
+<li>Policy Evaluation : For the current policy, learn action-value fuction (Q-function).</li>
+<li>Policy Improvement : Given the current action-value function, improve the policy.</li>
+</ol>
+
+<p>By standard definition, the objective function is</p>
+
+<p><span  class="math">\begin{array}{cc}
+\mathcal{J}(\pi) = \mathbb{E}_{\pi,p(s_{0})}[\sum_{t=0}^{\infty}\gamma^{t} r(s_{t},a_{t})|s_{0}\sim p(\cdot), a_{t}\sim \pi(\cdot | s)]
+\end{array}</span></p>
+
+<h1 id="policy-evaluation">Policy Evaluation</h1>
+
+<p>In principle, any sufficiently accurate off-policy method for learing Q-functions can be applied here, e.g., use the simple 1-step TD learning : Fit a parametric Q-function $Q_{\phi}^{\pi}(s,a)$ with parameters $\phi$ by minimizing the squared TD error</p>
+
+<p><span  class="math">
+\begin{array}{cc}
+\min_{\phi} (r(s_{t},a_{t})+\gamma Q_{\phi^{'}}^{\pi^{(k-1)}}(s_{t+1},a_{t+1}\sim \pi^{(k-1)}(a|s_{t+1})) - Q_{\phi}^{\pi^{(k)}}(s_{t},a_{t}))^{2}
+\end{array}
+</span></p>
+
+<h1 id="policy-improvement">Policy Improvement</h1>
+
+<p>Intuitively, if for all state $s$, we improve the expectation $\bar{\mathcal{J}}(s,\pi) = \mathbb{E}_{\pi}[Q^{\pi^{(k)}}(s,a)]$ and our evaluation of $Q$ is accurate enough, then our objective $\mathcal{J}$ will be improved. Note that we don't want to fully optimize $\bar{\mathcal{J}}$ because evaluation of $Q$ is not exact, hence we don't want to be misled by such errors. Basically, the approach is a two-step procedure :</p>
+
+<ol>
+<li>Construct a non-parametric estimate $q$ s.t. $\bar{\mathcal{J}}(s,q)\geq \bar{\mathcal{J}}(s,\pi^{(k)})$</li>
+<li>Update policy by supervised learning (MLE):
+<span  class="math">\(\begin{array}{cc}
+\pi^{(k+1)} = arg\;min_{\pi_{\theta}}\mathbb{E}_{\mu_{\pi}(s)}[KL(q(a|s)||\pi_{\theta}(a|s))]
+\end{array}\)</span></li>
+</ol>
+
+<h2 id="finding-action-weights-correspond-to-estep">Finding Action Weights (Correspond to E-step)</h2>
+
+<p>In this step, we construct $q$ by sample based estimation. Intuitively, we want to assign probability to $q$ such that the 'better' actions have higher probability.</p>
+
+<p>Given a learned approximate Q-function, from the replay buffer, we sample K states $\{s_{j}\}_{j=1,...,K}$. For each state $s_{j}$, we sample $N$ actions from the last policy distribution ($\pi^{k}$), then evaluate each state-action pair using the approximate Q-function. Now we get the states, actions, and their corresponding Q-values : $\{s_{j},\{a_{i},Q^{\pi^{(k)}}(s_{j},a_{i})\}_{i=1,...,N}\}_{j=1,...,K}$. For all $s_{j},a_{i}$, denote $q(a_{i}|s_{j})=q_{ij}$.</p>
+
+<p>In general, we can calculate weights using any rank preserving transformation of the Q-values, here are some choices :</p>
+
+<ol>
+<li>Using ranking to transform Q-values : Choose the weight of the i-th best action for the j-th sampled state to be proportional to $q_{ij} \propto ln(\frac{N+\eta}{i})$, where $\eta$ is a temperature parameter.</li>
+<li>Using an exponential transformation of the Q-values : We want to obtain the weights by optimizing for an optimal assignment of action probabilities, and also constrain the change of the policy to avoid collapsing onto one action immediately. It can be acheived by solving the following KL regularized objective :</li>
+</ol>
+
+<p><span  class="math">\begin{array}{cc}
+q_{ij} = \underset{q(a_{i}|s_{j})}{arg\;max}\sum_{j}^{K}\sum_{i}^{N} q(a_{i}|s_{j})Q^{\pi^{(k)}}(s_{j},a_{i})\\
+s.t.\; \frac{1}{K}\sum_{j}^{K}\sum_{i}^{N}q(a_{i}|s_{j})\log\frac{q(a_{i}|s_{j})}{1/N}<\epsilon;\;\forall j,\sum_{i}^{N}q(a_{i}|s_{j})=1
+\end{array}</span></p>
+
+<p>The constraints here forces the weights to stay close to the last policy probabilities, and the weights are normalized. Its solution can be obtained in closed form :</p>
+
+<p><span  class="math">\begin{array}{ccc}
+q_{ij} = q(a_{i}|s_{j}) = exp(Q^{\pi^{(k)}}(s_{j},a_{i})/\eta)/\sum_{i}exp(Q^{\pi^{(k)}}(s_{j},a_{i})/\eta).
+\end{array}</span></p>
+
+<p>where the temperature parameter $\eta$ can be computed by solving the convex dual function :</p>
+
+<p><span  class="math">\begin{array}{cc}
+\eta = arg\;min_{\eta}\eta\epsilon + \eta\sum_{j}^{K}\frac{1}{K}\log(\sum_{i}^{N}\frac{1}{N}exp(\frac{Q(s_{j},a_{i})}{\eta}))
+\end{array}</span></p>
+
+<p>If you're farmiliar with bandit literature, it's easy to see that this is similar to EXP3 algorithm for adversarial bandit. Actually, on a high level, if the MDP collapses to a bandit setting, this framework can be related to the black-box optimization literature.</p>
+
+<p>Corresponding to E-step in MPO, where we choose the based variational distribution $q(a|s)=\frac{q(a,s)}{\mu(s)}$ s.t. the lower bound on $\log p(\theta_{t}|R=1)$ is as tight as possible, we can derive the same solution from different perspectives.</p>
+
+<h2 id="fitting-an-improved-policy-correspond-to-mstep">Fitting an Improved Policy (Correspond to M-step)</h2>
+
+<p>Note that the $q$ we obtained is only over sampled state &amp; actions, so we want to generalize it over the whole state and action space. For this, we want to minimize the KL divergence between the obtained sample based distribution and the parametric policy $\pi_{\theta}$. We solve a weighted supervised learning problem :</p>
+
+<p><span  class="math">\begin{array}{cc}
+\pi^{(k+1)} = \underset{\pi_{\theta}}{arg\;max}\sum_{j}^{K}\sum_{i}^{N}q_{ij}\log \pi_{\theta}(a_{i}|s_{j})
+\end{array}</span></p>
+
+<p>As it's a supervised learning problem, it can suffer from overfitting, moreover, since the approximation of $Q^{\pi^{(k)}}$ is inexact, the change of the action distribution could be in the wrong direction. To limit the change in the parametric policy, we employ an additional KL constraint, hence the objective became :</p>
+
+<p><span  class="math">\begin{array}{cc}
+\pi^{(k+1)} = \underset{\pi_{\theta}}{arg\;max}\sum_{j}^{K}\sum_{i}^{N}q_{ij}\log \pi_{\theta}(a_{i}|s_{j})\\
+s.t.\;\sum_{j}^{K}\frac{1}{K}KL(\pi^{(k)}(a|s_{j})||\pi_{\theta}(a|s_{j}))<\epsilon_{\pi}
+\end{array}</span></p>
+
+<p>where $\epsilon_{\pi}$ denotes the allowed expected change over state distribution in KL divergence for the policy.</p>
+
+<p>This objective can be extended to a primal optimization problem that can be applied to gradient based optimization :</p>
+
+<p><span  class="math">\begin{array}{cc}
+\underset{\theta}{\max}\;\underset{\alpha>0}{\min}L(\theta,\eta) = \sum_{j}\sum_{i}q_{ij}\log \pi_{\theta}(a_{i}|s_{j}) + \\
+\alpha(\epsilon_{\pi}-\sum_{j}^{K}\frac{1}{K}KL(\pi^{(k)}(a|s_{j})||\pi_{\theta}(a|s_{j})))
+\end{array}</span></p>
+
+<p>This step corresponds to M-step in MPO, where we optimize the parameter $\theta$ of the policy $\pi(a|s,\theta)$ towards the obtained variational distribution $q(a|s)$.</p>
+
+<h1 id="summary">Summary</h1>
+
+<p>Motivated from the perspective of policy evaluation and improvement, an off-policy actor-critic gradient-free algorithm is derived, and this algorithm draws on connections to black-box optimization literature and 'RL as an inference'. This can be seen as an interpretation of MPO (in previous post) from a different perspective.</p>
+
+<h1 id="reference">Reference</h1>
+
+<p>Abdolmaleki, A., Springenberg, J. T., Degrave, J., Bohez, S., Tassa, Y., Belov, D., Heess, N., and Riedmiller, M. Rela- tive entropy regularized policy iteration. arXiv preprint arXiv:1812.02256, 2018a.</p>
+
+</div>
+
+	  <div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+  </main>
+
+  <head>{0xc0006db200 0xc000727200}</head>
+<footer>
+  <div class="copyright">
+    &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  </div>
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$'],['\\(','\\)']],
+displayMath: [['$$','$$']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+</footer>
+      
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-151032737-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
