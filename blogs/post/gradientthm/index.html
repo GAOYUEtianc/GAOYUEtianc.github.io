@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>GradientThm &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="GradientThm"/>
+  <meta property="og:description" content="The Proof of Policy Gradient Theorem Introduction Recall that policy gradient methods aims to directly optimize parameterized policies $\pi_{\theta}(a|s)$."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/gradientthm/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2020-05-30T17:48:22-0600"/>
+  <meta property="article:modified_time" content="2020-05-30T17:48:22-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+    {
+      "@context" : "http://schema.org",
+      "@type" : "Blog",
+      "name": "Anna's Blog",
+      "url" : "https://GAOYUEtianc.github.io/blogs/",
+      "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+      "description": ""
+    }
+    </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "GradientThm",
+    "headline": "GradientThm",
+    "datePublished": "2020-05-30T17:48:22-0600",
+    "dateModified": "2020-05-30T17:48:22-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/gradientthm/",
+    "description": "The Proof of Policy Gradient Theorem Introduction Recall that policy gradient methods aims to directly optimize parameterized policies $\\pi_{\\theta}(a|s)$."
+  }
+  </script>
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$'], ['\[','\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>GradientThm</h1>
+
+  <div class="post-date">
+    <time datetime="2020-05-30T17:48:22-0600">May 30, 2020</time> · 3 min read
+  </div>
+
+  <h1 id="the-proof-of-policy-gradient-theorem">The Proof of Policy Gradient Theorem</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Recall that policy gradient methods aims to directly optimize parameterized policies $\pi_{\theta}(a|s)$. The reward funciton is defined as:</p>
+
+<p><span  class="math">\begin{array}{cc}
+J(\theta) = \sum_{s\in\mathcal{S}}d^{\pi}(s)V^{\pi}(s) = \sum_{s\in \mathcal{S}}d^{\pi}(s)\sum_{a\in\mathcal{A}}\pi_{\theta}(a|s)Q^{\pi}(s,a)
+\end{array}</span></p>
+
+<p>where $d^{\pi}$ is the stationary distribution of Markov chain for $\pi_{\theta}$ ( $d^{\pi}(s)=lim_{t\rightarrow\infty} P(s_{t}=s|s_{0},\pi_{\theta})$ is the probability that $s_{t}=s$ when starting from $s_{0}$ and following policy $\pi_{\theta}$).</p>
+
+<p>Intuitively, we can move $\theta$ toward the direction suggested by the gradient $\nabla_{\theta}J(\theta)$, and the policy gradient theorem gives a nice reformation of the derivative of $J(\theta)$ which not involve the derivative of $d^{\pi}$:</p>
+
+<p><span  class="math">\begin{array}{l}
+\nabla_{\theta}J(\theta) \propto \sum_{s\in\mathcal{S}}d^{\pi}(s)\sum_{a\in\mathcal{A}}Q_{\pi}(s,a)\nabla_{\theta}\pi_{\theta}(a|s)
+\end{array}</span></p>
+
+<p>Here I'll show two different ways to prove the policy gradient theorem.</p>
+
+<h2 id="method-1">Method 1</h2>
+
+<p>First, expand the derivative of the state value function:</p>
+
+<p><span  class="math">\begin{array}{l}
+\nabla_{\theta}V^{\pi}(s)\\
+= \nabla_{\theta}\left(\sum_{a\in\mathcal{A}}\pi_{\theta}(a|s)Q^{\pi}(s,a)\right)\\
+= \sum_{a\in\mathcal{A}}\left(\nabla_{\theta}\pi_{\theta}(a|s)Q^{\pi}(s,a)+\pi_{\theta}(a|s)\nabla_{\theta}Q^{\pi}(s,a)\right)\\
+= \sum_{a\in\mathcal{A}}\left(\nabla_{\theta}\pi_{\theta}(a|s)Q^{\pi}(s,a)+\pi_{\theta}(a|s)\nabla_{\theta}\sum_{s^{'},r}P(s^{'},r|s,a)(r+V^{\pi}(s^{'}))\right)\\
+= \sum_{a\in\mathcal{A}}\left(\nabla_{\theta}\pi_{\theta}(a|s)Q^{\pi}(s,a)+\pi_{\theta}(a|s)\sum_{s^{'},r}P(s^{'},r|s,a)\nabla_{\theta}V^{\pi}(s^{'})\right)\\
+= \sum_{a\in\mathcal{A}}\left(\nabla_{\theta}\pi_{\theta}(a|s)Q^{\pi}(s,a)+\pi_{\theta}(a|s)\sum_{s^{'}}P(s^{'}|s,a)\nabla_{\theta}V^{\pi}(s^{'})\right)
+\end{array}</span></p>
+
+<p>Note that this equation is a recursive form of $\nabla_{\theta}V^{\pi}(s)$, in order to further expand $V^{\pi}(\theta)$, consider the following visitation sequence:</p>
+
+<p><span  class="math">\begin{array}{l}
+s\stackrel{a\sim \pi_{\theta}(\cdot|s)}{\longrightarrow} s^{'} \stackrel{a\sim \pi_{\theta}(\cdot|s^{'})}{\longrightarrow} s^{''} \stackrel{a\sim \pi_{\theta}(\cdot|s^{''})}{\longrightarrow} ...
+\end{array}</span></p>
+
+<p>Let $\rho^{\pi}(s\rightarrow x,k)$ denote the probability of transitioning from state $s$ to state $x$ after $k$ steps under policy $\pi_{\theta}$. Then it's easy to see that $\rho^{\pi}(s\rightarrow s^{'}, k=1)=\sum_{a}\pi_{\theta}(a|s)P(s^{'}|s,a)$; And recursively, $\rho^{\pi}(s\rightarrow x, k+1)=\sum_{s^{'}}\rho^{\pi}(s\rightarrow s^{'},k)\rho^{\pi}(s^{'}\rightarrow x, 1)$.</p>
+
+<p>For simplicity, denote $\phi(s)=\sum_{a\in\mathcal{A}}\nabla_{\theta}\pi_{\theta}(a|s)Q^{\pi}(s,a)$, then we expand $\nabla_{\theta}V^{\pi}(s)$ :</p>
+
+<p><span  class="math">\begin{array}{l}
+\nabla_{\theta}V^{\pi}(s)\\
+= \phi(s)+\sum_{a}\pi_{\theta}(a|s)\sum_{s^{'}}P(s^{'}|s,a)\nabla_{\theta}V^{\pi}(s^{'})\\
+= \phi(s)+\sum_{s^{'}}\sum_{a}\pi_{\theta}(a|s)P(s^{'}|s,a)\nabla_{\theta}V^{\pi}(s^{'})\\
+= \phi(s)+\sum_{s^{'}}\rho^{\pi}(s\rightarrow s^{'},1)\nabla_{\theta}V^{\pi}(s^{'})\\
+= \phi(s)+\sum_{s^{'}}\rho^{\pi}(s\rightarrow s^{'},1)[ \phi(s^{'})+\sum_{s^{''}}\rho^{\pi}(s^{'}\rightarrow s^{''},1)\nabla_{\theta}V^{\pi}(s^{''})]\\
+= \phi(s)+ \sum_{s^{'}}\rho^{\pi}(s\rightarrow s^{'},1)\phi(s^{'}) +\sum_{s^{''}}\rho^{\pi}(s\rightarrow s^{''},2)\nabla_{\theta}V^{\pi}(s^{''})\\
+= ...(Recursively)\\
+= \sum_{x\in\mathcal{S}}\sum_{t=0}^{\infty}\rho^{\pi}(s\rightarrow x,t)\phi(x)
+\end{array}</span></p>
+
+<p>Plugging it into the gradient of $J(\theta)$ :</p>
+
+<p><span  class="math">\begin{array}{l}
+\nabla_{\theta}J(\theta) = \nabla_{\theta}V^{\pi}(s_{0})\;(where\;s_{0}\;is\;a\;random\;state)\\
+= \sum_{s\in\mathcal{S}}\sum_{t=0}^{\infty}\rho^{\pi}(s_{0}\rightarrow s,t)\phi(s)\\
+= \sum_{s\in\mathcal{S}}\eta(s)\phi(s)\\
+= \left(\sum_{s}\eta(s)\right)\sum_{s}\frac{\eta(s)}{\sum_{s}\eta(s)}\phi(s)\\
+\propto \sum_{s}\frac{\eta(s)}{\sum_{s}\eta(s)}\phi(s)\\
+= \sum_{s}d^{\pi}(s)\sum_{a}\nabla_{\theta}\pi_{\theta}(a|s)Q^{\pi}(s,a)\\
+= \sum_{s}d^{\pi}(s)\sum_{a}\pi_{\theta}(a|s)Q^{\pi}(s,a)\frac{\nabla_{\theta}\pi_{\theta}(a|s)}{\pi_{\theta}(a|s)}\\
+= \mathbb{E}_{s\sim d^{\pi};a\sim \pi_{\theta}}[ Q^{\pi}(s,a)\nabla_{\theta}log\; \pi_{\theta}(a|s)]
+\end{array}</span></p>
+
+<p>where $\eta(s) = \sum_{t=0}^{\infty} \rho^{\pi}(s_{0}\rightarrow s,t)$, and $d^{\pi}(s) = \frac{\eta(s)}{\sum_{s}\eta(s)}$ is the stationary distribution.</p>
+
+<h2 id="method-2--proof-by-performance-difference-lemma" t="0">Method 2 : Proof by Performance Difference Lemma</h2>
+
+<h3 id="performance-difference-lemma-for-average-reward-setting">Performance Difference Lemma for Average Reward Setting</h3>
+
+<p><span  class="math">\begin{array}{l}
+J(w)-J(\theta) = \sum_{s\in\mathcal{S}}d^{w}(s)\sum_{a\in\mathcal{A}}(\pi_{w}(a|s)-\pi_{\theta}(a|s))Q_{\theta}(s,a)
+\end{array}</span></p>
+
+<h3 id="performance-difference-lemma-for-discounted-reward-setting">Performance Difference Lemma for Discounted Reward Setting</h3>
+
+<p>For all parametrized poilicies $\pi_{\theta}, \pi_{w}$, and states $s_{0}$,</p>
+
+<p><span  class="math">\begin{array}{l}
+V^{\pi_{w}}(s_{0}) - V^{\pi_{\theta}}(s_{0})=\frac{1}{1-\gamma}\mathbb{E}_{s\sim d^{\pi_{w}}}\mathbb{E}_{a\sim\pi_{w}(\cdot|s)}[ A^{\pi_{\theta}}(s,a)]
+\end{array}</span></p>
+
+<p>where $A^{\pi}$ is the advantage function $A^{\pi}(s,a)=Q^{\pi}(s,a)-V^{\pi}(s)$.</p>
+
+<h3 id="proof-of-policy-gradient-theorem">Proof of Policy Gradient Theorem</h3>
+
+<p>The process of showing that $Q_{w}$ is continuous is ommited. Let $\theta=w_{\epsilon,i}=w+\epsilon e_{i}$, then</p>
+
+<p><span  class="math">\begin{array}{l}
+\frac{\partial J(w)}{\partial w_{i}}=\underset{\epsilon\rightarrow 0}{lim}\frac{J(w)-J(w_{\epsilon,i})}{\epsilon}\\
+= \underset{\epsilon\rightarrow 0}{lim}\frac{\sum_{s\in\mathcal{S}}d^{w}(s)\sum_{a\in\mathcal{A}}(\pi_{w}(a|s)-\pi_{\epsilon,i}(a|s))Q_{w_{\epsilon,i}}(s,a)}{\epsilon}\\
+=\underset{\epsilon\rightarrow 0}{lim}\sum_{s\in\mathcal{S}}d^{w}(s)\sum_{a\in\mathcal{A}}\frac{\pi_{w}(a|s)-\pi_{\epsilon,i}(a|s)}{\epsilon}Q_{w_{\epsilon,i}}(s,a)\\
+=\sum_{s\in\mathcal{S}}d^{w}(s)\sum_{a\in\mathcal{A}}\left(\underset{\epsilon\rightarrow 0}{lim}\frac{\pi_{w}(a|s)-\pi_{\epsilon,i}(a|s)}{\epsilon}\right)\left(\underset{\epsilon\rightarrow 0}{lim} Q_{w_{\epsilon,i}}(s,a)\right)\\
+=\sum_{s\in\mathcal{S}}d^{w}(s)\sum_{a\in\mathcal{A}}\frac{\partial \pi_{w}(a|s)}{\partial w_{i}}Q_{w}(s,a)
+\end{array}</span></p>
+
+<p>Hence $\nabla_{w}J(w) = \sum_{s\in\mathcal{S}}d^{w}(s)\sum_{a\in\mathcal{A}}\nabla_{w}\pi_{w}(a|s)Q_{w}(s,a)$.</p>
+
+<h1 id="reference">Reference</h1>
+
+<p>Gergely Neu, 2019, Twitter, <a href="https://twitter.com/neu_rips/status/1180466116444987392">https://twitter.com/neu_rips/status/1180466116444987392</a></p>
+
+<p>Agarwal, A.; Kakade, S. M.; Lee, J. D.; and Mahajan, G. 2019. Optimality and approximation with policy gradient methods in markov decision processes. arXiv preprint arXiv:1908.00261.</p>
+
+<p>Sham Kakade and John Langford. Approximately Optimal Approximate Reinforcement Learning. In Proceedings of the 19th International Conference on Machine Learning, volume 2, pages 267–274, 2002.</p>
+
+<p>Richard S. Sutton and Andrew G. Barto. Reinforcement Learning: An Introduction; 2nd Edition. 2017.</p>
+
+</div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </main>
+
+  
+<footer>
+  <div class="copyright">
+    &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  </div>
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$'],['\\(','\\)']],
+displayMath: [['$$','$$']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+</footer>
+  
+<script type="application/javascript">
+  var doNotTrack = false;
+  if (!doNotTrack) {
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'UA-151032737-1', 'auto');
+    
+    ga('send', 'pageview');
+  }
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+  
+</body>
+</html>
