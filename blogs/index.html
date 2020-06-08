@@ -32,14 +32,16 @@
     "description": ""
   }
   </script>
-	
-<script type="text/javascript"
+
+  
+
+  <script type="text/javascript"
         async
         src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 MathJax.Hub.Config({
   tex2jax: {
-    inlineMath: [['$','$']],
-    displayMath: [['$$','$$'], ['\[','\]']],
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\[\[','\]\]']],
     processEscapes: true,
     processEnvironments: true,
     skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
@@ -130,7 +132,6 @@ code.has-jax {
         <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
       </div>
       
-      
 
       <h1>Anna&#39;s Blog</h1>
 
@@ -163,21 +164,33 @@ code.has-jax {
       </a>
       
     </section>
-	  
-    <section >
-      <p>  </p>
-      
-      <p style="color:darksalmon";> What's past is prologue</p>
-    </section>	  
   </div>
 </aside>
 
 
-<main class="content container">
+  <main class="content container">
   <div class="posts">
   <article class="post">
       <h1 class="post-title">
-        <a href="https://GAOYUEtianc.github.io/blogs/post/gradientthm/">Gradient Theorem</a>
+        <a href="https://GAOYUEtianc.github.io/blogs/post/isgradient/">Is the Policy Gradient a Gradient ?</a>
+      </h1>
+
+      <div class="post-date">
+        <time datetime="2020-06-04T18:59:08-0600">Jun 4, 2020</time> · 5 min read
+      </div>
+
+      
+        Introduction Policy gradient theorem is the cornerstone of policy gradient methods, and in the last post, I presented the proof of policy gradient therorem, which describes the gradient of the discounted objective.
+      
+
+      
+      <div class="read-more-link">
+        <a href="/blogs/post/isgradient/">Read More</a>
+      </div>
+      
+    </article><article class="post">
+      <h1 class="post-title">
+        <a href="https://GAOYUEtianc.github.io/blogs/post/gradientthm/">GradientThm</a>
       </h1>
 
       <div class="post-date">
@@ -185,7 +198,7 @@ code.has-jax {
       </div>
 
       
-        The Proof of Policy Gradient Theorem Introduction Recall that policy gradient methods aims to directly optimize parameterized policies $\pi_{\theta}(a|s)$.
+        The Proof of Policy Gradient Theorem Introduction Recall that policy gradient methods aims to directly optimize parameterized policies.
       
 
       
@@ -287,11 +300,71 @@ I&rsquo;ll share my reading summaries and maybe also some random research though
     </article>
 </div>
   </main>
-  
-<footer>
 
- <div class="copyright">
-    &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  <head>{0xc000026a20 0xc00002e960}</head>
+<footer>
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  <div class="copyright">
+    &copy; Gao Yue 2020 · 
   </div>
   <script type="text/javascript" async
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
@@ -299,7 +372,7 @@ I&rsquo;ll share my reading summaries and maybe also some random research though
 MathJax.Hub.Config({
 tex2jax: {
 inlineMath: [['$','$'],['\\(','\\)']],
-displayMath: [['$$','$$']],
+displayMath: [['$$','$$'],],
 processEscapes: true,
 processEnvironments: true,
 skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
@@ -322,6 +395,20 @@ for(i = 0; i < all.length; i += 1) {
 
   
 
+
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
+          integrity="sha256-MAgcygDRahs+F/Nk5Vz387whB4kSK9NXlDN3w58LLq0="
+          crossorigin="anonymous"></script>
+
+  <script type="text/javascript"
+          src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        </script>        
+
+  
+
+  
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
