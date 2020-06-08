@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>Is the Policy Gradient a Gradient ? &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="Is the Policy Gradient a Gradient ?"/>
+  <meta property="og:description" content="Introduction Policy gradient theorem is the cornerstone of policy gradient methods, and in the last post, I presented the proof of policy gradient therorem, which describes the gradient of the discounted objective w."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/isgradient/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2020-06-04T18:59:08-0600"/>
+  <meta property="article:modified_time" content="2020-06-04T18:59:08-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "Is the Policy Gradient a Gradient ?",
+    "headline": "Is the Policy Gradient a Gradient ?",
+    "datePublished": "2020-06-04T18:59:08-0600",
+    "dateModified": "2020-06-04T18:59:08-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/isgradient/",
+    "description": "Introduction Policy gradient theorem is the cornerstone of policy gradient methods, and in the last post, I presented the proof of policy gradient therorem, which describes the gradient of the discounted objective w."
+  }
+  </script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+  });
+    MathJax.Hub.Queue(function() {
+      // Fix <code> tags after MathJax finishes running. This is a
+      // hack to overcome a shortcoming of Markdown. Discussion at
+      // https://github.com/mojombo/jekyll/issues/199
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i = 0; i &lt; all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+  
+  </script>
+  <script type="text/javascript"
+    src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script>
+  
+
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\[\[','\]\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=200&d=mp" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>Is the Policy Gradient a Gradient ?</h1>
+
+  <div class="post-date">
+    <time datetime="2020-06-04T18:59:08-0600">Jun 4, 2020</time> · 5 min read
+  </div>
+
+  <h1 id="introduction">Introduction</h1>
+
+<p>Policy gradient theorem is the cornerstone of policy gradient methods, and in the last post, I presented the proof of policy gradient therorem, which describes the gradient of the discounted objective w.r.t. policy parameters. But in actual computation, most policy gradient methods drop the discount factor from the state distribution, and hence it does not actually optimize the discounted objective ($J(\theta)$). A recent work by Nota and Thomas answers the following mysteries:</p>
+
+<ul>
+<li>What do these policy gradient algorithms optimize instead?</li>
+<li>Whether these algorithms are unbiased w.r.t. a reasonable, related objective?</li>
+</ul>
+
+<h2 id="notations-and-problem-statement">Notations and Problem Statement</h2>
+
+<p>An MDP is a tuple, $(\mathcal{S},\mathcal{A},P,R,d_{0},\gamma)$.
+$d_{0}:\mathcal{S}\rightarrow [0,1]$ be the initial state distribution;
+$P:\mathcal{S}\times \mathcal{A}\times \mathcal{S}\rightarrow [0,1]$ be the transition function of MDP;
+$R:\mathcal{S}\times\mathcal{A}\rightarrow $ be the expected reward from taking an action in a particular state;
+$\gamma\in [0,1]$ be the discount factor;</p>
+
+<p>Let $\pi_{\theta};Q<sup>{\theta}_{\gamma}(s,a);V</sup>{\theta}<em>{\gamma}(s,a);A^{\theta}</em>{\gamma}(s,a)$ respectively be the parametrized policy; action-value function; state-value function; advantage function.</p>
+
+<p>In episodic setting, there are two commonly used objectives,
+Discounted objective:</p>
+
+<p><span  class="math">\[\begin{array}{l}
+J_{\gamma}(\theta) = \mathbb{E}[\sum_{t=0}^{\infty}\gamma^{t}R_{t}|\theta]
+\end{array}\]</span></p>
+
+<p>Undiscounted objective:</p>
+
+<p><span  class="math">\[\begin{array}{l}
+J(\theta) = \mathbb{E}[\sum_{t=0}^{\infty}R_{t}|\theta]
+\end{array}\]</span></p>
+
+<p>The policy gradient theorem gave the gradient of discounted objective :</p>
+
+<p><span  class="math">\[\begin{array}{l}
+\nabla J_{\gamma}(\theta) = \mathbb{E}[\sum_{t=0}^{\infty} \gamma^{t}\Phi^{\theta}(S_{t},A_{t})Q_{\gamma}^{\theta}(S_{t},A_{t})|\theta]
+\end{array}\]</span></p>
+
+<p>where $\Phi^{\theta} = \frac{\partial}{\partial \theta}log\;\pi^{\theta}(s,a)$ is the compatible feature.</p>
+
+<p>However, instead of using $\nabla J_{\gamma}(\theta)$, most policy gradient algorithms directly or indirectly estimate this expression:</p>
+
+<p><span  class="math">\[\begin{array}{l}
+\nabla J_{?}(\theta) = \mathbb{E}[\sum_{t=0}^{\infty} \Phi^{\theta}(S_{t},A_{t})Q_{\gamma}^{\theta}(S_{t},A_{t})|\theta]
+\end{array}\]</span></p>
+
+<p>and update $\pi_{\theta}$ towards this direction. <font color = red>Note that $Q_{\gamma}<sup>{\theta}=\mathbb{E}[\sum_</sup>{\infty}\gamma^{k}R_{t+k}|S_{t}=s, A_{t}=a, \theta]$ is associated with $\gamma$, and here $J_{?}(\theta)$ only drops the ourter discount factor. </font> It's an open question that whether $J_{?}(\theta)$ is a gradient of some reasonable objective function.</p>
+
+<h2 id="what-is-nabla-jtheta-actually" k="0">What is $\nabla J_{?}(\theta)$ actually?</h2>
+
+<p>It can be shown by proof of contradiction that $\nabla J_{?}(\theta)$ is not gradient of any function.</p>
+
+<blockquote>
+<p>If $f:\mathbb{R}^{n}\rightarrow \mathbb{R}$ exists and is continuously twice differentiable in some neighborhood of the point $(a_{1},a_{2},...,a_{n})$, then its second derivative is symmetric, i.e.,
+ $\frac{\partial f(a_{1},a_{2},...,a_{n})}{\partial x_{i}\partial x_{j}} = \frac{\partial f(a_{1},a_{2},...,a_{n})}{\partial x_{j}\partial x_{i}}\;\;\forall i,j$</p>
+</blockquote>
+
+<p>This is the well-known Clairaut-Schwarz theorem. And obviously, the contrapositive of it is :</p>
+
+<blockquote>
+<p>If at some point $(a_{1},a_{2},...,a_{n})\in \mathbb{R}^{n}$ there exist an $i$ and $j$ such that $\frac{\partial f(a_{1},a_{2},...,a_{n})}{\partial x_{i}\partial x_{j}}\neq \frac{\partial f(a_{1},a_{2},...,a_{n})}{\partial x_{j}\partial x_{i}}$, then $f$ does not exist or is not continuously twice differential in any neighborhood of $(a_{1},a_{2},...,a_{n})$.</p>
+</blockquote>
+
+<p>Ideally, if we can find a counter example s.t. $\nabla^{2}J_{?}(\theta)$ is continous and asymmetric, then $J_{?}$ does not exist. First, rewrite $J_{?}$ in a new form :</p>
+
+<blockquote>
+<p>Let $d_{\gamma}^{\theta}$ be the unnormalized, weighted state-distribution given by
+<span  class="math">\(\begin{array}{l}
+d_{\gamma}^{\theta}(s) := d_{0}(s) + (1-\gamma)\sum_{t=1}^{\infty} Pr[S_{t} = s|\theta]. 
+\end{array}\)</span>
+Then
+<span  class="math">\(\begin{array}{l}
+\nabla J_{?}(\theta) = \sum_{s\in\mathcal{S}}d_{\gamma}^{\theta}(s)\frac{\partial}{\partial\theta}V_{\gamma}^{\theta}(s).
+\end{array}\)</span></p>
+</blockquote>
+
+<p>Note that the 1st order derivative does not consider the update effect on state distribution. <font color = red>And this is the source of asymmetry of $\nabla^{2}J_{?}(\theta)$.</font></p>
+
+<p>Then the gradient $\frac{\partial^{2}J_{?}(\theta)}{\partial\theta_{i}\partial\theta_{j}}$ can be written as :</p>
+
+<p><span  class="math">\[\begin{array}{l}
+\frac{\partial^{2}J_{?}(\theta)}{\partial\theta_{i}\partial\theta_{j}} = \frac{\partial}{\partial\theta_{i}}\left(\sum_{s\in\mathcal{S}}d_{\gamma}^{\theta}(s)\frac{\partial}{\partial\theta_{j}}V_{\gamma}^{\theta}(s)\right)\\
+= \sum_{s\in\mathcal{S}}\frac{\partial}{\partial\theta_{i}}d_{\gamma}^{\theta}(s)\frac{\partial}{\partial\theta_{j}}V_{\gamma}^{\theta}(s)+\sum_{s\in\mathcal{S}}d_{\gamma}^{\theta}(s)\frac{\partial^{2}}{\partial\theta_{i}\partial\theta_{j}}V_{\gamma}^{\theta}(s)
+\end{array}\]</span></p>
+
+<p>The first term is asymmetric.</p>
+
+<p>By a counterexample, we can intuitively see the asymmetricity and continuity of $\nabla^{2}J_{?}(\theta)$, and hence $J_{?}$ does not exist.</p>
+
+<p>As shown in Figure 1, since only the state-action pair $(s_{2},a_{2})$ can get reward 1 and taking $a_{2}$ on state $s_{1}$ will transit into $s_{3}$, $\theta_{1}$ affects both the value function and the state distribution, however, $\theta_{2}$ only affect the value function, not the state distribution. Hence if $\gamma<pre><code></code></pre>$ is not zero, but the first term in $\frac{\partial^{2}J_{?}(\theta)}{\partial\theta_{2}\partial\theta_{1}}$ is 0, and the second terms are equal.</p>
+
+<h2 id="does-nabla-jtheta-converge-to-a-reasonable-policy">Does $\nabla J_{?}(\theta)$ converge to a reasonable policy?</h2>
+
+<p>Although $\nabla J_{?}(\theta)$ is not the gradient of any function for $\gamma &lt;1$, it's still possible that by updating $\theta$ towards the direction of $\nabla J_{?}(\theta)$, it finally converges to a reasonable policy. (e.g., TD fixed point)</p>
+
+<p>We set a low bar for so-called 'reasonable policy' : Any reasonable policy fixed point should at least surpass the pessimal policy under either the discounted or undiscounted objective.</p>
+
+<p>Unfortunately, $J_{?}(\theta)$ even fails to pass this low bar.</p>
+
+<p>As shown in Figure 2, this MDP achieves better discounted/undiscounted reward by always selecting action $a_{1}$. But since $\nabla J_{?}(\theta)$ ignores the change in the state distribution and $\nabla J_{?}(\theta)$ does not include the outer $\gamma^{t}$ ($\nabla J_{?}(\theta) = \sum_{s\in\mathcal{S}}d_{\gamma}<sup>{\theta}(s)\frac{\partial}{\partial\theta}V_{\gamma}</sup>{\theta}(s)$), and the advantage of $a_{1}$ in $s_{1}$ is 2, the advantage of $a_{2}$ in $s_{2}$ is 4, and the advantage of $a_{2}$ in $s_{3}$ or $s_{5}$ is 0; Hence following $\nabla J_{?}(\theta)$ will result in always choosing $a_{2}$.</p>
+
+<p>This work reviewed several impactful policy gradient algorithm works, and pointed out that all of them use $\nabla J_{?}(\theta)$; Only one paper noticed that $\nabla J_{?}(\theta)$ is a biased estimator; Some papers even made misleading claims in that they presented $\nabla J_{\gamma}(\theta)$ while use $\nabla J_{?}(\theta)$ in the algorithms.</p>
+
+<h2 id="reflections-and-further-topics">Reflections and Further Topics</h2>
+
+<p>After reading this work, I had a discussion with Alan Chan, Eric Graves, and Alex Lewandowski. Here're some opionions we all agreed on.</p>
+
+<p>'Not being a gradient' may not be harmful by itself, but what's the actual reason for efficiency of those policy gradient algorithms is a valuable open question. We obviously lack understanding of what an update actual does (if the update direction is not a gradient or something), and the contradiction that 'people actually care about undiscounted objective' and 'to limit the update size, algorithms use discounted objective' might be a core reason for the inconsistency of the theory and empirical performance.</p>
+
+<p>There're several related further topics that we would like to keep an eye on:</p>
+<pre><code>1. Objective function : What&#39;s a reasonable and coherent onjective funtion ? If we still try to maximize the undiscounted objective while using discounted objective in the algorithmic level, is it a good idea to tune the discount factor and empirically maximize the undiscounted objective? Is there any other general way ?
+
+2. Update Rules : As the paper &#39;Implementation Matters in Deep RL: A Case Study on PPO and TRPO&#39; pointed out, we don&#39;t understand how the parts comprising deep RL algorithms impact agent training, we need a more precise studying on the update rules. 
+
+3. What is a &#39;principled&#39; state distribution to learn with? </code></pre>
+<h2 id="reference">Reference</h2>
+
+<p>Chris Nota, Philip S. Thomas. Is the Policy Gradient a Gradient? arXiv preprint arXiv:1906.07073, 2019.</p>
+
+<p>Logan Engstrom, Andrew Ilyas, Shibani Santurkar, Dimitris Tsipras, Firdaus Janoos, Larry Rudolph, Aleksander Madry. Implementation Matters in Deep RL: A Case Study on PPO and TRPO. <a href="https://openreview.net/forum?id=r1etN1rtPB">https://openreview.net/forum?id=r1etN1rtPB</a>.</p>
+
+</div>
+
+
+
+  </main>
+
+  <head>{0xc000523440 0xc00054b0a0}</head>
+<footer>
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  <div class="copyright">
+    &copy; Gao Yue 2020 · 
+  </div>
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$'],['\\(','\\)']],
+displayMath: [['$$','$$'],],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+</footer>
+
+  
+
+
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
+          integrity="sha256-MAgcygDRahs+F/Nk5Vz387whB4kSK9NXlDN3w58LLq0="
+          crossorigin="anonymous"></script>
+
+  <script type="text/javascript"
+          src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        </script>        
+
+  
+
+  
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-151032737-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
