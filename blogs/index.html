@@ -28,36 +28,33 @@
     "@type" : "Blog",
     "name": "Anna's Blog",
     "url" : "https://GAOYUEtianc.github.io/blogs/",
-    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
     "description": ""
   }
   </script>
-
-  
-
   <script type="text/javascript"
-        async
-        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  async
+  src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 MathJax.Hub.Config({
-  tex2jax: {
-    inlineMath: [['$','$'], ['\\(','\\)']],
-    displayMath: [['$$','$$'], ['\[\[','\]\]']],
-    processEscapes: true,
-    processEnvironments: true,
-    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-    TeX: { equationNumbers: { autoNumber: "AMS" },
-         extensions: ["AMSmath.js", "AMSsymbols.js"] }
-  }
+tex2jax: {
+inlineMath: [['$','$']],
+displayMath: [['$$','$$'], ['\[','\]']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
 });
 
 MathJax.Hub.Queue(function() {
-    
-    
-    
-    var all = MathJax.Hub.getAllJax(), i;
-    for(i = 0; i < all.length; i += 1) {
-        all[i].SourceElement().parentNode.className += ' has-jax';
-    }
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
 });
 </script>
 
@@ -125,62 +122,80 @@ code.has-jax {
   </head>
 <body>
   <aside class="sidebar">
-  <div class="container">
-    <div class="sidebar-about">
-      
-      <div class="author-image">
-        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+    <div class="container">
+      <div class="sidebar-about">
+        
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+        </div>
+        
+  
+        <h1>Anna&#39;s Blog</h1>
+  
+        
       </div>
-      
-
-      <h1>Anna&#39;s Blog</h1>
-
-      
+  
+      <nav>
+        <ul class="sidebar-nav">
+          <li>
+            <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+          </li>
+          <li>
+            <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+          </li>
+        </ul>
+      </nav>
+  
+      <section class="social-icons">
+        
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+        
+      </section>
     </div>
-
-    <nav>
-      <ul class="sidebar-nav">
-        <li>
-          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
-        </li>
-        <li>
-          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
-        </li>
-      </ul>
-    </nav>
-
-    <section class="social-icons">
-      
-      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
-        <i class="fab fa-linkedin" aria-hidden="true"></i>
-      </a>
-      
-      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
-        <i class="fab fa-github" aria-hidden="true"></i>
-      </a>
-      
-      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
-        <i class="fab fa-facebook" aria-hidden="true"></i>
-      </a>
-      
-    </section>
-  </div>
-</aside>
+  </aside>
 
 
   <main class="content container">
   <div class="posts">
   <article class="post">
       <h1 class="post-title">
+        <a href="https://GAOYUEtianc.github.io/blogs/post/talk/">A Talk : Is the Policy Gradient a Gradient ?</a>
+      </h1>
+
+      <div class="post-date">
+        <time datetime="2020-07-16T14:26:32-0600">Jul 16, 2020</time> · 1 min read
+      </div>
+
+      
+        Here's my slides of a talk about the paper &quot;Is the Policy Gradient a Gradient ?
+      
+
+      
+      <div class="read-more-link">
+        <a href="/blogs/post/talk/">Read More</a>
+      </div>
+      
+    </article><article class="post">
+      <h1 class="post-title">
         <a href="https://GAOYUEtianc.github.io/blogs/post/isgradient/">Is the Policy Gradient a Gradient ?</a>
       </h1>
 
       <div class="post-date">
-        <time datetime="2020-06-07T18:59:08-0600">Jun 7, 2020</time> · 5 min read
+        <time datetime="2020-06-04T18:59:08-0600">Jun 4, 2020</time> · 5 min read
       </div>
 
       
-        Introduction Policy gradient theorem is the cornerstone of policy gradient methods, and in the last post, I presented the proof of policy gradient therorem, which describes the gradient of the discounted objective.
+        Introduction Policy gradient theorem is the cornerstone of policy gradient methods, and in the last post, I presented the proof of policy gradient therorem, which describes the gradient of the discounted objective w.
       
 
       
@@ -198,7 +213,7 @@ code.has-jax {
       </div>
 
       
-        The Proof of Policy Gradient Theorem Introduction Recall that policy gradient methods aims to directly optimize parameterized policies.
+        The Proof of Policy Gradient Theorem Introduction Recall that policy gradient methods aims to directly optimize parameterized policies $\pi_{\theta}(a|s)$.
       
 
       
@@ -300,28 +315,37 @@ I&rsquo;ll share my reading summaries and maybe also some random research though
     </article>
 </div>
   </main>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
-          integrity="sha256-MAgcygDRahs+F/Nk5Vz387whB4kSK9NXlDN3w58LLq0="
-          crossorigin="anonymous"></script>
-
-  <script type="text/javascript"
-          src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-        </script>        
-
+  <footer>
+    
+    <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
   
-
+  MathJax.Hub.Config({
+  tex2jax: {
+  inlineMath: [['$','$'],['\\(','\\)']],
+  displayMath: [['$$','$$']],
+  processEscapes: true,
+  processEnvironments: true,
+  skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+  TeX: { equationNumbers: { autoNumber: "AMS" },
+     extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+  });
   
-<script type="application/javascript">
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
-	ga('create', 'UA-151032737-1', 'auto');
-	
-	ga('send', 'pageview');
-}
-</script>
+  MathJax.Hub.Queue(function() {
+  
+  
+  
+  var all = MathJax.Hub.getAllJax(), i;
+  for(i = 0; i < all.length; i += 1) {
+    all[i].SourceElement().parentNode.className += ' has-jax';
+  }
+  });
+  </script>
+  </footer>
 <script async src='https://www.google-analytics.com/analytics.js'></script>
+
+
 
 </body>
 </html>
