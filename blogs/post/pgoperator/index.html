@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>An Operator View of Policy Gradient Methods &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="An Operator View of Policy Gradient Methods"/>
+  <meta property="og:description" content="Introduction As I wroted in my recent post, I wonder since in PG algorithms, the update direction is not actually the gradient, then its not quite clear what an update actually does and why it finally converges to a promising policy."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/pgoperator/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2020-08-03T14:05:52-0600"/>
+  <meta property="article:modified_time" content="2020-08-03T14:05:52-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "An Operator View of Policy Gradient Methods",
+    "headline": "An Operator View of Policy Gradient Methods",
+    "datePublished": "2020-08-03T14:05:52-0600",
+    "dateModified": "2020-08-03T14:05:52-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/pgoperator/",
+    "description": "Introduction As I wroted in my recent post, I wonder since in PG algorithms, the update direction is not actually the gradient, then its not quite clear what an update actually does and why it finally converges to a promising policy."
+  }
+  </script>
+  <script type="text/javascript"
+  async
+  src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$']],
+displayMath: [['$$','$$'], ['\[','\]']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>An Operator View of Policy Gradient Methods</h1>
+
+  <div class="post-date">
+    <time datetime="2020-08-03T14:05:52-0600">Aug 6, 2020</time> · 8 min read
+  </div>
+
+  <h1 id="introduction">Introduction</h1>
+
+<p>As I wroted in my recent post, I wonder since in PG algorithms, the update direction is not actually the gradient, then its not quite clear what an update actually does and why it finally converges to a promising policy. A recent work by Ghosh et al. gave an answer to this question by viewing PG as the repeated application of two operators : a policy improvement operator $\mathcal{I}$, which maps any policy to a policy achieving strictly larger return; And a projection operator $\mathcal{P}$, which finds the best approximation of this new policy in the space of realizable policies. This perspective is novel and essential since it allows us to bridge the gap between policy-based and value-based methods.</p>
+
+<h1 id="prelinimaries">Prelinimaries</h1>
+
+<h2 id="notations">Notations</h2>
+
+<p>An infinite-horizon discounted MDP is defined by the tuple $\mathcal{M} = \langle \mathcal{S}, \mathcal{A}, p, r, d_{0}, \gamma\rangle$, where $\mathcal{S}$ is a finite set of states, $\mathcal{A}$ is a finite action set, $p : \mathcal{S}\times \mathcal{A}\rightarrow \mathcal{S}$ is the transition probability function, $r: \mathcal{S}\times \mathcal{A}\rightarrow [0, R_{max}]$ is the reward function, $d_{0}$ is the initial distribution of states, $\gamma\in[0,1)$ is the discounted factor. Let $\Delta(\cdot)$ denote the probability simplex, then the agent's goal is to learn a policy $\pi: \mathcal{S}\times \mathcal{A}\rightarrow \Delta(\mathcal{S})$ that maximizes the expected discounted return</p>
+
+<h2 id="trajectory-formulation">Trajectory Formulation</h2>
+
+<p>The expected discounted return can be defined as $J(\pi) = \mathbb{E}_{s_{0}, a_{0}, ...}[\sum_{t=0}^{\infty} \gamma^{t}r(s_{t}, a_{t})]$, where $s_{0}\sim d_{0}, a_{t}\sim \pi(a_{t}|s_{t})$, and $s_{t+1}\sim p(s_{t+1}|s_{t}, a_{t})$. Let $\tau$ denote a specific trajectory $\tau = \langle s_{0}, a_{0}, s_{1}, ... \rangle$, and $R(\tau)=\sum_{t=0}^{\infty}\gamma^{t}r(s_{t}, a_{t})$ denotes the return of trajectory $\tau$.</p>
+
+<p>PG methods aims to find the policy $\pi^{*} = arg max_{\pi}\int_{\tau} R(\tau)\pi(\tau)d\tau$. Since there's a restricted class $\Pi$ parametrized by $\theta\in\mathbb{R}^{d}$, and hence the problem becomes $\theta^{*} = argmax_{\theta}J(\pi_{\theta}) = argmax_{\theta}\int_{\tau}R(\tau)\pi_{\theta}(\tau)d\tau$.</p>
+
+<p>One of the traditional PG methods, REINFORCE (by Williams), performs the following update :</p>
+
+<p><span class="math">\(\theta_{t+1} = \theta_{t} + \epsilon_{t}\int_{\tau}\pi_{\theta_{t}}(\tau)R(\tau)\frac{\partial \log \pi_{\theta}(\tau)}{\partial \theta}|_{\theta = \theta_{t}}d\tau\)</span></p>
+
+<p>where $\epsilon_{t}$ is a stepsize.</p>
+
+<h2 id="valuebased-formulation">Value-Based Formulation</h2>
+
+<p>The state value function is $V^{\pi}(s_{t}) = \mathbb{E}_{a_{t}, s_{t+1}, ...}[\sum_{t=0}^{\infty} \gamma^{k}r(s_{t+k},a_{t+k})]$; State-action value function is $Q^{\pi}(s_{t}, a_{t}) = \mathbb{E}_{s_{t+1}, a_{t+1}, ...}[\sum_{t=0}^{\infty} \gamma^{k}r(s_{t+k}, a_{t+k})]$, where $a_{t}\sim \pi(a_{t}|s_{t})$ and $s_{t+1}\sim p(s_{t+1}|s_{t}, a_{t})$. The agent aims to maximize $\mathbb{E}_{s_{0}}V^{\pi}(s_{0})$ and Sutton et al. gave an update for the state-action formulation (which is equivalent to the REINFORCE above) :</p>
+
+<p><span class="math">\(\theta_{t+1} = \theta_{t} + \epsilon\sum_{s}d^{\pi_{t}(s)}\sum_{a}\pi_{t}(a|s)Q^{\pi_{t}}(s, a)\frac{\partial \log \pi_{\theta}(a|s)}{\partial \theta}|_{\theta = \theta_{t}}\)</span></p>
+
+<p>where $d^{\pi}$ is the discounted stationary distribution induced by policy $\pi$.</p>
+
+<h1 id="an-operator-view-of-reinforce">An Operator View of Reinforce</h1>
+
+<p>In short, all of these approaches can be cast as minimizing a divergence measure between the current policy $\pi$ and a fixed policy $\mu$ which achieves higher return than $\pi$. Moving from $\pi$ to $\mu$ can be seen as a policy improvement step $\mu = \mathcal{I}(\pi)$ where $\mathcal{I}$ is the improvement operator. Note that $\mu$ might not be in the set of realizable policies, the divergence minimization acts as a projection step using a projection operator $\mathcal{P}$. Then which improvement/projection operators to use? They should satisfy (a) The optimal policy $\pi(\theta^{*})$ should be a stationary point of the composition $\mathcal{P}\circ \mathcal{I}$. (b) Doing an approximate projection step of $\mathcal{I}\pi$ should always lead to a better policy than $\pi$. Next an operator view of REINFORCE is presented (for both trajectory formulation and value-based formulation)</p>
+
+<h2 id="trajectory-formulation-1">Trajectory Formulation</h2>
+
+<blockquote>
+<p><strong>Proposition 1</strong> Assuming all returns $R(\tau)$ are positive, then REINFORCE (trajectory formulation) can be seen as doing gradient step to minimize $KL(R\pi_{t}||\pi)$, where $R\pi_{t}$ is defined by
+<span  class="math">\(R\pi_{t} = \frac{1}{J(\pi_{t})} R(\tau)\pi_{t}(\tau).\)</span>
+Hence, the two operators associated with OP-REINFORCE are
+<span  class="math">\(\mathcal{I}_{\tau}(\pi)(\tau) = R\pi(\tau);\;\mathcal{P}(\mu) = argmin_{\pi\in \Pi}KL(\mu||\pi),\)</span>
+where $\Pi$ is the set of realizable policies.</p>
+</blockquote>
+
+<p>Proof of <strong>Proposition 1</strong> : Denoting $\mu$ the distribution over trajectories such that $\mu(\tau)\propto R(\tau)\pi(\tau)$, since $J(\pi_{t}) = \int_{\tau}R(\tau)\pi_{t}(\tau)d\tau$, then $\mu(\tau) = \frac{1}{J(\pi)}R(\tau)\pi(\tau)$. Then</p>
+
+<p><span  class="math">\(KL(\mu||\pi) = \int_{\tau}\mu(\tau)\log\frac{\mu(\tau)}{\pi(\tau)}d\tau = -\int_{\tau}\mu(\tau)\log\frac{\pi(\tau)}{\mu(\tau)}d\tau \\
+= -\int_{\tau}\mu(\tau)\log\pi(\tau)d\tau+\int_{\tau}\mu(\tau)\log\mu(\tau)d\tau.\)</span></p>
+
+<p>Fix $\mu$, take derivative in the context of the projection operator, we have</p>
+
+<p><span  class="math">\(\frac{\partial KL(\mu||\pi)}{\partial \theta} = -\int_{\tau} \mu(\tau)\nabla_{\theta}\log \pi(\tau)d\tau\\
+\propto -\int_{\tau}R(\tau)\pi(\tau)\nabla_{\theta}\log \pi(\tau) d\tau\)</span></p>
+
+<p>which is the update direction of REINFORCE (in the trajectory formula).</p>
+
+<p>But note that OP-REINFORCE is different from REINFORCE, since it solves the projection exactly rather than doing just one step of gradient descent. Hence it remains to show that OP-REINFORCE actually converge to the optimum:</p>
+
+<blockquote>
+<p><strong>Proposition 2</strong> $\pi(\theta^{*})$ is a fixed point of $\mathcal{P}_{\tau}\circ \mathcal{I}_{\tau}$.</p>
+</blockquote>
+
+<p>Proof of <strong>Proposition 2</strong> :</p>
+
+<p><span  class="math">\(\nabla_{\theta}KL(R\pi^{*}||\pi)|_{\pi=\pi^{*}} = \int_{t}R(\tau)\pi^{*}(\tau)\nabla_{\theta}\pi^{*}(\tau)d\tau = 0.\)</span></p>
+
+<h2 id="valuebased-formulation-1">Value-Based Formulation</h2>
+
+<blockquote>
+<p><strong>Proposition 3</strong> If all $Q^{\pi}(s, a)$ are positive, then REINFORCE (in the value-based formula) can be seen as doing a gradient step to minimize
+<span  class="math">\(D_{V_{t}^{\pi}\pi_{t}}(Q^{\pi_{t}}\pi_{t}||\pi) = \sum_{s}d^{\pi_{t}}(s)V^{\pi_{t}}(s)KL(Q^{\pi_{t}}\pi_{t}||\pi)\)</span>
+where $D_{V_{t}^{\pi}\pi_{t}}$ and the distribution $Q^{\pi}\pi$ over actions are defined as :
+<span  class="math">\(D_{z}(\mu||\pi) = \sum_{s}z(s)KL(\mu(\cdot|s)||\pi(\cdot|s)),\)</span>
+<span  class="math">\(Q^{\pi}\pi(a|s) = \frac{1}{\sum_{a^{'}}Q(s,a^{'})\pi(a^{'}|s)}Q(s,a)\pi(a|s)=\frac{1}{V^{\pi}(s)}Q(s,a)\pi(a|s)\)</span>
+Hence the two operators associated with the state-action formulation are:
+<span  class="math">\(\mathcal{I}_{V}(\pi)(s, a) = \left(\frac{1}{\mathbb{E}_{\pi}[V^{\pi} ]}d^{\pi}(s)V^{\pi}(s)\right)Q^{\pi}\pi(a|s),\)</span>
+<span  class="math">\(\mathcal{P}_{V}(\mu) = argmin_{z\in\Pi}\sum_{s}\mu(s)KL(\mu(\cdot|s)||z(\cdot|s))\)</span></p>
+</blockquote>
+
+<p>proof of <strong>Proposition 3</strong> :</p>
+
+<p><span  class="math">\(\sum_{a}\mathcal{I}_{V}(\pi)(s,a) = \frac{1}{\mathbb{E}_{\pi}[V^{\pi} ]}d^{\pi}(s)V^{\pi}(s)\sum_{a}\frac{Q(s,a)\pi(a|s)}{V^{\pi}(s)}=1.\)</span></p>
+
+<p>So by applying the improvement operator $\mathcal{I}_{V}$ on $\pi$, we get a policy $\mu$ which increases the probabilities of states $s$ with large value $V(s)$, and also increases the probabilities of actions $a$ with large values $Q(s, a)$.</p>
+
+<p>Still, fix $Q^{\pi_{t}}\pi_{t}$, taking derivative of $D_{V_{t}^{\pi}\pi_{t}}(Q^{\pi_{t}}\pi_{t}||\pi)$ to the context of the projection operator,</p>
+
+<p><span  class="math">\(\sum_{s}d^{\pi_{t}}(s)V^{\pi}(s)\frac{\partial KL(Q^{\pi}\pi_{t}||\pi)}{\partial \theta}  \\
+=-\sum_{s}d^{\pi_{t}}(s)V^{\pi}(s)\sum_{a}Q^{\pi}\pi_{t}(a|s)\nabla_{\theta}\log\pi(a|s)\\
+=-\sum_{s}d^{\pi_{t}}(s)\sum_{a}Q^{\pi}(s,a)\pi_{t}(a|s)\nabla_{\theta}\log\pi(a|s).\)</span></p>
+
+<p>which gives the update for the state-action fotmulation.</p>
+
+<p>Note that still, it's different from the original algorithm because it solves the projection, then it remains to show that it finally converges to the optimum.</p>
+
+<blockquote>
+<p><strong>Proposition 4</strong> $\pi(\theta^{*})$ is a fixed point of $\mathcal{P}_{V}\circ \mathcal{I}_{V}$</p>
+</blockquote>
+
+<p>Proof of <strong>Proposition 4</strong> : By definition of $\pi^{*}$, we have</p>
+
+<p><span  class="math">\(\nabla_{\theta}\sum_{s}d^{\pi^{*}}(s)V^{\pi^{*}}(s)KL(Q^{\pi^{*}}\pi^{*}||\pi)|_{\pi=\pi^{*}}\\
+= \sum_{s}d^{\pi^{*}}(s)\sum_{a}\pi^{*}(a|s)Q^{\pi^{*}}(s,a)\frac{\partial \log\pi_{\theta}(a|s)}{\partial \theta}|_{\theta=\theta^{*}}=0.\)</span></p>
+
+<h2 id="properties-of-operators">Properties of Operators</h2>
+
+<p>First, it can be shown that</p>
+
+<blockquote>
+<p><strong>Proposition 5</strong> <span  class="math">\(J(\mathcal{I}_{\tau}(\pi))=J(\pi)\left(1+\frac{Var_{\pi}(R)}{(\mathbb{E}_{\pi}[R])^{2}}\right)\geq J(\pi).\)</span></p>
+</blockquote>
+
+<p>Proof of <strong>Proposition 5</strong> : Define $z\pi(\tau)=\frac{1}{\int_{\tau^{'}}z(\tau^{'})\pi(\tau^{'})d\tau^{'}}z(\tau)\pi(\tau)$ for any function $z$ over trajectories.</p>
+
+<p><span  class="math">\(J(z\pi)=\int_{\tau}R(\tau)(z\pi)(\tau)d\tau\\
+= \int_{\tau}\frac{R(\tau)z(\tau)\pi(\tau)}{\int_{\tau^{'}}z(\tau^{'})\pi(\tau^{'})d\tau^{'}}d\tau\\
+= \left(\int_{\tau^{'}}R(\tau^{'})\pi(\tau^{'})d\tau^{'}\right)\frac{\int_{\tau}R(\tau)z(\tau)\pi(\tau)d\tau}{\int_{\tau^{'}}R(\tau^{'})\pi(\tau^{'})d\tau^{'}\int_{\tau^{'}}z(\tau^{'})\pi(\tau^{'})d\tau^{'}}\\
+= J(\pi)\frac{\mathbb{E}_{\pi}[Rz]}{\mathbb{E}_{\pi}[R]\mathbb{E}_{\pi}[z]} \)</span></p>
+
+<p>Since $Cov_{\pi}(R,z)=\mathbb{E}_{\pi}[Rz]-\mathbb{E}_{\pi}[R]\mathbb{E}_{\pi}[z]$, then</p>
+
+<p><span  class="math">\(J(z\pi)=J(\pi)\left(1+\frac{Cov_{\pi}(R,z)}{\mathbb{E}_{\pi}[R]\mathbb{E}_{\pi}[z]}\right)\)</span></p>
+
+<p>Let $z=R$ (in <strong>Proposition 1</strong>), then we have $J(R\pi)=J(\pi)\left(1+\frac{Var_{\pi}(R)}{(\mathbb{E}_{\pi}[R])^{2}}\right)\geq J(\pi)$.</p>
+
+<p>This property intuitively implies that if $Var_{\pi}(R)\approx 0$, i.e., the environment is deterministic and policy is almost deterministic, we have $J(\mathcal{I}_{\tau}(\pi))\approx J(\pi)$. <font color="#0000dd">(This explains the counter examples raised in the paper 'Is Policy Gradient a Gradient', that deterministic policies can be bad in PG methods) </font></p>
+
+<p><strong>Proposition 5</strong> may lead to a dangerous case that $\mathcal{P}\circ \mathcal{I}(\pi)$ has a smaller expected return than $\pi$, since the projection operator may make the return smaller. , Luckily, the proposition below shows a lower bound for the expected returns.</p>
+
+<blockquote>
+<p><strong>Proposition 6</strong> For any two policies $\pi$ and $\mu$ such that the support of $\mu$ covers that of $\pi$, we have
+<span  class="math">\(J(\pi)\geq J(\mu)+\mathbb{E}_{\mu}[V^{\mu}(s)](D_{\mu}(\mathcal{I}_{V}(\mu)||\mu) - D_{\mu}(\mathcal{I}_{V}(\mu)||\pi))\)</span>
+Hence, any policy $\pi$ such that $D_{\pi_{t}}(\mathcal{I}_{V}(\pi_{t})||\pi)-D(\mathcal{I}_{V}(\pi_{t})||\pi_{t})$ implies $J(\pi)&gt;J(\pi_{t})$.</p>
+</blockquote>
+
+<h1 id="an-operator-view-of-ppo">An operator view of PPO</h1>
+
+<p>Recall that PPO maximizes a surrogate objective, where the algorithm tries to maximize $\sum_{a}\pi(a|s)Q^{\mu}(s,a)$ at each state where the distribution over states and $Q$ values is kept fixed. It can be shown that PPO can be cast as operators below :</p>
+
+<p><span  class="math">\(\mathcal{I}_{V}(\pi)(s,a)=d^{\pi}(s)\frac{exp(\beta Q^{\pi}(s,a))}{\sum_{a^{'}}exp(\beta Q^{\pi}(s,a^{'}))}\)</span></p>
+
+<p><span  class="math">\(\mathcal{P}_{V}(\mu)=argmin_{z\in\Pi}\sum_{s}\mu(s)KL(clip(z(\cdot|s))||\mu(\cdot|s))\)</span></p>
+
+<p>Note that $\mathcal{I}_{V}$ does not contain $V(s)$, hence the policy improvement operator does not increase probability of 'good states'. And the KL in the operator $\mathcal{P}_{V}$ is reversed, note that reversed KL is mode seeking, so the the resulting policy will focus its mass on the mode of $\mathcal{I}_{V}$, which may be dangerous since it may quickly lead to deterministic policies, and hence it's necessary to use the clip. <font color="#0000dd">When I first read this, I wonder whether this conflicts with the conclusion in 'Implementation Matters in Deep RL: A Case Study on PPO and TRPO', but actually the case is, if you were to do their version of PPO exactly, it would perform well, but in reality it's not executed exactly since we don't exactly take $argmin$ and we use an approximate critic.</font></p>
+
+<h1 id="an-operator-view-of-controlasinference-and-mpo">An operator view of control-as-inference and MPO</h1>
+
+<p>The policy improvement operator that recovers MPO is :</p>
+
+<p><span  class="math">\(\mathcal{I}_{V}(\pi)(s,a) = d^{\pi}(s)\frac{\pi(a,s)exp(\beta Q^{\pi}(s,a))}{\sum_{a^{'}}\pi(a^{'},s)exp(\beta Q^{\pi}(s,a^{'}))}\)</span></p>
+
+<p>and the projection operator is</p>
+
+<p><span  class="math">\(\mathcal{P}_{V}(\mu) = argmin_{\pi\in\Pi} KL(\mu||\pi)\)</span></p>
+
+<p>It's easy to notice that $\mathcal{I}_{V}$ of MPO is an interpolation between those of OP-REINFORCE and PPO, it does not contain $V(s)$, so it does not upweight good states, while it contains $\pi(a|s)$, hence it will not quickly converge to a deterministic policy, so clipping is not necessary here.</p>
+
+<p><font color="#0000dd">The original MPO is actually complicated to execute, and this operator view may hint a achievable execution of MPO?</font></p>
+
+<h1 id="summary-and-reflections">Summary and Reflections</h1>
+
+<p>In my point of view, this work is a milestone in the analysis of PG methods, it explains what a 'gradient ascent step' actually achieves, and this also shed light to further algorithm designs. It also shows some great properties like 'entropy regularization helps by increasing the variance of the returns', and why it's necessary to use clipping tech in PPO, etc. This perspective of viewing PG also allowed us to further bridge the gap between policy-based and value-based methods, i.e., REINFORCE and the Bellman optimality operator can be seen as the same method.</p>
+
+<h1 id="references">References</h1>
+
+<p>Dibya Ghosh, Marlos C. Machado, Nicolas Le Roux. An operator view of policy gradient methods. arXiv preprint arXiv:2006.11266, 2020.</p>
+
+<p>Logan Engstrom, Andrew Ilyas, Shibani Santurkar, Dimitris Tsipras, Firdaus Janoos, Larry Rudolph, Aleksander Madry. Implementation Matters in Deep RL: A Case Study on PPO and TRPO. <a href="https://openreview.net/forum?id=r1etN1rtPB">https://openreview.net/forum?id=r1etN1rtPB</a>.</p>
+
+<p>Chris Nota, Philip S. Thomas. Is the Policy Gradient a Gradient? arXiv preprint arXiv:1906.07073, 2019.</p>
+
+</div>
+
+
+
+  </main>
+
+  <footer>
+   
+    <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  
+  MathJax.Hub.Config({
+  tex2jax: {
+  inlineMath: [['$','$'],['\\(','\\)']],
+  displayMath: [['$$','$$']],
+  processEscapes: true,
+  processEnvironments: true,
+  skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+  TeX: { equationNumbers: { autoNumber: "AMS" },
+     extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+  });
+  
+  MathJax.Hub.Queue(function() {
+  
+  
+  
+  var all = MathJax.Hub.getAllJax(), i;
+  for(i = 0; i < all.length; i += 1) {
+    all[i].SourceElement().parentNode.className += ' has-jax';
+  }
+  });
+  </script>
+  </footer>
+    
+  <script type="application/javascript">
+    var doNotTrack = false;
+    if (!doNotTrack) {
+      window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+      ga('create', 'UA-151032737-1', 'auto');
+      
+      ga('send', 'pageview');
+    }
+    </script>
+    <script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
