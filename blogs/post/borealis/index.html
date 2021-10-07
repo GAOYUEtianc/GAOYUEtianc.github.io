@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>Desired characteristics for real-world RL agents &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="Desired characteristics for real-world RL agents"/>
+  <meta property="og:description" content="Desired characteristics for real-world RL agents - My research internship project at BorealisAI This is the post of my project during my research internship (with my collaborators Pablo and Kry) at BorealisAI, as well as part of my Msc thesis."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/borealis/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2021-10-05T18:52:18-0600"/>
+  <meta property="article:modified_time" content="2021-10-05T18:52:18-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "Desired characteristics for real-world RL agents",
+    "headline": "Desired characteristics for real-world RL agents",
+    "datePublished": "2021-10-05T18:52:18-0600",
+    "dateModified": "2021-10-05T18:52:18-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/borealis/",
+    "description": "Desired characteristics for real-world RL agents - My research internship project at BorealisAI This is the post of my project during my research internship (with my collaborators Pablo and Kry) at BorealisAI, as well as part of my Msc thesis."
+  }
+  </script>
+  <script type="text/javascript"
+  async
+  src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$']],
+displayMath: [['$$','$$'], ['\[','\]']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>Desired characteristics for real-world RL agents</h1>
+
+  <div class="post-date">
+    <time datetime="2021-10-05T18:52:18-0600">Oct 6, 2021</time> · 1 min read
+  </div>
+
+  <h1 id="desired-characteristics-for-realworld-rl-agents--my-research-internship-project-at-borealisai"> My research internship project at BorealisAI</h1>
+
+<p>This is the post of my project during my research internship (with my collaborators Pablo and Kry) at BorealisAI, as well as part of my Msc thesis.
+<a href="https://www.borealisai.com/en/blog/desired-characteristics-real-world-rl-agents/">https://www.borealisai.com/en/blog/desired-characteristics-real-world-rl-agents/</a></p>
+
+</div>
+
+
+
+  </main>
+
+  
+  <footer>
+   
+    <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  
+  MathJax.Hub.Config({
+  tex2jax: {
+  inlineMath: [['$','$'],['\\(','\\)']],
+  displayMath: [['$$','$$']],
+  processEscapes: true,
+  processEnvironments: true,
+  skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+  TeX: { equationNumbers: { autoNumber: "AMS" },
+     extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+  });
+  
+  MathJax.Hub.Queue(function() {
+  
+  
+  
+  var all = MathJax.Hub.getAllJax(), i;
+  for(i = 0; i < all.length; i += 1) {
+    all[i].SourceElement().parentNode.className += ' has-jax';
+  }
+  });
+  </script>
+  </footer>
+
+  
+
+
+
+
+  <script type="application/javascript">
+    var doNotTrack = false;
+    if (!doNotTrack) {
+      window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+      ga('create', 'UA-151032737-1', 'auto');
+      
+      ga('send', 'pageview');
+    }
+    </script>
+    <script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
