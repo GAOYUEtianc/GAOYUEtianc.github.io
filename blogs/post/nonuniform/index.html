@@ -223,7 +223,7 @@ This figure plots the policy gradient updating process from a point far away fro
 
 <p>And we say that a function satisfies the non-uniform $\mathcal{L}ojasiewicz$ ineuquality if $\left|\frac{d f(\theta)}{d \theta}\right|_2 \geq \color{red}{C(\theta)}\color{black}\cdot |f(\theta)-f(\theta^*)|^{1-\xi}$ where $\left( C(\theta)&gt; 0; \xi \in (-\infty,1]\right)$.</p>
 
-<p>And motivated by those non-uniform geometric properties, geometry aware normalized policy gradient could be proposed, at each iteration, it normalizes the policy gradient by its local non-uniform smoothness parameter beta theta. And this algorithm could be generalized to GNGD.</p>
+<p>And motivated by those non-uniform geometric properties, geometry aware normalized policy gradient could be proposed, at each iteration, it normalizes the policy gradient by its local non-uniform smoothness parameter $\beta(\theta)$. And this algorithm could be generalized to GNGD.</p>
 
 <p><strong>Geometry Normalized Policy Gradient</strong>
 $\theta_{t+1}\gets \theta_t -\eta\cdot \frac{\partial V^{\pi_{\theta_t}}(\mu)}{\partial\theta_t}\Big/\color{red}\beta(\theta_t)$
