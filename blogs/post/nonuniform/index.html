@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>Nonuniform &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="Leveraging Non-uniformity in First-order Non-convex Optimization"/>
+  <meta property="og:description" content="Leveraging Non-uniformity in First-order Non-convex Optimization This is a co-work with my collaborators Jincheng, Bo, Dale, Csaba."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/nonuniform/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2021-10-06T19:07:52-0600"/>
+  <meta property="article:modified_time" content="2021-10-06T19:07:52-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "Nonuniform",
+    "headline": "Nonuniform",
+    "datePublished": "2021-10-06T19:07:52-0600",
+    "dateModified": "2021-10-06T19:07:52-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/nonuniform/",
+    "description": "Leveraging Non-uniformity in First-order Non-convex Optimization This is a co-work with my collaborators Jincheng, Bo, Dale, Csaba."
+  }
+  </script>
+  
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$'], ['\[','\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>Nonuniform</h1>
+
+  <div class="post-date">
+    <time datetime="2021-10-06T19:07:52-0600">Oct 6, 2021</time> · 7 min read
+  </div>
+
+  <h1 id="leveraging-nonuniformity-in-firstorder-nonconvex-optimization">Leveraging Non-uniformity in First-order Non-convex Optimization</h1>
+
+<p>This is a co-work with my collaborators Jincheng, Bo, Dale, Csaba. It is part of my Msc thesis and it's accepted to ICML 2021.</p>
+
+<h2 id="motivation">Motivation</h2>
+
+<p>Policy gradient method is a widely used approach to solve RL problems. In policy gradient methods, we explicitly build a representation of a policy and keep it in memory during learning, we parametrize the policy and use gradient descent to directly optimize the objective function. So it also suffers from common challenges in gradient descent like it may stuck at the plateaus for a long time, and it's hard to choose the appropriate learning rate, and there may be convergence issues.</p>
+
+<p>In the following context, for the policy gradient methods, I'll focus on the softmax policy gradient algorithm on tabular case, where there is only one parameter per state-action pair, and under each state, the policy is parametrized using softmax function.</p>
+
+<p>As shown in the figure below, during the process of policy gradient, it may stuck at the plateaus for a long time. Commonly known methods to accelerate escaping plateaus include Nomalized Gradient Descent, RMSProp, and so on. But they all face their own drawbacks. For Normalized Gradient Descent, in many cases, it does not converge. For RMSProp, in many cases, it does not accelerate enough.
+<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/PG_NPG.png" alt="Policy Gradient V.S. Normalized Policy Gradient"></figure>
+But according to the plot here, softmax normalized policy gradient converges to the optimal solution pretty fast. So what is the secret here?</p>
+
+<h2 id="nonuniform-properties--gnpg">Non-uniform Properties &amp; GNPG</h2>
+
+<p>A possible start point is to analyze the geometric landscape of softmax policy gradient.
+<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/SpectralRadius_Hessian.png" alt="Hessian Spectral Radius and Gradient Norm"></figure>
+This figure plots the policy gradient updating process from a point far away from $\theta^*$, then enter a sub-optimal plateau and stuck at the plateau for a long time, then finally escape the plateau and approaches the optimal $\theta^*$. A reasonable guess would be that in the case of MDP,  on plateaus, where the gradient is around zero, normalized gradient descent is equivalent to normalize the gradient by non-uniform smoothness parameter.</p>
+
+<p>So what is the non-uniform smoothness parameter? We say that a function is $\beta(\theta)$-smooth if $\Big|f(\theta^{\prime})-f(\theta)-\Big\langle\frac{d f(\theta)}{d \theta},\theta^{\prime}-\theta\Big\rangle\Big|\leq \frac{\color{red}{\beta(\theta)}}{2}\cdot \left|\theta^{\prime}-\theta\right|_2^2$.</p>
+
+<p>And we say that a function satisfies the non-uniform $\mathcal{L}ojasiewicz$ ineuquality if $\left|\frac{d f(\theta)}{d \theta}\right|_2 \geq \color{red}{C(\theta)}\color{black}\cdot |f(\theta)-f(\theta^*)|^{1-\xi}$ where $\left( C(\theta)&gt; 0; \xi \in (-\infty,1]\right)$.</p>
+
+<p>And motivated by those non-uniform geometric properties, geometry aware normalized policy gradient could be proposed, at each iteration, it normalizes the policy gradient by its local non-uniform smoothness parameter beta theta. And this algorithm could be generalized to GNGD.</p>
+
+<p><strong>Geometry Normalized Policy Gradient</strong>
+$\theta_{t+1}\gets \theta_t -\eta\cdot \frac{\partial V^{\pi_{\theta_t}}(\mu)}{\partial\theta_t}\Big/\color{red}\beta(\theta_t)$
+<strong>Geometry Normalized Gradient Descent</strong>
+$\theta_{t+1} \gets \theta_{t} - \eta\cdot \frac{\nabla f(\theta_t)}{\color{red}\beta(\theta_t)}$</p>
+
+<p>My co-authors and I rigorously proved that anywhere on MDP, the non-uniform smoothness parameter $\beta(\theta)$ is always bounded by a constant times the gradient norm. And Jincheng proved the non-uniform $\mathcal{L}ojasiewicz$ inequality for MDP.</p>
+
+<p>$\left|\frac{\partial^2 V^{\pi_{\theta}}(\mu)}{\partial \theta^2}\right|_2\leq \left[6+\frac{4\cdot(\underset{\mu}{\max}\left|d^\pi_\mu / \mu\right|_{\infty}-(1-\gamma))}{(1-\gamma)\cdot \gamma}\right]\cdot \left|\frac{\partial V^{\pi_{\theta}}(\mu)}{\partial \theta}\right|_2$</p>
+
+<p>$\left|\frac{\partial V^{\pi_{\theta}}(\mu)}{\partial \theta}\right|_2\geq \frac{\min_s \pi_{\theta}(a^*(s)|s)}{\sqrt{S}\cdot \left|d^{\pi^*}_\rho/d^{\pi_{\theta}}_{\mu}\right|_{\infty}}\cdot \left(V^*(\rho)-V^{\pi_\theta}(\rho)\right)$</p>
+
+<p>Combing those two non-uniform properties, it can be theoretically shown that the convergence rate of geometry normalized policy gradient is linear.</p>
+
+<p>$V^*(\rho)-V^{\pi_{\theta_t}}(\rho)\leq \frac{(V^*(\rho)-V^{\pi_{\theta_1}}(\rho))\cdot \underset{\mu}{\max}\left\|d^\pi_\rho/\mu\right\|_{\infty}}{1-\gamma} \cdot e^{-C\cdot (t-1)}$</p>
+
+<p>Where here $C$ is an instance dependent constant, and $C$ is often very small although empirically in many parts of the landscape, $C$ could be large, and it’s still worth thinking whether the lower bound of $C$ is reasonably large for GNPG. And as shown in the figure below, where the y-axis is the log of sub-optimality, it can be seen that GNPG obtains linear convergence rate although initially in this part, $C$ is very small. and hence the empirical result verifies the theoretical result.</p>
+
+<p><figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/GNPG_suboptimal.png" alt="Log of sub-optimality of PG v.s. GNPG"></figure></p>
+
+<h2 id="gngd-on-glm">GNGD on GLM</h2>
+
+<p>Not only on MDP, GNGD could also be applied to other problems like generalized linear model. Hazan et al. showed that normalized gradient descent achieves $O(\frac{1}{\sqrt{t}})$ convergence rate if we use an adaptive learning rate $\Theta(\frac{1}{\sqrt{t}})$. And by analyzing the non-uniform properties of GLM, it can be theoretically shown that both gradient descent and GNGD achieves linear convergence rate, but GNGD has strictly better constant than GD. (where $0&lt;C&lt;1$ )
+<p><strong>GNGD :</strong>    $\mathcal{L}(\theta_t)\leq \mathcal{L}(\theta_1)\cdot e^{-C\cdot (t-1)}$</p>
+<p><strong>GD :</strong>     $\mathcal{L}(\theta_t)\leq \mathcal{L}(\theta_1)\cdot e^{-C^2\cdot (t-1)}$</p>
+<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/glm_gd_ngd_gngd.png" alt="GD \&amp; GNGD \&amp; NGD on GLM"></figure>
+The figure above verifies the theoretical result. In subfigure (a), the y axis is log of sub-optimality, it can be observed that both GD and GNGD achieves linear convergence rate, and GNGD has a better constant.</p>
+
+<h2 id="general-nonuniform-analysis">General Non-uniform Analysis</h2>
+
+<p>My collaborators and I also did a general non-uniform analysis of GNGD, we classified functions into different categories according to their non-uniform smoothness property, non-uniform $\mathcal{L}ojasiewicz$ property, and convexity, and analyzed the convergence rate of GNGD &amp; GD for each of those categories. In some cases, GNGD achieves a convergence rate faster than the lower bound for convex-smooth optimization, which is $\Omega(1/t^2)$. Note that this is not a contradiction, since the lower bound is the worst case, and for some objective functions, the convergence rate of GNGD also matches the lower bound $\Omega(1/t^2)$, but it’s still unknown whether GNGD enjoys optimal worst-case rates. Zhang et al. showed the lower bound for $(L_0, L_1)$ optimization is $\Omega(\frac{1}{\sqrt{t}})$, but in some cases, for example, GLM as I presented, GNGD can achieve faster convergence rate. Also, this is not a contradiction since this is the lower bound. And in some cases where gradient descent diverges, GNGD can converge. For example, as shown in the figure below, for the function $x^{1.5}$, gradient descent diverges, while GNGD converges at a linear rate.
+<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/example_power_1p5.png" alt="GD \&amp; GNGD"></figure></p>
+
+<h2 id="further-work">Further Work</h2>
+
+<ol>
+<li><strong>Stochastic GNGD</strong> : It would be interesting to analyze the convergence of stochastic GNGD. Looking forward to Jincheng's new work - Understanding the Effect of Stochasticity in Policy Optimization.</li>
+<li><strong>Approximators</strong> : Another direction is to further push the analysis to other domains with more complex function approximators, including neural networks.</li>
+</ol>
+
+<h1 id="reference">Reference</h1>
+
+<ol>
+<li>A. Agarwal, S. M. Kakade, J. D. Lee, and G. Mahajan, &quot;Optimality
+and approximation with policy gradient methods in markov decision
+processes,&quot; in Conference on Learning Theory, PMLR, 2020, pp. 64-66.</li>
+<li>Z. Allen-Zhu, Y. Li, and Z. Song, &quot;A convergence theory for deep learning
+via over-parameterization,&quot; in International Conference on Machine
+Learning, PMLR, 2019, pp. 242-252.</li>
+<li>J. Bhandari and D. Russo, &quot;A note on the linear convergence of policy
+gradient methods,&quot; arXiv preprint arXiv:2007.11120, 2020.</li>
+<li>S. Bubeck, &quot;Convex optimization: Algorithms and complexity,&quot; arXiv
+preprint arXiv:1405.4980, 2014.</li>
+<li>S. Cen, C. Cheng, Y. Chen, Y.Wei, and Y. Chi, &quot;Fast global convergence
+of natural policy gradient methods with entropy regularization,&quot; arXiv
+preprint arXiv:2007.06558, 2020.</li>
+<li>E. Hazan, K. Levy, and S. Shalev-Shwartz, &quot;Beyond convexity: Stochastic
+quasi-convex optimization,&quot; Advances in neural information process-
+ing systems, vol. 28, pp. 1594-1602, 2015.</li>
+<li>C. Igel and M. Husken, Improving the rprop learning algorithm, 2000.</li>
+<li>S. Kakade and J. Langford, &quot;Approximately optimal approximate reinforcement
+learning,&quot; in ICML, vol. 2, 2002, pp. 267-274.</li>
+<li>H. Karimi, J. Nutini, and M. Schmidt, &quot;Linear convergence of gradient
+and proximal-gradient methods under the polyak- lojasiewicz condition,&quot;
+in Joint European Conference on Machine Learning and Knowledge Dis-
+covery in Databases, Springer, 2016, pp. 795-811.</li>
+<li>D. P. Kingma and J. Ba, &quot;Adam: A method for stochastic optimization,&quot;
+arXiv preprint arXiv:1412.6980, 2014.</li>
+<li>K. Kurdyka, &quot;On gradients of functions denable in o-minimal structures,&quot;
+in Annales de l'institut Fourier, vol. 48, 1998, pp. 769-783.</li>
+<li>G. Li, Y. Wei, Y. Chi, Y. Gu, and Y. Chen, &quot;Softmax policy gradient
+methods can take exponential time to converge,&quot; arXiv preprint
+arXiv:2102.11270, 2021.</li>
+<li>Y. Li, C. Szepesvari, and D. Schuurmans, &quot;Learning exercise policies for
+american options,&quot; in Articial Intelligence and Statistics, PMLR, 2009,
+pp. 352-359.</li>
+<li>J. Mei, Y. Gao, B. Dai, C. Szepesvari, and D. Schuurmans, Leverag-
+ing non-uniformity in rst-order non-convex optimization, 2021. arXiv:
+2105.06072 [cs.LG].</li>
+<li>J. Mei, C. Xiao, B. Dai, L. Li, C. Szepesvari, and D. Schuurmans, &quot;Escaping
+the gravitational pull of softmax,&quot; Advances in Neural Information
+Processing Systems, vol. 33, 2020.</li>
+<li>J. Mei, C. Xiao, C. Szepesvari, and D. Schuurmans, &quot;On the global
+convergence rates of softmax policy gradient methods,&quot; in International
+Conference on Machine Learning, PMLR, 2020, pp. 6820-6829.</li>
+<li>R. Murray, B. Swenson, and S. Kar, &quot;Revisiting normalized gradient
+descent: Fast evasion of saddle points,&quot; IEEE Transactions on Automatic
+Control, vol. 64, no. 11, pp. 4818-4824, Nov. 2019, issn: 2334-3303. doi:
+10.1109/tac.2019.2914998. [Online]. Available: <a href="http://dx.doi.org/">http://dx.doi.org/</a>
+10.1109/TAC.2019.2914998.</li>
+<li>A. S. Nemirovski and D. B. Yudin, &quot;Problem complexity and method
+efficiency in optimization,&quot; 1983.</li>
+<li>Y. Nesterov, Introductory lectures on convex optimization: A basic course.
+Springer Science &amp; Business Media, 2003, vol. 87.</li>
+<li>B. T. Polyak, &quot;Gradient methods for minimizing functionals,&quot; Zhur-
+nal Vychislitel'noi Matematiki i Matematicheskoi Fiziki, vol. 3, no. 4,
+pp. 643-653, 1963.</li>
+<li>R. S. Sutton, D. A. McAllester, S. P. Singh, and Y. Mansour, &quot;Policy gradient
+methods for reinforcement learning with function approximation,&quot;
+in Advances in neural information processing systems, 2000, pp. 1057-
+1063.</li>
+<li>A. Wilson, L. Mackey, and A. Wibisono, &quot;Accelerating rescaled gradient
+descent: Fast optimization of smooth functions,&quot; arXiv preprint
+arXiv:1902.08825, 2019.</li>
+<li>J. Zhang, T. He, S. Sra, and A. Jadbabaie, &quot;Why gradient clipping accelerates
+training: A theoretical justication for adaptivity,&quot; in Interna-
+tional Conference on Learning Representations, 2019.</li>
+</ol>
+
+</div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </main>
+
+  
+<footer>
+  <div class="copyright">
+    &copy; Gao Yue 2020 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  </div>
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$'],['\\(','\\)']],
+displayMath: [['$$','$$']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+</footer>
+
+<script type="application/javascript">
+  var doNotTrack = false;
+  if (!doNotTrack) {
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'UA-151032737-1', 'auto');
+    
+    ga('send', 'pageview');
+  }
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+  
+
+
+</body>
+</html>
