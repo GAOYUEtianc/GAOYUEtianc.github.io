@@ -210,13 +210,13 @@ code.has-jax {
 <p>In the following context, for the policy gradient methods, I'll focus on the softmax policy gradient algorithm on tabular case, where there is only one parameter per state-action pair, and under each state, the policy is parametrized using softmax function.</p>
 
 <p>As shown in the figure below, during the process of policy gradient, it may stuck at the plateaus for a long time. Commonly known methods to accelerate escaping plateaus include Nomalized Gradient Descent, RMSProp, and so on. But they all face their own drawbacks. For Normalized Gradient Descent, in many cases, it does not converge. For RMSProp, in many cases, it does not accelerate enough.
-<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/PG_NPG.png" alt="Policy Gradient V.S. Normalized Policy Gradient"></figure>
+<figure><img src="https://GAOYUEtianc.github.io/img/PG_NPG.png" alt="Policy Gradient V.S. Normalized Policy Gradient"></figure>
 But according to the plot here, softmax normalized policy gradient converges to the optimal solution pretty fast. So what is the secret here?</p>
 
 <h2 id="nonuniform-properties--gnpg">Non-uniform Properties &amp; GNPG</h2>
 
 <p>A possible start point is to analyze the geometric landscape of softmax policy gradient.
-<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/SpectralRadius_Hessian.png" alt="Hessian Spectral Radius and Gradient Norm"></figure>
+<figure><img src="https://GAOYUEtianc.github.io/img/SpectralRadius_Hessian.png" alt="Hessian Spectral Radius and Gradient Norm"></figure>
 This figure plots the policy gradient updating process from a point far away from $\theta^*$, then enter a sub-optimal plateau and stuck at the plateau for a long time, then finally escape the plateau and approaches the optimal $\theta^*$. A reasonable guess would be that in the case of MDP,  on plateaus, where the gradient is around zero, normalized gradient descent is equivalent to normalize the gradient by non-uniform smoothness parameter.</p>
 
 <p>So what is the non-uniform smoothness parameter? We say that a function is $\beta(\theta)$-smooth if $\Big|f(\theta^{\prime})-f(\theta)-\Big\langle\frac{d f(\theta)}{d \theta},\theta^{\prime}-\theta\Big\rangle\Big|\leq \frac{\color{red}{\beta(\theta)}}{2}\cdot \left|\theta^{\prime}-\theta\right|_2^2$.</p>
@@ -242,20 +242,20 @@ $\theta_{t+1} \gets \theta_{t} - \eta\cdot \frac{\nabla f(\theta_t)}{\color{red}
 
 <p>Where here $C$ is an instance dependent constant, and $C$ is often very small although empirically in many parts of the landscape, $C$ could be large, and it’s still worth thinking whether the lower bound of $C$ is reasonably large for GNPG. And as shown in the figure below, where the y-axis is the log of sub-optimality, it can be seen that GNPG obtains linear convergence rate although initially in this part, $C$ is very small. and hence the empirical result verifies the theoretical result.</p>
 
-<p><figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/GNPG_suboptimal.png" alt="Log of sub-optimality of PG v.s. GNPG"></figure></p>
+<p><figure><img src="https://GAOYUEtianc.github.io/img/GNPG_suboptimal.png" alt="Log of sub-optimality of PG v.s. GNPG"></figure></p>
 
 <h2 id="gngd-on-glm">GNGD on GLM</h2>
 
 <p>Not only on MDP, GNGD could also be applied to other problems like generalized linear model. Hazan et al. showed that normalized gradient descent achieves $O(\frac{1}{\sqrt{t}})$ convergence rate if we use an adaptive learning rate $\Theta(\frac{1}{\sqrt{t}})$. And by analyzing the non-uniform properties of GLM, it can be theoretically shown that both gradient descent and GNGD achieves linear convergence rate, but GNGD has strictly better constant than GD. (where $0&lt;C&lt;1$ )
 <p><strong>GNGD :</strong>    $\mathcal{L}(\theta_t)\leq \mathcal{L}(\theta_1)\cdot e^{-C\cdot (t-1)}$</p>
 <p><strong>GD :</strong>     $\mathcal{L}(\theta_t)\leq \mathcal{L}(\theta_1)\cdot e^{-C^2\cdot (t-1)}$</p>
-<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/glm_gd_ngd_gngd.png" alt="GD \&amp; GNGD \&amp; NGD on GLM"></figure>
+<figure><img src="https://GAOYUEtianc.github.io/img/glm_gd_ngd_gngd.png" alt="GD \&amp; GNGD \&amp; NGD on GLM"></figure>
 The figure above verifies the theoretical result. In subfigure (a), the y axis is log of sub-optimality, it can be observed that both GD and GNGD achieves linear convergence rate, and GNGD has a better constant.</p>
 
 <h2 id="general-nonuniform-analysis">General Non-uniform Analysis</h2>
 
 <p>My collaborators and I also did a general non-uniform analysis of GNGD, we classified functions into different categories according to their non-uniform smoothness property, non-uniform $\mathcal{L}ojasiewicz$ property, and convexity, and analyzed the convergence rate of GNGD &amp; GD for each of those categories. In some cases, GNGD achieves a convergence rate faster than the lower bound for convex-smooth optimization, which is $\Omega(1/t^2)$. Note that this is not a contradiction, since the lower bound is the worst case, and for some objective functions, the convergence rate of GNGD also matches the lower bound $\Omega(1/t^2)$, but it’s still unknown whether GNGD enjoys optimal worst-case rates. Zhang et al. showed the lower bound for $(L_0, L_1)$ optimization is $\Omega(\frac{1}{\sqrt{t}})$, but in some cases, for example, GLM as I presented, GNGD can achieve faster convergence rate. Also, this is not a contradiction since this is the lower bound. And in some cases where gradient descent diverges, GNGD can converge. For example, as shown in the figure below, for the function $x^{1.5}$, gradient descent diverges, while GNGD converges at a linear rate.
-<figure><img src="https://github.com/GAOYUEtianc/GAOYUEtianc.github.io/blob/master/img/example_power_1p5.png" alt="GD \&amp; GNGD"></figure></p>
+<figure><img src="https://GAOYUEtianc.github.io/img/example_power_1p5.png" alt="GD \&amp; GNGD"></figure></p>
 
 <h2 id="further-work">Further Work</h2>
 
