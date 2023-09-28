@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>Quantum Information &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="Quantum Information"/>
+  <meta property="og:description" content="Learning Notes for Quantum Computing - Part 1."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/quantum/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2023-08-23T19:07:52-0600"/>
+  <meta property="article:modified_time" content="2023-08-23T19:07:52-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "Quantum Information",
+    "headline": "Quantum Information",
+    "datePublished": "2023-08-23T19:07:52-0600",
+    "dateModified": "2023-08-23T19:07:52-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/quantum/",
+    "description": "Learning Notes for Quantum Computing - Part 1."
+  }
+  </script>
+  <script type="text/javascript"
+  async
+  src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$']],
+displayMath: [['$$','$$'], ['\[','\]']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>Quantum Information</h1>
+
+  <div class="post-date">
+    <time datetime="2023-08-23T19:07:52-0600">Aug 23, 2023</time> · 11 min read
+  </div>
+
+  <h1 id="learning-notes-for-quantum-computing--part-1-quantum-fundamentals">Learning Notes for Quantum Computing - Part 1. Quantum Fundamentals</h1>
+
+<p>This is the beginning of my notes on self-study of quantum computing.
+Before diving into quantum computing, it's a must to master the concept of quantum mechanics.</p>
+
+<h2 id="introduction">Introduction</h2>
+
+<h3 id="components-of-quantum-theory">Components of Quantum Theory</h3>
+
+<ul>
+<li>$\bf{state}$ : $|\phi\rangle \in \mathcal{H}$</li>
+<li>$\bf{dynamics}$ : $\bigsqcup^\dagger \bigsqcup = \bigsqcup \bigsqcup^\dagger = I$</li>
+<li>$\bf{measurement}$ (An interaction between the observer and the system) : $P(i) = \langle \phi| M_i|\phi\rangle$</li>
+<li>$\bf{observables}$ (Properties of the system that can be measured)</li>
+</ul>
+
+<h3 id="quantum-advantages">Quantum Advantages</h3>
+
+<ul>
+<li>Computing speedup (efficiency) examples :
+
+<ul>
+<li>Quantum DB search (from $O(N)$ to $O(\sqrt N)$)</li>
+<li>Quantum prime-number factorization</li>
+</ul></li>
+<li>Communication security, capacities, efficiency</li>
+</ul>
+
+<h2 id="simple-quantum-experiments">Simple Quantum Experiments</h2>
+
+<p>Key point : Quantum theory is the physical theory telling prediction about probabilities, but not the outcomes.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1562.PNG" alt="A simple quantum experiment" width="350"/></p>
+
+<p>As shown in the above figure, $P_0$ is the probability that we have a detection event in the first detector, and $P_1$ is the probability that we have a detection event in the second detector. Once we have a measurement outcome here, we can compute the expectation values of this function $f$ with respect to probability $p$. This interpretation is called observables : $\langle f\rangle_p = \sum_{i} f_i p_i$.</p>
+
+<p>A classical bit is enough to describe measurement and observable, a quantum bit is needed to describe information about state and dynamics.</p>
+
+<p>Here's a description from the information point of view. A quantum communication task (refering to the above 4 components of quantum) includes the following 4 steps :</p>
+
+<ul>
+<li>preparation</li>
+<li>transmission</li>
+<li>detection</li>
+<li>interpretation</li>
+</ul>
+
+<p>where we prepare some messages, then send over from channel, which is called transmission then we have a detection, and what people want to recover the message from the detective event is interpretation.</p>
+
+<p>Process of a quantum computing</p>
+
+<ul>
+<li>initialization (In general it means we prepare some tribute bits or some bits which do not have any information about solution)</li>
+<li>(quantum algorithm) process (This could be a quantum circuit or quantum gates)</li>
+<li>measurement ($s_1, ..., s_n$)</li>
+<li>interpretation</li>
+</ul>
+
+<p>The process of a quantum computing has a lot of similarities between information processing. Instead of using just classical messages we map this message into quantum states and quantum state is transmitted and detective, then we can realize quantum communication.</p>
+
+<h2 id="axioms-of-quantum-theory">Axioms of quantum theory</h2>
+
+<h3 id="mathcalh--hilbert-space">$\mathcal{H}$ : Hilbert space</h3>
+
+<p>The mathematical language to work with quantum is in Hilbert space, which is a vector space with inner product.</p>
+
+<p>The Dirac notation is a slightly different way of writing the standard vector.</p>
+
+<p>$\vec{v}$  --&gt; $|v\rangle$ ; $\vec{v}^\dagger$--&gt; $\langle v|$ ;   $\langle v, w\rangle$ --&gt; $\langle v | w\rangle$</p>
+
+<ul>
+<li><span>State : $|\phi\rangle \in \mathcal{H}$, where $\lVert |\phi\rangle \rVert=1$</span></li>
+
+<li><span>Dynamics (state transformation) : $|\phi_0\rangle \rightarrow |\phi_t\rangle  = \bigsqcup_t |\phi_0\rangle$, where $\bigsqcup_t$ is a state transformation operator that satisfies $\bigsqcup_t^\dagger \bigsqcup_t = \bigsqcup_t \bigsqcup_t^\dagger = I$ is called unitary transformation;  Geometrically, a unitary transformation is a
+rigid body rotation of the Hilbert space, thus resulting in a transformation of
+the state vector that doesn’t change its length.</span></li>
+
+<li>Measurement : POVM (positive operator-valued measure) : $M_i$ is a set of measurement that satisfies $M_i \ge 0$ and $\sum_i M_i = I$. Born's rule : $p_i = \langle\phi | M_i |\phi\rangle$, where the probability $p_i \ge 0$, $\sum_i p_i = \langle\phi | \sum_i M_i |\phi\rangle = \langle\phi|\phi\rangle = 1$, where each measurement corresponds to a detector.</li>
+
+<li>Observable : $A = A^\dagger = \sum_i a_i M_i$, where $a_i\in\mathbb{R}$, ${M_i}$ are POVM; in information theory, we call the expectation of $a$ with respect to probability $p$: $\langle a\rangle_p = \sum_{i} a_i p_i = \langle\phi |\sum_{i} a_i M_i |\phi \rangle = \langle\phi| A |\phi\rangle = \langle A\rangle_\phi$</li>
+</ul>
+
+<h2 id="state-transformations-vs-probabilities-qubit">State Transformations VS Probabilities (Qubit)</h2>
+
+<p>Two dimensional Hilbert space : $\mathcal{H}_2$
+$|\phi\rangle \in \mathcal{H}_2 = span\{|0\rangle, |1\rangle\}$, so each state $|\phi\rangle$ could be denoted as $\alpha|0\rangle + \beta|1\rangle$, where $\alpha, \beta\in \mathbb{C}$, and $|\alpha|^2 + |\beta|^2 = 1$, and measuring $|\phi\rangle$ in this $\mathcal{H}_2$ space yields 0 with probability $\alpha^2$ and yields 1 with probability $\beta^2$. So $\alpha, \beta$ could be denoted as $\alpha = e^{ia}cos\frac{\theta}{2}$, $\beta = e^{ib}sin\frac{\theta}{2}$.</p>
+
+<p>For all $\gamma$, denote $|\tilde{\phi}\rangle = e^{i\gamma} |\phi\rangle$, then for $\forall M$, $\tilde{p} = \langle \tilde{\phi}| M|\tilde{\phi}\rangle = \langle \phi| M|\phi\rangle = p$, then $|\tilde{\phi}\rangle \sim |\phi\rangle$ are called operational equivalence.</p>
+
+<p>Then plugging in $\alpha = e^{ia}cos\frac{\theta}{2}$, $\beta = e^{ib}sin\frac{\theta}{2}$, $|\phi\rangle = e^{ia}(cos\frac{\theta}{2}+e^{i(b-a)} sin\frac{\theta}{2})$, so that two numbers can characterize a state,
+$|\Phi(\theta, \phi)\rangle = cos\frac{\theta}{2}|0\rangle + e^{i\phi}sin\frac{\theta}{2}|1\rangle$.</p>
+
+<p>$\bf{Pauli \; matrices}$ :</p>
+
+<p>Identity matrix $I$ :
+<span  class="math">\(I = \begin{pmatrix}1 & 0\\\ 0 & 1\end{pmatrix}\)</span></p>
+<p>Bit-flip (Not Gate) $X$ :
+<span  class="math">\(X = \begin{pmatrix}0 & 1\\\ 1 & 0\end{pmatrix}\)</span></p>
+<p>Not Gate with $i$ multiple :
+<span  class="math">\(Y = \begin{pmatrix}0 & -i\\\ i & 0\end{pmatrix}\)</span></p>
+<p>Phase-flip $Z$ :
+<span  class="math">\(Z = \begin{pmatrix}1 & 0\\\ 0 & -1\end{pmatrix}\)</span></p>
+
+<p>Hadamard matrix :
+<span  class="math">\(H = \frac{1}{\sqrt{2}}\begin{pmatrix}1 & 1\\\ 1 & -1\end{pmatrix}\)</span>
+and $H$ satisfies $H^\dagger H = HH^\dagger = I$. </p>
+<p>Hadamard matrix, also called Hadamard gate, can be viewed as a reflection around $\pi/8$ in the real
+plane. In the complex plane it is actually a $\pi$-rotation about the $\pi/8$
+axis.</p>
+
+<p>Note that $X$ satisfies $X|0\rangle = |1\rangle$ and $X|1\rangle = |0\rangle$, so the operator $X$ is also called NOT operator.</p>
+
+<p>$H|0\rangle = \frac{1}{\sqrt{2}}(|0\rangle + |1\rangle) = |+\rangle$ ; $H|1\rangle = \frac{1}{\sqrt{2}}(|0\rangle - |1\rangle) = |-\rangle$</p>
+
+<p>$Z = |0\rangle \langle 0| - |1\rangle \langle 1|$</p>
+
+<p>$X = |+\rangle \langle +| - |-\rangle \langle -| = H(|0\rangle \langle 0| - |1\rangle \langle 1|)H^\dagger = HZH^\dagger$</p>
+
+<p>$HXH^\dagger = HHZH^\dagger H^\dagger = Z$</p>
+
+<p>Unitary transformation for single qubit is called Phase operation</p>
+
+<p><span  class="math">\(P(\alpha) = \begin{pmatrix}1 & 0\\\ 0 & e^{i\alpha}\end{pmatrix}\)</span></p>
+<p></p>
+<p>$\textbf{$Schr\ddot{o}dinger's $ Euqation}$</p>
+
+<p>$i\frac{\partial}{\partial t}|\phi\rangle = H|\phi\rangle$</p>
+
+<p>It indicates that $\bigsqcup_t \sim e^{i\int Hdt} = e^{iHt}$, where $\bigsqcup_t$ is the transformation from $|\phi_0\rangle$ to $|\phi_t\rangle$</p>
+
+<p>A measurement on a k-state system yields one of at most k possible outcomes: i.e. an integer between 0 and k − 1.  e.g., on a 2-state system :</p>
+
+<p>$|\phi\rangle = \alpha|0\rangle + \beta|1\rangle = \begin{cases}M_0 = |0\rangle\langle 0| \;\;\; w.p. \; P_0 = |\alpha|^2 \\\\
+M_1= |1\rangle\langle 1| \;\;\; w.p. \; P_1 = |\beta|^2
+\end{cases}$</p>
+
+<h2 id="mixed-state">Mixed State</h2>
+
+<p>A mixed quantum state corresponds to a probabilistic mixture of pure states; however, different distributions of pure states can generate equivalent (i.e., physically indistinguishable) mixed states.</p>
+
+<p>Suppose you play a game where there are two buttons, by pressing one of them, with probability $p_0$, it generates $|\phi_0\rangle$; And when pressing second button, with probability $p_1$, it generates $|\phi_1\rangle$. The generated particle $|\phi_i\rangle$ goes to the measurement $M_i$, then its' probability is $P_i = \langle \phi|M_i|\phi\rangle$. <span  class="math">\(\tilde{P}_i = q_0\langle\phi_0|M_i|\phi_0\rangle + q_1\langle\phi_1|M_i|\phi_1\rangle\\
+= q_0 \cdot tr[M_i |\phi_0\rangle\langle \phi_0|] + q_1 \cdot tr\left[M_i |\phi_1\rangle\langle \phi_1|\right]\\
+= tr\left[M_i\left(q_0|\phi_0\rangle\langle \phi_0| + q_1|\phi_1\rangle\langle \phi_1|\right)\right]\)</span></p>
+<p>where $M_i$ is measurement, and $\left(q_0|\phi_0\rangle\langle \phi_0| + q_1|\phi_1\rangle\langle \phi_1|\right)$ is a mixed state.</p>
+
+<p>So we can write a quatum state as <span  class="math">\(\rho = \sum_{i=0}^{n}q_i|\phi_i\rangle\langle \phi_i|\)</span>, where $|\phi_i\rangle\langle \phi_i|$ are pure state. $\rho$ is pure state if and only if $tr[\rho^2] = 1$.</p>
+
+<h2 id="bloch-sphere">Bloch Sphere</h2>
+
+<p>For a Qubit State $|\phi(\theta, \Phi)\rangle = cos\frac{\theta}{2}|0\rangle + e^{i\Phi}sin\frac{\theta}{2}|1\rangle$,
+<span  class="math">\(\rho(\theta, \Phi) = |\phi(\theta, \Phi)\rangle \langle|\phi(\theta, \Phi)|= \begin{pmatrix}
+cos^2\frac{\theta}{2} & e^{i\phi}sin\frac{\theta}{2}cos\frac{\theta}{2}\\
+e^{-i\phi}sin\frac{\theta}{2}cos\frac{\theta}{2} & sin^2\frac{\theta}{2}
+\end{pmatrix}=\frac{1}{2}(I+\hat{n}\cdot\vec{\sigma})\)</span></p>
+
+<p>where <span  class="math">\(\frac{1}{2}(I+\hat{n}\cdot\vec{\sigma}) = (n_x, n_y, n_z)\cdot (X, Y, Z) = n_x X + n_y Y + n_z Z\)</span> and
+<span  class="math">\(\hat{n} = \begin{pmatrix}n_x = sin\theta cos\phi\\
+n_y = sin\theta sin\phi\\
+n_z = cos\theta\end{pmatrix}\)</span>
+is called the Bloch vector.</p>
+
+<p>Here in the figure is the Bloch Sphere, where for $|0\rangle$, $\theta=0$, for $|1\rangle$, $\theta = \pi$, and for $|+\rangle$, $\theta = \frac{\pi}{2}$ and $\phi = 0$.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1563.PNG" alt="Bloch Sphere" width="350"/></p>
+
+<p>All the pure states live on Bloch Sphere, and all mixed states live within the Bloch Sphere. i.e., $\rho$ is mixed state is equivalent to $tr(\rho^2) &lt; 1$; $\rho$ is pure state is equivalent to $tr(\rho^2) = 1$.</p>
+
+<p>All mixed states could be written as a convex combination of pure states, and all pure states cannot be written as a convex combination of some other quantum states.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1564.PNG" alt="Mixed state and pure state" width="350"/></p>
+
+<p>As shown in the above figure, $\vec{n_0}$ and $\vec{n_1}$ are pure states, and $\vec{n}=q_0 \vec{n_0} + q_1 \vec{n_1}$.</p>
+
+<h2 id="qubit-dynamics">Qubit Dynamics</h2>
+
+<p>In qubit dynamics, we want to describe the transformation of an initial state qubit to arbitrary qubit state by certain ulitary transformation $U$, then perform measurement. The property that this unitary transformation can transform initial state to arbitrary (pure) quantum state is called $\bf{universality}$. This is a key property in quantum computation because in quantum computation we want to manipulate the state in an arbitrary way.</p>
+
+<p>The way to characterize a unit transformation is to view this as a rotation in Bloch Sphere. You can access any transformation in the sphere by two axis.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1566.PNG" alt="An intuitive explanation of Gate" width="350"/></p>
+
+<p>The most general form of qubit transformation is rotation, and it could be denoted as :
+<span  class="math">\(e^{ixA} = \sum_{n=0}^{\inf}\frac{1}{n!} (ixA)^2\\
+= (1-\frac{1}{2!}x^2 + ...)I + i(x-\frac{1}{3!}x^3 + ...)A\\
+= (cosx)I + i(sinx)A\)</span></p>
+
+<p>Here're some qubit transformations :
+<span  class="math">\(\begin{pmatrix}R_X(\theta) = exp[-i\frac{\theta}{2}X]\\
+R_Y(\theta) = exp[-i\frac{\theta}{2}Y]\\
+R_Z(\theta) = exp[-i\frac{\theta}{2}Z]\end{pmatrix}\)</span>
+where $R_X(\theta)$ means rotate by angle $\theta$ w.r.t. $X$; $R_Y(\theta)$ means rotate by angle $\theta$ w.r.t. $Y$; $R_Z(\theta)$ means rotate by angle $\theta$ w.r.t. $Z$.</p>
+
+<p>For example, we can simplify $R_z(\theta)$ as :<br>
+<span  class="math">\(R_z(\theta) = (cos\frac{\theta}{2})I - i(sin\frac{\theta}{2})Z\\
+= \begin{pmatrix}e^{-i\frac{\theta}{2}} & 0\\ 0 & e^{+i\frac{\theta}{2}}\end{pmatrix}\)</span></p>
+
+<p>So here's an example of a applying dynamic $R_z(\theta)$ on a state $|\phi(\alpha, \beta)\rangle$:
+<span  class="math">\(R_z(\theta)|\phi(\alpha, \beta)\rangle\\
+= \begin{pmatrix}e^{-i\frac{\theta}{2}} & 0\\ 0 & e^{+i\frac{\theta}{2}}\end{pmatrix} \begin{pmatrix}sin\frac{\alpha}{2}\cdot|0\rangle\\ e^{i\beta}\cdot sin\frac{\alpha}{2}|1\rangle\end{pmatrix}\\
+= e^{-i\frac{\theta}{2}}[cos\frac{\alpha}{2}|0\rangle + e^{i(\beta+\theta)}sin\frac{\alpha}{2}|1\rangle]\\
+= e^{-i\frac{\theta}{2}}|\phi(\alpha, \beta+\theta)\rangle\)</span></p>
+<p>An essential $\textbf{property}$ : Any unitary transformation for a single qubit can be written in the following way : $U = e^{i\alpha}R_Y(\beta)R_Z(\gamma)R_Y(\delta)...$, (note that only two axis needed, so it could be any two axis).</p>
+
+<p><span style="color:blue">But note that only if we know the initial state and result state, we can identify the rotation/transformation that transfers the initial state to the result one, if we don't know the states, there's no such a transformation. This is very important in quantum theory annoucing states could not be manipulated. </span></p>
+
+<h2 id="quantum-state-discrimination">Quantum State Discrimination</h2>
+
+<p>Discrimination is the first task of quantum information processing. Here's a figure illustrating the discrimination :
+<img src="https://GAOYUEtianc.github.io/img/IMG_1567.PNG" alt="An intuitive explanation of Gate" width="350"/></p>
+
+<p>Imagine you are preparing the device and generate quantum state $|\phi_0\rangle$, $|\phi_1\rangle$ with probability $q_0$ and $q_1$. This is sent to discriminator, and the goal of the discriminator is to find which state has been prepared.</p>
+
+<ul>
+<li>If the states are not orthogonal, then it is not perfect to discriminate between two states with certainty.</li>
+<li>If the states are orthogonal, then we can always prepare a discriminator that gives a correct answer all the time.</li>
+</ul>
+
+<p>In this sense, if we cannot perform perfect discrimination between two states, the second best thing we can do is to minimize the error.</p>
+
+<h3 id="minimumerror-discrimination">Minimum-Error Discrimination</h3>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1568.PNG" alt="Minimum-Error Discrimination" width="350"/></p>
+
+<p>For the figure above, $M_0$ and $M_1$ are two detectors, if the detection events appears in the detector $M_0$, the discriminator conclude state $\phi_0$; If the detection events appears in the detector $M_1$, the discriminator conclude state $\phi_1$. The goal is to maximize $$P_{success}=\underset{M_0, M_1}{\max}\left(q_0\langle\phi_0|M_0|\phi_0\rangle + q_1\langle\phi_1|M_1|\phi_1\rangle\right)$$
+where $M_0 + M_1 = I$.</p>
+
+<p>And given this relationship between $M_0$ and $M_1$, $P_{success}$ could be written as:
+<span  class="math">\(P_{success}=\underset{M_0, M_1}{\max}\left(q_0\langle\phi_0|M_0|\phi_0\rangle + q_1\langle\phi_1|M_1|\phi_1\rangle\right)\\
+= \frac{1}{2}+\frac{1}{2}||q_0|\phi_0\rangle\langle\phi_0| - q_1|\phi_1\rangle\langle\phi_1| ||_1\\
+= \frac{1}{2}+\frac{1}{2}tr\sqrt{\left(q_0|\phi_0\rangle\langle\phi_0| - q_1|\phi_1\rangle\langle\phi_1|\right)^{\dagger}\left(q_0|\phi_0\rangle\langle\phi_0| - q_1|\phi_1\rangle\langle\phi_1|\right)}\)</span>
+As shown in the figure below, given two quantum states, the relation between them could be in terms of cosine $\theta$, where $\theta$ is the angle between those two states, and thus $cos(\theta) = \langle\phi_0|\phi_1\rangle$. So the two-dimensional space could be defined by a single parameter.</p>
+
+<p>The optimal measurement could be simplified in the following way: multiply the probability $q_0$ and $q_1$ respectively, then the space is defined by these two vectors. Take these two points and draw a line connecting these two points, then another line which is parallel to this one will be found, and it's maximal in this circle. Then we can take the two end points to be $M_1$ and $M_0$ respectively, and the center point would be $I$ since $M_1+M_0 = I$.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1569.PNG" alt="Minimum-Error Discrimination Construction" width="350"/></p>
+
+<p>But note that given state $\phi_0$, there is a positive probability we have a detection events in the detector $M_0$, but there's also a positive probability that we have a detection events in the detector $M_0$ if the state is $\phi_1$. So the answer is not guaranteed to be correct.</p>
+
+<h3 id="unambiguous-discrimination">Unambiguous discrimination</h3>
+
+<p>The core of unambiguous discrimination is that we want to remove the ambiguity and ensure the correctness of the conclusion.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1574.PNG" alt="Unambiguous Discrimination" width="350"/></p>
+
+<p>So how to construct the measurement? As show in the figure below, we put $M_0$ opposite to $\phi_0$, put $M_1$ opposite to $\phi_1$, and since the summation of measurements should be $I$, $M_?$ could be computed by $I-M_0-M_1$.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1575.PNG" alt="Unambiguous Discrimination Construction" width="350"/></p>
+
+<p><span style="color:red">Remark about unambiguous discrimination : </span></p>
+
+<ul>
+<li>$|\phi_0\rangle, |\phi_1\rangle$ should be pure state</li>
+<li>For $|\phi_i\rangle$ where $i=0, 1, 2, ...$ $\in \mathcal{H}_d$,, they're unambiguous discrimination possible if $n+1\le d$</li>
+</ul>
+
+<h2 id="nogo-theorems">No-go Theorems</h2>
+
+<p>In '70s, there's a huge development and progress in optical communication, then people tried to look at the fundamental limit of optical communication, which is photon and quantum system. Then the advantage of using quantum systems for communication would be a worth-thinking question. So a very basic question would be how to discriminate between different quantum states. There's a famous paper by Wootters and Zurek in 1982 named <em>$\textbf{A single quantum cannot be cloned}$</em>. In general, there are two impossible quantum operations in the scenario of quantum information processing :</p>
+
+<ul>
+<li>For two quantums states that are non-orthogonal, they cannot be discriminated perfectly.</li>
+<li>If you know nothing about your quantum system, you cannot make perfect clones. And this is the $\textbf{No cloning theorem}$.</li>
+</ul>
+
+<p>Note that :</p>
+
+<ul>
+<li>Perfect cloner $\Rightarrow$ Perfect discrimination</li>
+<li>Perfect discrimination $\Rightarrow$ Perfect cloner</li>
+</ul>
+
+<p>Hence the two scenarios are equivalent.</p>
+
+<p>Here is a proof of the first implication :</p>
+
+<p>Given states $\phi_0, \phi_1$, pass them into the perfect cloner, then you can get n copies state $|\phi_0\rangle^\otimes n$, $|\phi_1\rangle^\otimes n$. Then the success probability could be written as
+$$P_{success} = \frac{1}{2}+\frac{1}{4}||\phi_0\rangle^{\otimes n} - |\phi_1\rangle^{\otimes n}|\\
+= \frac{1}{2}+\frac{1}{2} - \frac{1}{2}|\langle\phi_0 |\phi_1\rangle|^{2n}\\
+=1-\frac{1}{2}|\langle\phi_0 |\phi_1\rangle|^{2n}\\
+\underset{n\rightarrow \infty}{\rightarrow} 1$$
+Hence the states could be perfectly discriminated.</p>
+
+<p>Here is a proof of the second implication :</p>
+
+<p>Given a state in ${|\phi_0\rangle, |\phi_1\rangle}$, input it into a perfect discriminator, then we can get a correct $i$ indicating whether it's $|\phi_0\rangle$ or $|\phi_1\rangle$. Then you can prepare the same state $|\phi_i\rangle$ many times, i.e., get $|\phi_i\rangle^{\otimes n}$.</p>
+
+</div>
+
+
+
+  </main>
+
+  <head>{0xc0006daea0 0xc0006e3340}</head>
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2023 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+    <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  
+  MathJax.Hub.Config({
+  tex2jax: {
+  inlineMath: [['$','$'],['\\(','\\)']],
+  displayMath: [['$$','$$']],
+  processEscapes: true,
+  processEnvironments: true,
+  skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+  TeX: { equationNumbers: { autoNumber: "AMS" },
+     extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+  });
+  
+  MathJax.Hub.Queue(function() {
+  
+  
+  
+  var all = MathJax.Hub.getAllJax(), i;
+  for(i = 0; i < all.length; i += 1) {
+    all[i].SourceElement().parentNode.className += ' has-jax';
+  }
+  });
+  </script>
+  </footer>
+
+
+  <script type="application/javascript">
+    var doNotTrack = false;
+    if (!doNotTrack) {
+      window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+      ga('create', 'UA-151032737-1', 'auto');
+      
+      ga('send', 'pageview');
+    }
+    </script>
+    <script async src='https://www.google-analytics.com/analytics.js'></script>
+    
+
+</body>
+</html>
