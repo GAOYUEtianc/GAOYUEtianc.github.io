@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>LLM &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="LLM - 1"/>
+  <meta property="og:description" content="Introduction to Large Language Model This blog summarizes the key components of LLM briefly."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/llm/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2023-10-10T19:07:52-0600"/>
+  <meta property="article:modified_time" content="2023-10-10T19:07:52-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "LLM - 1",
+    "headline": "LLM - 1",
+    "datePublished": "2023-10-10T19:07:52-0600",
+    "dateModified": "2023-10-10T19:07:52-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/llm/",
+    "description": "Introduction to Large Language Model This blog summarizes the key components of LLM briefly."
+  }
+  </script>
+
+  <script type="text/javascript"
+  async
+  src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$']],
+displayMath: [['$$','$$'], ['\[','\]']],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>LLM - Part 1 : Basic Components</h1>
+
+  <div class="post-date">
+    <time datetime="2023-10-01T19:07:52-0600">Oct 10, 2023</time> · 11 min read
+  </div>
+
+  <h1 id="introduction-to-large-language-model">Introduction to Large Language Model</h1>
+
+<p>This blog summarizes the key components of LLM briefly.</p>
+
+<p>In 2017, the publication <em>Attention is All You Need</em> by Google and University of Toronto brought huge innovation into NLP, the era of <strong>transformers</strong> has launched. This efficient, scalable, and parallelizable approach has opened the Pandora's box of generative AI and ushered AI research into a whole new era.</p>
+
+<h2 id="what-is-attention">What is Attention?</h2>
+
+<p>Traditional Encoder-Decoder models are widely used in NLP, however, their performance drops significantly when dealing with long sentences, and one of the main reasons for this is encoder-decoder model encodes the input sequence to one fixed length vector from which to decode each output time step. Attention is a technique to resolve this issue by <strong>focusing on the relevant parts of the input sequence</strong>.</p>
+
+<p>The mechanism of attention includes the following steps:</p>
+
+<ul>
+<li>Generating the encoder hidden states of each element in the input sequence.</li>
+<li>In order to focus on the parts of the input that are relevant to this decoding, calculate alignment scores between the previous decoder hidden state and each of the encoder's hidden states.</li>
+<li>Apply softmax on alignment scores, so that we get a vector, which is the softmaxed alignment scores for each encoder hidden state.</li>
+<li>Calculate the context vector by multiplying each encoder hidden states and their respective alignment scores.</li>
+<li>Concatenate the context vector with the previous decoder output.</li>
+<li>Feed the concatenated vector with the previous decoder hidden state into the decoder RNN to produce a new output.</li>
+</ul>
+
+<p>Note that the above steps are repeated for many times. And the figure below illustrates the steps above.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1576.PNG" alt="steps for attention on one decoder hidden state (one iteration)" width="350"/></p>
+
+<h2 id="introduction-to-transformer">Introduction to Transformer</h2>
+
+<p>Transformer is a model that boosts the training speed and improves regenerative capability by using attention. The power of transformer lies in its ability to learn the relevance and context of all the words in a sentenece. For example, the figure below illustrates the relationship of words in a sentence, and is called a self-attention.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/self-attention-example.png" alt="self-attention example in a sentence" width="350"/></p>
+
+<h3 id="self-attention-in-detail">Self Attention in Detail</h3>
+
+<p>Self-attention mechanism enables the model to weigh the importance of different elements in an input sequence and dynamically adjust their influence on the output.</p>
+
+<p>As shown in the figure above, the word <em>book</em> is strongly connected with the word <em>teacher</em> and <em>student</em>. The ability to learn a tension in this way across the whole input significantly improves the model's ability to encode language.</p>
+
+<p>Now let's dive into the calculation of self-attention :</p>
+
+<p>The first step is to get three vectors from each of the encoder's input vectors, they are respectively queries, keys, and values. They are get by multiplying the embedding by three matrices that we trained during the training process.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1577.PNG" alt="Get Queries, Keys, and Values" width="350"/></p>
+
+<p>The second step is to score each word of the input sentence against each single input word. This score determines when encoding a word at a certain position, and how much focus to place on other parts of the input sentence. The score is calculated by dot product of query vector and key vector of the respective word. e.g., If we process the self-attention for the word <em>Machine</em>, the first score would be the dot product of $q_1$ and $k_1$, the second score would be the dot product of $q_1$ and $k_2$.</p>
+
+<p>The third step is to do a normalization on scores for more stable gradients. All scores are divided by $8\sqrt{d_k}$, where $d_k$ is the dimension of the key vectors. Then apply softmax on scores, so that the scores are all between 0 and 1, and they sum up to 1.</p>
+
+<p>The fourth step is to scale each value vector by multiplying their corresponding softmax score, then sum up the weighted value vectors, e.g., summing up the scaled $v_1$ and scaled $v_2$ (scaled by softmax score of the word <em>Machine</em> in the figure), we get $z_1$, which is the self-attention result for the first word <em>Machine</em>.</p>
+
+<h4 id="multiheaded-attention">Multi-Headed Attention</h4>
+
+<p>Multi-head attention is a simple extension of the single-head attention above to give us more representation power. The motivation of multi-head attention is to represent different aspects of a word, e.g., from syntax perspective or semantics perspective, so we need sth more than a single embedding.</p>
+
+<p>Instead of producing one set of $W^Q, W^K, W^V$ matrices, multi-head attention produces $k$ sets of $W^Q, W^K, W^V$ matrices. The computation process is the same for each set of $W^Q, W^K, W^V$ matrices,
+<span  class="math">\(Z_i = softmax\left(\frac{W^{Q_i}(W^{K_i})^{T}}{\sqrt{d}}\right)W^{V_i}, \;\;\;i=1,...,k\)</span></p>
+<p>Once we get $k$ outputs, we concatenate and project the outputs by
+<span  class="math">\(Z = W[Z_0, Z_1, ..., Z_k]\)</span>
+where $W$ is a weight matrix trained with the model.</p>
+
+<p>Now let's investigate the time complexity of calculating multi-head atttention :</p>
+
+<ul>
+<li>Calculating attention score for a pair of word : $O(d)$.</li>
+<li>Pairwise interaction : $O(n^2)$.</li>
+<li>Multi-head attention : $O(k)$</li>
+</ul>
+
+<p>So the overall time complexity will be $O(kdn^2)$, and since $d$ and $k$ are constants, the complexity would be $O(n^2)$, which is expensive. So how to make the calculation more efficient? The high-level idea would be to sparsify the attention matrices, methods include locality sensitive hasing, low-rank decomposition.</p>
+
+<h3 id="positional-encoding">Positional Encoding</h3>
+
+<p>As you could notice, self-attention is not sensitive to word ordering, but in NLP problems, order matters a lot, so we'll need to represent the position of input sequence. To address this, the transformer adds a positional embedding to the input word embedding, and the positional embedding should be of the same dimension as word embedding, then we add them up. The intuition of position embedding is binary encoding, i.e., the frequency of bit flips increases from left to right. It uses $sin$ and $cos$ functions with a frequency that increases.</p>
+
+<h3 id="encoder-structure">Encoder Structure</h3>
+
+<p>The encoding component is a stack of encoders, and the decoding component is a stack of decoders of the same number.</p>
+
+<p>Each encoder layer has a residual connection around it, and is followed by a layer-normalization step.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1578.PNG" alt="Get Queries, Keys, and Values" width="350"/></p>
+
+<h3 id="decoder-structure">Decoder Structure</h3>
+
+<p>The output of the final layer of encoder is fed into every decoder layer as part of the input, and the decoder stack passes their outputs to the next decoder layer.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1579.PNG" alt="Get Queries, Keys, and Values" width="350"/></p>
+
+<h2 id="prompt-engineering-and-generative-ai-project-lifecycle">Prompt Engineering and Generative AI project lifecycle</h2>
+
+<p>Providing examples inside the context window is called in-context learning. The method that includes the input data within the prompt is called zero-shot inference. The inclusion of a single example is known as one-shot inference, and of course, extending the idea of giving a single example to include multiple examples is known as few-shot inference. The largest models are good at zero-shot inference and are able to infer and complete tasks that they were not trained to perform; While smaller models are generally good at only similar tasks that they were trained on.</p>
+
+<p>The Generative AI project lifecycle is as follows:</p>
+
+<ul>
+<li>Define the use case</li>
+<li>Choose an existing model or pretrain your own</li>
+<li>Adapt and align model
+
+<ul>
+<li>Prompt Engineering</li>
+<li>Fine-tuning</li>
+<li>Align with human feedback</li>
+<li>Evaluate</li>
+</ul></li>
+
+<li><p>Application integration</p>
+
+<ul>
+<li>Optimize and deploy model for inference</li>
+
+<li><p>Augment model and build LLM-powered applications</p>
+
+<h2 id="parameter-efficient-finetuning-peft">Parameter Efficient Fine-Tuning (PEFT)</h2>
+
+<p>Training LLM is computationally expensive since the number of parameters are quite big. In contrast to full fine-tuning where every model weight is updated during supervised learning, parameter efficient fine tuning methods only update a small subset of parameters. Some methods freeze most of the model weights and focus on fine tuning a subset of existing model parameters, while other techiniques add a small number of new parameters or layers and fine-tune only the new components. Full fine-tuning results in a new version of the model for every task you train on, e.g., Q&amp;A, summarization, text generation.</p></li>
+</ul></li>
+</ul>
+
+<p>The three main classes of PEFT methods are as follows :</p>
+
+<ul>
+<li>Selective : Select only a subset of initial LLM parameters to fine-tune.</li>
+<li>Reparameterization : Reparameterize model weights using a low-rank representation, known as LoRA, this is a widely used method.</li>
+<li>Additive : Keep original parameters frozen and add trainable layers or parameters to model.</li>
+</ul>
+
+<h3 id="lora--low-rank-adaption-of-llms">LoRA : Low Rank Adaption of LLMs</h3>
+
+<p>LoRA is a widely used reparameterization method that reparameterize model weights using a low-rank representation.</p>
+
+<p>The steps of LoRA are as follows:</p>
+
+<ul>
+<li>Freeze most of the orignal LLM weights.</li>
+<li>Inject a pair of rank decomposition matrices alongside the original weights.</li>
+<li>Train the smaller matrices.</li>
+</ul>
+
+<p>Steps to update model for inference :</p>
+
+<ul>
+<li>Matrix multiply the low rank matrices : $B\times A$</li>
+<li>Add $B\times A$ to original weights</li>
+</ul>
+
+<p>Here's a concrete example of how LoRA reduce the number of parameters : If transformer weights have dimensions $d\times k = 512\times 64$, then the number of trainable parameters would be 32678; While in LoRA with rank r=8, $A$ has dimensions $r\times k = 8\times 64 = 512$ parameters, B has dimension $d\times r = 512\times 8 = 4096$ trainable parameters, so that would reduce 86% in parameters to train.</p>
+
+<h3 id="soft-prompts">Soft Prompts</h3>
+
+<p>Although sounds similar, prompt tuning is different from prompt engineering, the goal of prompt engineering is to help the model understand the nature of the task you're asking it to carry out in order for a better completion. However, prompt engineering requires huge manual effort and has big limitations. But with prompt tuning, you add additional trainable tokens to your prompt and leave it up to the supervised learning process to determine their optimal values. <strong>And the set of trainable tokens is called a soft prompt</strong>.</p>
+
+<p>Soft prompt vectors are of the same length as the embedding token vectors, and including somewhere between 20 and 100 virtual tokens can be sufficient for good performance.</p>
+
+<p>The figure on the left shows intuitively the tokens that represent natural language, where they each corresponds to a fixed location in the embedding vector space; The figure on the right shows that soft prompts can be seen as virtual tokens that can take any value within the continuous multi-dimensional embedding space, and the words closest to the soft promopt tokens have similar meanings, i.e., they form tight semantic clusters.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1580.PNG" alt="soft prompt intuitive" width="350"/></p>
+
+<p>Compared to full fine-tuning, where millions to billions of parameters are updated, only 10k to 100k parameters need to be updated in prompt tuning. Intuitively, prompt tuning for multiple tasks are like assembling blocks, you'll only need to switch out soft prompt (i.e., soft prompt vectors for different tasks) at inference time to change task!</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/2-Figure2-1.png" alt="soft prompt parameter trend" width="350"/></p>
+
+<p>As Lester et al. shows in <em>The Power of Scale for Parameter-Efficient Prompt Tuning</em> (the figure below), as the models have around 10 billion parameters, prompt tuning can be as effective as full fine tuning, and offers a significant boost in performance over prompt engineering alone.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/1-Figure1-1.png" alt="soft prompt parameter trend" width="350"/></p>
+
+<h2 id="reinforcement-learning-from-human-feedback">Reinforcement Learning from Human Feedback</h2>
+
+<p>Motivated by some existing bad behaviours in LLM, like toxic language, aggressive responses, dangerous information etc, fine-tuning a model based on human feedback is needed. RLHF is such a popular technique to finetune LLM, it helps maximize helpfulness, minimize harm, and avoid dangerous topics.</p>
+
+<p>I'll omit the basic concepts of RL here.</p>
+
+<p>The steps in fine-tuning an LLM with RLHF are as follows :</p>
+
+<ul>
+<li>Select a model to work with and use it to prepare a dataset for human feedback.</li>
+<li>Collect feedback from human labelers on the completions generated by LLM. You'll need to define your model alignment criterion before obtaining human feedback through labeler workforce, then the labelers rank the completions in order of the criterion.</li>
+<li>Convert the ranking data into a pariwise comparison of completions, i.e., all possible pairs of completions from the available choices to a prompt should be classified as 0 or 1 score.</li>
+
+<li><p>Train reward model to predict preferred completion form ${y_j, y_k}$ for prompt $x$. The reward for those completions are respectively $r_j$ and $r_k$, the loss function is
+<span  class="math">\(loss=log(\sigma(r_j - r_k))\)</span></p></li>
+
+<li><p>After getting the model, use the reward model as a binary classifier to provide reward value for each prompt-completion pair. We treat the logit output of the reward model as a reward that we optimize using reinforcement learning, specifically with the PPO algorithm. I'll omit the details of PPO here, as I have an old blog diving into PPO, but the PPO step in RLHF has two phases, create completions and model update, and those two phases iterate for many times.</p></li>
+</ul>
+
+<p>Here is the process flowchart :</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1581.PNG" alt="soft prompt intuitive" width="350"/></p>
+
+<h4 id="reward-hack-in-rlhf">Reward hack in RLHF</h4>
+
+<p>In LLM, reward hacking can manifest as the addition of words or phrases to completions that result in high scores for the metric being aligned but reduce the overall quality of the language. For example, you have already trained a reward model that can carry out sentiment analysis and classify model completions as toxic or non-toxic, as you iterate, RLHF will update the LLM to create a less toxic responses. However, as the policy tries to optimize the reward, the model might start generating completions which are very exaggerated.</p>
+
+<p>In order to prevent reward hacking, we can use the initial instruct LLM as performance reference. The weights of the reference model are frozen and are not updated during iterations. As shown in the below flowchart, you compare the two completions and calculate KL divergence between them, and that could be added into the reward calculation. This would penalize the RL updated model if it shifts too far from the reference LLM.</p>
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1582.PNG" alt="soft prompt intuitive" width="350"/></p>
+<h2 id="references">References</h2>
+
+<ul>
+<li>Vaswani, Ashish &amp; Shazeer, Noam &amp; Parmar, Niki &amp; Uszkoreit, Jakob &amp; Jones, Llion &amp; Gomez, Aidan &amp; Kaiser, Lukasz &amp; Polosukhin, Illia, “Attention is all you need” , 2017.</li>
+<li>N. Stiennon, L. Ouyang, J. Wu, D. Ziegler, R. Lowe, C. Voss, A. Radford, D. Amodei, and P. Christiano., Learning to summarize from human feedback, NeurIPS 2020.</li>
+<li>Brian Lester, Rami Al-Rfou, Noah Constant, The Power of Scale for Parameter-Efficient Prompt Tuning, 2021</li>
+</ul>
+
+</div>
+
+
+
+  </main>
+
+  <head>{0xc0001feb40 0xc000428c60}</head>
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2023 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+    <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  
+  MathJax.Hub.Config({
+  tex2jax: {
+  inlineMath: [['$','$'],['\\(','\\)']],
+  displayMath: [['$$','$$']],
+  processEscapes: true,
+  processEnvironments: true,
+  skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+  TeX: { equationNumbers: { autoNumber: "AMS" },
+     extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+  });
+  
+  MathJax.Hub.Queue(function() {
+  
+  
+  
+  var all = MathJax.Hub.getAllJax(), i;
+  for(i = 0; i < all.length; i += 1) {
+    all[i].SourceElement().parentNode.className += ' has-jax';
+  }
+  });
+  </script>
+  </footer>
+
+  
+
+
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
+          integrity="sha256-MAgcygDRahs+F/Nk5Vz387whB4kSK9NXlDN3w58LLq0="
+          crossorigin="anonymous"></script>
+
+  <script type="text/javascript"
+          src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        </script>        
+
+  
+
+
+<script type="application/javascript">
+  var doNotTrack = false;
+  if (!doNotTrack) {
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'UA-151032737-1', 'auto');
+    
+    ga('send', 'pageview');
+  }
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
