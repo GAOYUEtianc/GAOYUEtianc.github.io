@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.65.0" />
+
+  <title>RAG &middot; Anna&#39;s Blog</title>
+
+  <meta name="description" content="" />
+
+  
+  <meta property="og:locale" content="en"/>
+
+  
+  <meta property="og:image" content="https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp">
+
+  
+  <meta property="og:site_name" content="Anna&#39;s Blog"/>
+  <meta property="og:title" content="RAG"/>
+  <meta property="og:description" content="Retrieval Augmented Generation (RAG) - Unveiling the Simplicity and Magic of an LLM Innovation In today’s landscape, large language models (LLMs) are catalyzing transformative applications across various industries."/>
+  <meta property="og:url" content="https://GAOYUEtianc.github.io/blogs/post/rag/"/>
+  <meta property="og:type" content="article"/>
+  <meta property="article:published_time" content="2024-07-20T19:07:52-0600"/>
+  <meta property="article:modified_time" content="2024-07-20T19:07:52-0600"/>
+  <meta property="article:author" content="Gao Yue (Anna)">
+  
+  
+  
+
+  <script type="application/ld+json">
+  {
+    "@context" : "http://schema.org",
+    "@type" : "Blog",
+    "name": "Anna's Blog",
+    "url" : "https://GAOYUEtianc.github.io/blogs/",
+    "image": "https://www.gravatar.com/avatar/c3c54f26563752e0f84f5cf27c7d72ea?s=400&d=mp",
+    "description": ""
+  }
+  </script>
+
+  
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "name": "RAG",
+    "headline": "RAG",
+    "datePublished": "2024-07-20T19:07:52-0600",
+    "dateModified": "2024-07-20T19:07:52-0600",
+    "author": {
+      "@type": "Person",
+      "name": "Gao Yue (Anna)",
+      "url": "https://GAOYUEtianc.github.io/blogs/"
+    },
+    "image": "https://GAOYUEtianc.github.io/img/profile1.jpg",
+    "url": "https://GAOYUEtianc.github.io/blogs/post/rag/",
+    "description": "Retrieval Augmented Generation (RAG) - Unveiling the Simplicity and Magic of an LLM Innovation In today’s landscape, large language models (LLMs) are catalyzing transformative applications across various industries."
+  }
+  </script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+  });
+    MathJax.Hub.Queue(function() {
+      // Fix <code> tags after MathJax finishes running. This is a
+      // hack to overcome a shortcoming of Markdown. Discussion at
+      // https://github.com/mojombo/jekyll/issues/199
+      var all = MathJax.Hub.getAllJax(), i;
+      for(i = 0; i &lt; all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+  
+  </script>
+  <script type="text/javascript"
+    src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script>
+  
+
+  <script type="text/javascript"
+        async
+        src="https://cdn.cloudflare.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\[\[','\]\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+    TeX: { equationNumbers: { autoNumber: "AMS" },
+         extensions: ["AMSmath.js", "AMSsymbols.js"] }
+  }
+});
+
+MathJax.Hub.Queue(function() {
+    
+    
+    
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+
+<style>
+code.has-jax {
+    font: inherit;
+    font-size: 100%;
+    background: inherit;
+    border: inherit;
+    color: #BD5D38;
+}
+</style>
+
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/print.css"
+        media="print">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+
+  <link type="text/css"
+        rel="stylesheet"
+        href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  
+<style type="text/css">
+  .sidebar {
+    background-color: #BD5D38;
+  }
+
+  .read-more-link a {
+    border-color: #BD5D38;
+  }
+
+  footer a,
+  .content a,
+  .related-posts li a:hover {
+    color: #BD5D38;
+  }
+</style>
+
+
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css"
+        integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk="
+        crossorigin="anonymous" />
+
+  <link rel="apple-touch-icon-precomposed"
+        sizes="144x144"
+        href="/apple-touch-icon-144-precomposed.png">
+
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  </head>
+<body>
+  <aside class="sidebar">
+  <div class="container">
+    <div class="sidebar-about">
+      
+      <div class="author-image">
+        <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Gravatar">
+      </div>
+      
+
+      <h1>Anna&#39;s Blog</h1>
+
+      
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="https://GAOYUEtianc.github.io/blogs/">Home</a>
+        </li>
+        <li>
+          <a href="https://GAOYUEtianc.github.io/"> My Webpage </a>
+        </li>
+      </ul>
+    </nav>
+
+    <section class="social-icons">
+      
+      <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+        <i class="fab fa-linkedin" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      
+      <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+        <i class="fab fa-facebook" aria-hidden="true"></i>
+      </a>
+      
+    </section>
+  </div>
+</aside>
+
+
+  <main class="content container">
+  <div class="post">
+  <h1>RAG</h1>
+
+  <div class="post-date">
+    <time datetime="2024-07-20T19:07:52-0600">Jul 20, 2024</time> · 9 min read
+  </div>
+
+  <h1 id="retrieval-augmented-generation-rag--unveiling-the-simplicity-and-magic-of-an-llm-innovation">Retrieval Augmented Generation (RAG) - Unveiling the Simplicity and Magic of an LLM Innovation</h1>
+
+<p>In today’s landscape, large language models (LLMs) are catalyzing transformative applications across various industries. Among these, Retrieval Augmented Generation (RAG) stands out for its straightforward yet powerful approach, delivering impressive outcomes across numerous scenarios. This blog will explore RAG from its foundational principles to its practical applications.</p>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Retrieval Augmented Generation (RAG) is a hybrid model that enhances traditional language model generation by dynamically retrieving and integrating external information during the generation process. Building a RAG model involves selecting a robust knowledge base, integrating it with a language model, and fine-tuning the system to dynamically incorporate relevant information during the generation process.</p>
+
+<p><img src="https://GAOYUEtianc.github.io/img/IMG_1730.jpg" alt="What does a RAG do" width="350"/></p>
+
+<h2 id="the-rag-pipeline">The RAG Pipeline</h2>
+
+<p>The RAG pipeline incorporates a sequence of intricate steps designed to blend retrieval mechanisms with generative capabilities, and here's a detailed breakdown of each stage in the RAG pipeline:</p>
+
+<h3 id="knowledge-base-creation">Knowledge Base Creation</h3>
+
+<p>The key foundation of RAG is a well-organized knowledge base. The process involves collecting, curating, and structuring data that can effectively support the retrieval needs of the model. Data is typically sourced from databases, or any other textual sources, then cleaned, standardized, and indexed.</p>
+
+<p>Here are some major classes of knowledge bases, along with details on their characteristics and use cases:</p>
+
+<h4 id="vector-databases">Vector Databases</h4>
+
+<p>Vector databases store data in the form of vectors, which are representations of data points in a high-dimensional space. The data is partitioned into chunks, then the chunks are encoded into vectors with LLM or techniques such as deep learning models, then they're indexed into a vector database by their vector representation.</p>
+
+<p>Vector databases are most used for RAG models that use semantic search where the similarity between vectors directly correlates to the relevance of information in response to a query. For instance, consider a database containing addresses, and the query is a list of addresses with typographical errors. The objective is to retrieve the most accurately matched correct address. In this scenario, a vector database would be an ideal choice. The reason being, the similarity between vectors—generated from the addresses—will efficiently highlight the most relevant information in response to the query.</p>
+
+<p>Popular implementations include Faiss, BERT, NLTK, sparse embeddings such as TF-IDF, and so on.</p>
+
+<h4 id="graph-databases">Graph Databases</h4>
+
+<p>Graph databases use graph structures to represent and store data. The relationships among data points are extracted by LLM and directly stored as edges, which makes them highly suitable for complex queries that involve relations.</p>
+
+<p>Graph databases are commonly used in scenarios where relationships between data points are crucial, such as linking concepts across documents or understanding hierarchical structures within the data. For example, it's instrumental for implementing a personalized recommendation system. Nodes in the graph represent users, products, and categories, while edges denote actions such as purchases or views. This setup allows the system to track user interactions and dynamically update connections between products and users.</p>
+
+<p>The built-in pacakge graphrag in Python is a commonly used implementation.</p>
+
+<h3 id="information-retrieval">Information Retrieval</h3>
+
+<p>After a user provides a query in natural language, the retrieval process is executed to fetch the most relevant information from the knowledge base in response to a query.</p>
+
+<p>The retrieval mechanism leverages the vector database to pinpoint segments of indexed data that share semantic similarities with the user's embedded query. For instance, in a vector database, information retrieval is facilitated by identifying the nearest neighbors to the query, which then serve as context for the large language model (LLM). Conversely, in a graph database, retrieval is executed by extracting a sub-knowledge base—specifically, a sub-graph—centered around the entity specified in the query. This method ensures that the retrieved information is highly relevant and contextually appropriate for the user's needs.</p>
+
+<h4 id="retrieval-approaches">Retrieval Approaches</h4>
+
+<ul>
+<li><strong>Basic Retrieval</strong> : The system scans an index to find items that match or are related to the user's embedded query. Techniques such as keyword search, Boolean retrieval, or retrieving based on cosine similarity are common and straightforward.</li>
+<li><strong>Small-to-Large Chunking</strong> : This technique involves breaking down the retrieval process into progressively larger data chunks. Initially, the system retrieves small segments of data closely matching the query specifics. It then gradually widens the scope, incorporating larger chunks of related information until the desired context or accuracy is achieved. ParentDocumentRetriever in langchain is a widely used technique for this.</li>
+<li><strong>Ensemble Retrieval</strong> : This technique takes multiple retrievers as input, ensemble the results of their methods according to a weight, and rerank the results based on the <a href="https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking">Reciprocal Rank Fusion algorithm</a> . The most common pattern is to combine a sparse retriever (like BM25) which is good at finding relevant documents based on keywords, with a dense retriever (like embedding similarity) which is good at finding relevant documents based on semantic similarity. Because their strengths are complementary, hybriding them would balance the strengths and weaknesses of individual methods. A commonly used tool is EnsembleRetriever in langchain.</li>
+<li><strong>Re-Ranking</strong> : By analyzing and scoring the retrieved items to reorder them based on their perceived relevance to the query, re-ranking enhances the initial retrieval results by adjusting the rank of the retrieved documents/information to better align with the user's needs.
+
+<ul>
+<li>Lexical Re-Ranking : Lexical re-ranking adjusts the ranks based on the lexical similarity between the query and the retrieved documents, it may utilize advanced token matching algorithms, incorporating synonym recognition, phrase matching, and context awareness. Commonly used techniques include BM25 or cosine similarity with TF-IDF vectors.</li>
+<li>Semantic Re-Ranking : This method adopts natural language understanding capabilities to gauge the semantic correspondence between the query and the retrieved content. Techniques like embedding vectors (from models like BERT or GPT), which represent semantic meanings of texts, are compared to determine the match.</li>
+<li>Machine Learning-Based Re-Ranking : This involves training data consisting of features extracted from both the query and the documents
+and manually ranked documents, to teach the model what characteristics of a document make it relevant to a query. Common methods are <span style="color:blue">pairwise ranking</span>  [where loss is based on pairs of documents with difference in relevance], <span style="color:blue">pointwise ranking</span> [where labels are predicted by using classification or regression loss], and <span style="color:blue">listwise ranking</span> [optimise ranking metrics directly].</li>
+</ul></li>
+</ul>
+
+<h3 id="contextual-integration">Contextual Integration</h3>
+
+<p>After getting the retrieved information from last step, the relevant information is combined with the initial query, forming a new, enriched input context  to enhance the response's relevance and accuracy. This process involves aligning the retrieved information with the query contextually and ensuring that the combination is meaningful.</p>
+
+<h3 id="response-generation">Response Generation</h3>
+
+<p>At this point, the model combines the information it has retrieved with its pre-existing knowledge to produce responses that are not only coherent but also contextually relevant. This involves weaving together insights from various sources to ensure both accuracy and relevance. The response is crafted to be informative while also matching the user’s original query.</p>
+
+<p>Here's a naive code-level example of the contextual integration and response generation steps :</p>
+<pre><code># Let&#39;s assume we have a user query and some retrieved text snippets that might contain the answer.
+
+user_query = &#34;What are the health benefits of drinking green tea?&#34;
+retrieved_snippets = [
+    &#34;Green tea is high in antioxidants that can improve the function of your body and brain.&#34;,
+    &#34;Some studies show that green tea leads to increased weight loss and helps in preventing cardiovascular diseases.&#34;
+]
+
+# Preprocess and Combine the Information
+import nltk
+from nltk.tokenize import sent_tokenize
+
+# Download the required model for sentence tokenization
+nltk.download(&#39;punkt&#39;)  
+
+# Function to concatenate snippets into a single context
+def create_context(query, snippets):
+    context = query + &#34; &#34; + &#34; &#34;.join(snippets)
+    return context
+
+# Generate the combined context
+combined_context = create_context(user_query, retrieved_snippets)
+print(&#34;Combined Context for the Model:&#34;, combined_context)
+
+# Use a Language Model to Generate an Answer
+from transformers import pipeline
+
+# Initialize the question answering pipeline
+qa_pipeline = pipeline(&#39;question-answering&#39;)
+
+# Use the model to generate an answer
+answer = qa_pipeline({
+    &#39;question&#39;: user_query,
+    &#39;context&#39;: combined_context
+})
+
+print(&#34;Answer:&#34;, answer[&#39;answer&#39;])</code></pre>
+<p>Note that this is just a very simple example of the last two steps for better understanding. The performance of this piece of code will be limited due to the selection of language model and naive context generation. Personally in real implementation I would recommand using ChatPromptTemplate in langchain for a more effective result.</p>
+
+<h3 id="evaluation">Evaluation</h3>
+
+<p>Evaluating the performance of Retrieval Augmented Generation (RAG) models is crucial to determine their effectiveness and identify areas for improvement. Personally I highly recommend <a href="https://docs.ragas.io/en/latest/index.html">RAGAS</a> package, as it allows you to generate a synthetic evaluation dataset for assessing your RAG pipeline, and evaluate the answers of RAG from the following metrics :</p>
+
+<ul>
+<li><strong>Faithfulness</strong> - Measures the factual consistency of the answer to the context based on the question.</li>
+<li><strong>Context_precision</strong> - Measures how relevant the retrieved context is to the question, conveying the quality of the retrieval pipeline.</li>
+<li><strong>Answer_relevancy</strong> - Measures how relevant the answer is to the question.</li>
+<li><strong>Context_recall</strong> - Measures the retriever’s ability to retrieve all necessary information required to answer the question.</li>
+</ul>
+
+<p>RAGAS even allows you to monitor the performance RAG in production.
+In real implementation, after evaluating your RAG model, steps including refine retrieval algorithms, enhance language model integration are common ways to further improve the RAG.</p>
+
+<h2 id="summary">Summary</h2>
+
+<p>In summary, RAG enhances models to produce responses that are both contextually rich and informed by up-to-date or domain-specific data not included in their initial training sets. RAG's widespread adoption can be attributed to several key advantages:</p>
+
+<ul>
+<li><strong>Dynamic Knowledge Integration</strong> : RAG facilitates real-time and ongoing retrieval of external information, allowing models to access the latest data that were not part of their initial training.</li>
+<li><strong>Improved Accuracy and Relevance</strong> : By retrieving and integrating information relevant to the specific context of a query, RAG delivers responses that are both more accurate and contextually appropriate.</li>
+<li><strong>Scalability</strong> : The ability to dynamically access vast amounts of data means RAG can effectively scale its knowledge base without retraining the core model.</li>
+<li><strong>Flexibility</strong> : RAG can be adapted to various domains or tasks simply by changing the external sources it queries, without the need for extensive retraining.</li>
+</ul>
+
+<p>However, despite these benefits, RAG also has notable drawbacks and limitations :</p>
+
+<ul>
+<li><strong>Dependence on Quality of Sources</strong> : The effectiveness of RAG is heavily dependent on the quality and relevance of the external data sources it retrieves from.</li>
+<li><strong>Latency Issues</strong> : Retrieving and processing information in real-time can introduce latency, potentially slowing down response times.</li>
+</ul>
+
+<p>In cases where the application requires deep expertise in a narrowly defined domain, or applications that require very fast response times, or must adhere to stringent data privacy standards, fine-tuning would be a better choice compared to RAG.</p>
+
+<h2 id="reference-links">Reference Links</h2>
+
+<ul>
+<li><a href="https://docs.ragas.io/en/latest/index.html">https://docs.ragas.io/en/latest/index.html</a></li>
+<li><a href="https://medium.com/@mayurbhangale/pointwise-pairwise-and-listwise-learning-to-rank-baf0ad76203e">https://medium.com/@mayurbhangale/pointwise-pairwise-and-listwise-learning-to-rank-baf0ad76203e</a></li>
+<li><a href="https://medium.com/@tejpal.abhyuday/retrieval-augmented-generation-rag-from-basics-to-advanced-a2b068fd576c">https://medium.com/@tejpal.abhyuday/retrieval-augmented-generation-rag-from-basics-to-advanced-a2b068fd576c</a></li>
+<li><a href="https://snorkel.ai/which-is-better-retrieval-augmentation-rag-or-fine-tuning-both/">https://snorkel.ai/which-is-better-retrieval-augmentation-rag-or-fine-tuning-both/</a></li>
+<li><a href="https://python.langchain.com/v0.1/docs/modules/data_connection/retrievers/">https://python.langchain.com/v0.1/docs/modules/data_connection/retrievers/</a></li>
+</ul>
+
+</div>
+
+
+
+  </main>
+
+  <head>{0xc0007119e0 0xc000730660}</head>
+<footer>
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'https-gaoyuetianc-github-io-blogs';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-gaoyuetianc-github-io-blogs" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  <div class="copyright">
+    &copy; Gao Yue 2024 · 
+  </div>
+  <script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+MathJax.Hub.Config({
+tex2jax: {
+inlineMath: [['$','$'],['\\(','\\)']],
+displayMath: [['$$','$$'],],
+processEscapes: true,
+processEnvironments: true,
+skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+TeX: { equationNumbers: { autoNumber: "AMS" },
+   extensions: ["AMSmath.js", "AMSsymbols.js"] }
+}
+});
+
+MathJax.Hub.Queue(function() {
+
+
+
+var all = MathJax.Hub.getAllJax(), i;
+for(i = 0; i < all.length; i += 1) {
+  all[i].SourceElement().parentNode.className += ' has-jax';
+}
+});
+</script>
+</footer>
+
+  
+
+
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
+          integrity="sha256-MAgcygDRahs+F/Nk5Vz387whB4kSK9NXlDN3w58LLq0="
+          crossorigin="anonymous"></script>
+
+  <script type="text/javascript"
+          src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        </script>        
+
+  
+
+  
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-151032737-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+</html>
