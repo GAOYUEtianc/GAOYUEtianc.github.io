@@ -55,16 +55,20 @@ p.lead {
 }
 
 .social-icons a {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 3.5rem;
   width: 3.5rem;
   background-color: #495057;
   color: #fff !important;
   border-radius: 100%;
-  text-align: center;
-  font-size: 1.5rem;
-  line-height: 3.5rem;
   margin-right: 1rem;
+}
+
+.social-icons a i {
+  display: block;
+  line-height: 1;
 }
 
 .social-icons a:last-child {
