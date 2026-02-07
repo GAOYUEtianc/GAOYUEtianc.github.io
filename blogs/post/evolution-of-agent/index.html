@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evolution of Agent · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Evolution of Agent"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Evolution of Agent</h1>
+      <div class="post-date">
+        <time datetime="2026-02-07">Feb 07, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `# Understanding AI Agents: Architecture, Scaling, Memory, and Self-Improvement
+
+I've built multiple AI agents, but understanding their design principles always felt fragmented. Fortunately, Stanford's CS329A changed that—it traces the evolution of agent architectures from first principles, showing how each innovation emerged from solving specific limitations. After reading all papers from its reading list, I've reorganized the key concepts here in a more narrative-driven format: from ReAct to Reflexion, from test-time scaling to train-time RL, from memory-as-text to memory-as-representation.
+
+## 1. Foundation: Evolution of Agent Architectures
+
+### ReAct: The Starting Point
+
+The simplest agent follows a three-step loop: **Thought → Action → Observation**. This is ReAct.
+
+Here's how it works in practice. You give the agent a few-shot prompt showing examples of this loop. At each step:
+
+1. **Thought**: The agent reasons about what to do next (task decomposition, intention detection, etc.)
+2. **Action**: It executes something—calls a tool, generates content, or queries a database
+3. **Observation**: The system observes the result and feeds it back as a new prompt
+
+Then the loop repeats until the task is done.
+
+The limitation? ReAct is terrible at error correction. If it makes a mistake in step 3, the mistake will be carried over into the next loops. It has no mechanism to look back and think what if sth does not work, or whether to try sth else.
+
+**Side note**: LangChain has a variant of ReAct called "plan-and-execute" where the loop is different—first the agent drafts a plan, then executes multiple steps, then gives all results back to the planner to decide whether to continue or declare completion. It's still forward-only though.
+
+### Evolution to **Reflexion**
+
+Reflexion fixes ReAct's biggest weakness by adding a feedback loop. Four components work together:
+
+1. **Actor**: Takes actions (can be a ReAct agent or CoT-style reasoning agent)
+2. **Evaluator**: Generates reward signals—a score, binary correct/incorrect, etc. (LLM-as-judge or rule-based)
+3. **Self-reflection model**: When the task fails, this analyzes the trajectory + evaluator signal + memory to generate textual reflection ("why did this fail? how to improve?")
+4. **Memory**: Stores reflections for future use
+
+The workflow is as follows:
+
+\`\`\`markdown
+Actor uses short-term + long-term memory as context
+  ↓
+Takes action
+  ↓
+Evaluator judges the result
+  ↓
+If failure: Reflection model writes analysis → stored in long-term memory
+  ↓
+Next episode uses this reflection as context
+\`\`\`
+
+Note that the Memory has two tiers:
+
+- **Short-term**: Current episode's trajectory
+- **Long-term**: Reflections from past failures
+
+When long-term memory gets too long, oldest entries get evicted.
+
+**Key insight of Reflexion**: Reflection is textual experience, i.e., the agent learns by writing down what went wrong.
+
+### ADAPT: Looking Ahead Through Recursive Planning
+
+Both ReAct and Reflexion share a fundamental limitation: **they can only evaluate the current step**. They have no look-ahead capability.
+
+ADAPT introduces **dynamic hierarchical decomposition**:
+
+\`\`\`markdown
+Planner generates subtasks
+  ↓
+Executor attempts subtask
+  ↓
+Can't complete it? → Recursively call Planner to break it down further
+  ↓
+Repeat until Executor succeeds
+\`\`\`
+
+There is a **Controller** component sits between **Planner** and **Executor** that:
+
+- Passes context back and forth
+- Decides whether another round of decomposition is needed
+- Basically the traffic cop of the system
+
+This feels more like how humans solve complex problems—you don't plan everything upfront, you decompose on-demand when you hit a wall.
+
+### SPRINT: Parallelization Through DAG Execution - Boosting Execution Efficiency
+
+All the above frameworks are sequential, and thus intuitively, it can take long to finish a task. What if some actions don't depend on each other? **SPRINT** framework boosts execution efficiency by constructing a **DAG (directed acyclic graph)** of tasks that can
+
+- Identify which subtasks have no dependencies
+- Execute them asynchronously in parallel
+- Collect results when they're all done
+- Feed them to the next step
+
+This is pure efficiency optimization—same reasoning capability, but faster execution when tasks can be parallelized.
+
+## **2. Test-Time Compute Scaling**
+
+The frameworks we just covered—ReAct, Reflexion, ADAPT—all assume the model generates one reasoning path and tries to get it right. But what if we generate *many* paths and pick the best one? That's test-time compute scaling: **using more inference budget to improve performance without changing the model itself**.
+
+### The Power Law Discovery
+
+**LLM Monkey** made a foundational observation about how sampling scales:
+
+\`log(pass@k) ∝ 1 - (1 - pass@1)^k\`
+
+Translation: If you sample k different solutions, your coverage (probability of getting at least one correct answer) grows **log-linearly** with k.
+
+That sounds great, but there's a catch: **precision still sucks**. You might have 10 candidate answers, one of which is correct—but which one? Just sampling more doesn't solve the verification problem.
+
+### Improving Sampling Efficiency
+
+**PRM vs ORM: Credit Assignment Matters**
+
+There are two ways to score reasoning trajectories:
+
+**Outcome Reward Model (ORM)**:
+
+- Looks at the final answer only
+- "Is this answer correct? Yes/No"
+- Problem: Can't tell **where** the reasoning went wrong
+
+**Process Reward Model (PRM)**:
+
+- Scores each intermediate step
+- "Is step 3 reasonable given steps 1-2?"
+- Much better credit assignment
+
+**Automated PRM: The Completer-Estimator Trick**
+
+Despite of the superiority of process reward model, hand-labeling process rewards is expensive. Can we automate it?
+
+**The idea**: For each step i in a reasoning chain:
+
+1. **Completer** generates N possible continuations from step i to the end
+2. **Estimator** checks how many lead to correct final answers
+3. Estimate success probability of step i based on these N rollouts
+
+Two variants:
+
+- **Hard estimator**: Binary—did **any** rollout succeed?
+- **Soft estimator**: Fraction—how many out of N succeeded?
+
+This is Monte Carlo tree search intuition: judge a move by simulating random games from that position.
+
+### WEAVER : Weak Supervision Verifier Framework
+
+What if you don't have ground truth labels, but you have multiple imperfect evaluators (say, 5 different LLMs)?
+
+**WEAVER's insight**: Learn each evaluator's reliability on your dataset, then combine their votes using Bayes' theorem.
+
+**The process**:
+
+1. **Sample** some problems, generate answers
+2. **Collect** each evaluator's scores (5 evaluators × N answers)
+3. **Normalize** scores (each evaluator has different scales)
+4. **Remove outliers** (if one evaluator wildly disagrees with others)
+5. **Binarize** scores (convert to correct/incorrect)
+6. **Train**: Estimate each evaluator's TP rate and TN rate on this dataset
+7. **Deploy**: When evaluators vote on new answers, use Bayesian posterior:
+
+The key theory behind this approach is Bayes :
+
+\`P(correct | votes) = P(votes | correct) × P(correct) / P(votes)\`
+
+**The assumption**: Evaluators are independent (though in practice they're often correlated since they use similar architectures or data).
+
+**Why this works**: Even if each evaluator is only 70% accurate, combining 5 of them with learned priors can get you to 95%+ accuracy.
+
+### ARCHON: Searching Over Architectures
+
+We've been talking about sampling multiple *outputs*. **ARCHON** asks: what if we also search over different system architectures?
+
+**The components of ARCHON**: generator, critic, ranker, fuser, verifier, unit test
+
+**Example architecture**:
+
+\`\`\`markdown
+10 generators each produce an answer
+  ↓
+Critic analyzes their strengths/weaknesses
+  ↓
+Ranker sorts them
+  ↓
+Fuser combines top 5 into new candidates
+  ↓
+Another critic layer
+  ↓
+Another ranker
+  ↓
+Final fuser
+\`\`\`
+
+**The meta-problem of ARCHON**: How many layers? How many components per layer? Which component types?
+
+**ARCHON's solution**: Treat architecture as hyper-parameters, use Bayesian optimization on a sample set to find the best configuration.
+
+This is test-time scaling taken to its logical extreme—not just sampling more, but searching over entire computational graphs.
+
+### The Fundamental Trade-off: Small Model + Sampling vs Large Model
+
+We've explored frameworks that improve agent performance through test-time sampling. But how much improvement is actually possible? This is where the power law becomes revealing.
+
+**Macro view**: The power law \`log(pass@k) ∝ 1-(1-pass@1)^k\` holds across a dataset because difficulty has a **long-tail distribution**. Some problems are hard, most are easy.
+
+**Micro view**: For any *individual* problem, \`log(pass_i@k)\` grows **exponentially** with k (not log-linearly). If a model can solve it, sampling will find the solution quickly.
+
+**The implication**:
+
+- **Simple problems** (no long tail): Small model + heavy sampling is compute-optimal
+- **Hard problems** (long tail): Large model + light sampling wins
+
+Why? If all problems are easy for the model, pass@1 is already high, so you don't need a bigger model—just sample a few times with the small one. But if problems are hard and pass@1 is near zero, sampling 1000 times with a weak model still won't help—you need more model capacity.
+
+### Compute-Optimal Allocation
+
+Let's make this trade-off on model size V.S. sampling size concrete with FLOPs.
+
+For a model with N parameters:
+
+- **Training**: 6N × num_tokens FLOPs (backward pass requires twice the parameters of a forward pass)
+- **Inference**: 2N × num_tokens FLOPs
+
+Notice inference is 3× cheaper per token than training.
+
+**The key question**: Given a fixed compute budget, what's the optimal ratio R = D_train / D_inference?
+
+**The answer**: It depends on your problem distribution.
+
+If your problems have:
+
+- **Narrow difficulty range** (all easy or all hard): Invest in training, minimal sampling
+- **Long-tail distribution** (mix of easy and hard): Balance training and sampling
+- **Verifiable outputs** (like code): Heavy sampling + verification beats training
+
+This is why AlphaCode samples 10^5 programs—code can be tested. But for creative writing, you'd rather train a better base model than sample 100k drafts.
+
+**The takeaway**: Test-time scaling isn't always the answer. Sometimes you should just train a better model.
+
+## 3. Train-Time Scaling: The RL Revolution
+
+Test-time scaling helps you *find* the right answer among many candidates. But what if we could teach the model to generate better reasoning in the first place? That's train-time scaling—using RL to reshape the policy itself.
+
+### The Philosophy Shift
+
+Instead of "sample 100 times and pick the best," we want "sample once and it's probably right."
+
+**The three-layer structure of agent capability**:
+
+1. **Base model**: Can it even generate candidate reasoning paths?
+2. **Search/Sampling**: Can it explore different trajectories?
+3. **RL Optimization**: Which trajectories get reinforced?
+
+RL is the *‘activation function’* for train-time scaling. Without it, you're just hoping the pre-training distribution already contains good reasoning. With RL, you systematically increase the probability of good trajectories.
+
+All modern reasoning RL ultimately optimizes the same thing:
+
+MATHPLACEHOLDER0ENDMATH
+
+The question is: **how** do we compute this expectation? That's where the algorithms differ.
+
+### Phase 1: From PPO to GRPO
+
+**Why PPO Fails for Long CoT?**
+
+PPO was designed for robotics and games etc. It assumes:
+
+- Dense rewards (reward at every step)
+- Stable episode length
+- Value function can estimate future returns
+
+**Long chain-of-thought breaks all of these assumptions**:
+
+- Rewards are sparse (only at the end: correct/incorrect)
+- Trajectories vary wildly in length (3 steps vs 50 steps)
+- Credit assignment is impossible—which of the 50 reasoning steps caused success?
+
+The value function becomes noise instead of signal. You're trying to estimate "how good is step 21 out of 50?" with no intermediate feedback. The value model just confuses the optimization.
+
+**GRPO's Key Insight: You Don't Need Absolute Value**
+
+**The breakthrough**: For reasoning tasks, you don't need to know "how good is this trajectory in absolute terms?" You only need to know "is this trajectory better than the others I sampled?"
+
+**GRPO's algorithm**:
+
+1. For the same prompt, sample G reasoning paths
+2. Get final reward for each (correct = +1, wrong = 0, or more nuanced scoring)
+3. Compute group-relative advantage: MATHPLACEHOLDER1ENDMATH
+4. Update policy based on relative performance
+
+**What this eliminates**:
+
+- No value function!
+- No critic network!
+- No bootstrapping!
+- ✅ Just large-scale sampling + relative comparison
+
+Note that the loss function for GRPO is MATHPLACEHOLDER2ENDMATH, where MATHPLACEHOLDER3ENDMATH is the probability ratio.
+
+**Why this works intuitively**: If 8 out of 10 sampled answers are wrong and 2 are right, those 2 get positive advantage, the 8 get negative advantage. The model learns to do more of what worked, less of what didn't—relative to its current capability.
+
+### Phase 2: GRPO's Failure Modes
+
+GRPO scaled reasoning to new heights, but it crashes when you push harder. Why?
+
+**Problem 1: Entropy Collapse**
+
+GRPO uses **trajectory-level loss**: the entire reasoning chain gets one reward, averaged across all tokens.
+
+What happens:
+
+- Gradient gets diluted by sequence length T
+- A 50-step reasoning chain means each token's gradient is 1/50th of the total signal
+- Intermediate errors get masked if the final answer happens to be correct
+- The model gets more and more confident (entropy collapses) without actually improving
+
+**Problem 2: Gradient Vanishing**
+
+If all G samples for a prompt are correct → all advantages ≈ 0 → no gradient.
+If all G samples are wrong → same problem.
+
+GRPO only learns when there's disagreement within the group. But as the model gets better, problems become "too easy" (all correct) or "too hard" (all wrong), and training stalls.
+
+**Problem 3: Long CoT Signal Sparsity**
+
+The longer the reasoning chain, the weaker the credit assignment. A 100-token CoT with one subtle error in step 47 still gets grouped with completely wrong answers because the final answer is wrong.
+
+### Phase 3: DAPO (Token-Level Revolution)
+
+DAPO fixes GRPO's core issue: **credit assignment should be token-level, not sequence-level**. Here are some key innovations of this work:
+
+### Innovation 1: Token-Level Policy Gradient
+
+The key realization: the reward is still trajectory-level (correct/incorrect), but the **gradient should be token-level**.
+
+Recall that GRPO's sequence-level loss is 
+
+MATHPLACEHOLDER4ENDMATH
+
+This looks equivalent to the token-level gradient:
+
+MATHPLACEHOLDER5ENDMATH
+
+**But numerically, they're very different due to how back-propagation calculates sequence-level versus token-level gradients**:
+
+- MATHPLACEHOLDER6ENDMATH is a huge negative number (product of 100+ probabilities for long trajectory)
+- The scale is terrible for optimization
+- Small token deviations get amplified by T (sequence length), and sequence-level clipping compounds this by applying one trajectory-wide ratio where a single outlier token pollutes all T gradients
+
+**DAPO's formulation**:
+
+MATHPLACEHOLDER7ENDMATH
+
+where each MATHPLACEHOLDER8ENDMATH is the token-level probability ratio : MATHPLACEHOLDER9ENDMATH
+
+**Why this matters**:
+
+- Each token gets its own gradient signal
+- Numerical stability (no massive negative log probabilities)
+- Ratio doesn't compound: MATHPLACEHOLDER10ENDMATH would cause one bad token to explode the ratio and break the clip
+
+### Innovation 2: Decoupled Clip
+
+PPO's original clip: MATHPLACEHOLDER11ENDMATH with symmetric bounds.
+
+**The assumption**: Action space is small, exploration is expensive (true for lots of use cases).
+
+**For LLMs**: Action space is huge (50k vocab), exploration is cheap (just sample), and **rare tokens can be breakthrough tokens**.
+
+**DAPO's clip**: MATHPLACEHOLDER12ENDMATH, where MATHPLACEHOLDER13ENDMATH
+
+This allows low-probability but genuinely promising tokens to be pulled up during RL. The next genius reasoning step might currently have 0.001% probability—we need to let RL boost it to 10%, not cap it at 1.2× its current value.
+
+### Innovation 3: Dynamic Sampling
+
+Remember GRPO's problem: all-correct or all-wrong groups give zero gradient.
+
+**DAPO's solution**: Dynamically oversample, then **discard groups with no variance**.
+
+The training loop:
+
+\`\`\`markdown
+for prompt in dataset:
+    sample G answers
+    if all correct or all wrong:
+        skip this prompt (no information)
+    else:
+        compute advantages and train
+\`\`\`
+
+**Key insight**: RL only has information in the "hesitation zone"—problems where the model sometimes succeeds, sometimes fails.
+
+### Innovation 4: Overlong Reward Shaping
+
+Some models learn to stall—they generate meaningless long CoT because longer sequences sometimes randomly stumble into correct answers.
+
+**Solution**: Add length penalty to the reward: MATHPLACEHOLDER14ENDMATH
+
+This is just regularization of exploration. We want longer reasoning when it helps, not as a random search strategy.
+
+### Counter-Intuitive Finding for This Series of Work
+
+Here's what surprised me: **Simple, verifiable rule-based reward + massive sampling > learned reward model**
+This is the opposite of the RLHF worldview (where careful reward modeling is everything).
+
+Why does this work for reasoning?
+
+- Math/code problems have ground truth verifiers
+- Sampling 1000 trajectories gives you dense coverage
+- Simple reward (correct = +1) is unambiguous
+- The model learns from correct reasoning patterns, not from fitting a potentially misaligned reward model
+
+When verification is cheap and objective, you don't need sophisticated reward modeling—you need scale.
+
+**In summary**, the evolution PPO → GRPO → DAPO is a story of making the RL signal cleaner, more fine-grained, and more stable as we scale to harder problems and longer reasoning. But in a unified view, All these algorithms optimize the same objective : MATHPLACEHOLDER15ENDMATH
+
+## **4. Memory: From Retrieval to Representation**
+
+The frameworks and scaling laws we've covered assume the agent starts fresh each time. But real intelligence requires **memory**—the ability to retain information across episodes and timescales. The question is: how do we give LLMs memory when they're fundamentally stateless?
+The evolution of agent memory follows a clear progression: from passive text retrieval, to active memory management, to learned representations.
+
+### Generation 1: Memory as Text (Generative Agents)
+
+The simplest approach: treat memory as a database of text snippets you can search and retrieve.
+
+**Memory Structure**
+
+Each memory is a triple:
+
+MATHPLACEHOLDER16ENDMATH
+
+- MATHPLACEHOLDER17ENDMATH: Natural language description
+- MATHPLACEHOLDER18ENDMATH: Timestamp
+- MATHPLACEHOLDER19ENDMATH: Importance score (LLM judges: "How important is this memory?" → 0-10)
+
+All of these are **static**—nothing is learned or updated.
+
+**Retrieval Mechanism**
+
+When the agent receives a query q, it scores each memory based on three factors:
+
+1. **Relevance**: Embedding similarity between q and MATHPLACEHOLDER20ENDMATH
+2. **Recency**: How recent is the memory? (Decay function based on MATHPLACEHOLDER21ENDMATH)
+3. **Importance**: The stored importance score MATHPLACEHOLDER22ENDMATH
+
+Combined weighted score:
+
+MATHPLACEHOLDER23ENDMATH
+
+Top-K memories get inserted into the prompt.
+
+**Reflection: Compressing Memory**
+
+The problem: memory grows unbounded. Solution: **periodic summarization**.
+
+When cumulative importance exceeds a threshold, trigger reflection:
+
+\`\`\`markdown
+Prompt to LLM: "Given the following memories, what high-level insights can you infer?"
+
+[Memory 1: Met with team, discussed Q4 goals]
+[Memory 2: Finished project proposal draft]
+[Memory 3: Got feedback from manager on proposal]
+...
+
+LLM generates: "I've been focused on the Q4 project proposal this week, 
+incorporating team feedback and manager input."
+\`\`\`
+
+This summary becomes a **new memory** with high importance, and old detailed memories can be discarded.
+
+**The Limitation**
+
+This is pure semantic recall—like asking someone "do you remember anything about X?" They'll give you relevant snippets, but not a complete replay of what happened.
+
+You can't ask "what was the exact sequence of events on Tuesday?" because temporal structure isn't preserved—only semantic similarity.
+
+### Generation 2: Memory as System (MemGPT)
+
+The key shift: **LLM becomes the memory manager**. Instead of a fixed retrieval algorithm, the LLM itself decides when to search, what to write, and when to evict.
+
+**Problem Formulation**
+
+Given:
+
+- Fixed context window MATHPLACEHOLDER24ENDMATH (say, 8K tokens)
+- Infinite conversation history MATHPLACEHOLDER25ENDMATH
+
+Goal: Make the LLM behave as if it has infinite context.
+
+**Three-Tier Architecture**
+
+MemGPT explicitly separates memory into three levels:
+
+**1. Main Context (RAM)** - what LLM actually sees:
+
+\`\`\`markdown
+[System Instructions]
+[Working Context]     ← editable, long-term facts
+[FIFO Queue]          ← recent messages + function outputs
+\`\`\`
+
+Only this goes into the LLM forward pass.
+
+**2. External Memory (Disk)** - LLM cannot see this:
+
+\`\`\`markdown
+Recall Storage:    embedding database for full-text search
+Archival Storage:  raw logs, long documents
+\`\`\`
+
+**3. Queue Manager** (system component):
+
+- Monitors token count
+- Triggers "memory pressure" events when queue gets full
+- Forces the LLM to decide what to keep vs evict
+
+**The Inference Flow**
+
+MemGPT doesn't just respond to user messages—it responds to **events**:
+
+\`\`\`markdown
+Event (user message, memory pressure, function completion, etc.)
+↓
+Assemble Prompt
+[System Instructions + Working Context + FIFO Queue]
+↓
+LLM Forward Pass
+↓
+Output is function call?
+├─ No  → Return natural language to user
+└─ Yes → Execute function
+↓
+Append result to FIFO Queue
+↓
+request_heartbeat = true?
+├─ Yes → Immediately trigger another LLM forward pass
+└─ No  → Wait for next event
+\`\`\`
+
+What Makes This Different is that the LLM has **explicit control** through function calls.
+
+**The Trade-off**
+
+MemGPT gives you **explicit control**, but you're still limited by database size and retrieval quality. Memory is external, not part of the model's weights.
+
+### Generation 3: Memory as Representation (CARTRIDGES)
+
+The final evolution: **trainable memory** embedded in the model's hidden states.
+
+**The Core Idea**
+
+Instead of retrieving text and putting it in the prompt, what if we could **distill a corpus into learned KV cache** that makes the model behave as if it read the entire corpus?
+
+**Goal**: Given a frozen LLM MATHPLACEHOLDER26ENDMATH, a corpus C, and a query q: MATHPLACEHOLDER27ENDMATH, where Z is a trainable prefix KV cache.
+
+**From Attention Perspective**
+
+Standard in-context learning:
+
+\`\`\`
+K = [K_corpus, K_query]
+V = [V_corpus, V_query]
+Attention(Q_query, K, V)
+\`\`\`
+
+CARTRIDGES:
+
+\`\`\`
+K = [K_learned_prefix, K_query]
+V = [V_learned_prefix, V_query]
+Attention(Q_query, K, V)
+\`\`\`
+
+The learned prefix Z = {(K_prefix, V_prefix)} replaces the corpus tokens.
+
+**What Gets Trained**
+
+For an L-layer transformer with P prefix tokens per layer:
+
+\`\`\`markdown
+Z = {
+  Layer 1: K[1][P, h, d_head], V[1][P, h, d_head]
+  Layer 2: K[2][P, h, d_head], V[2][P, h, d_head]
+  ...
+  Layer L: K[L][P, h, d_head], V[L][P, h, d_head]
+}
+\`\`\`
+
+**Important**:
+
+- Each layer's KV is independent (not shared)
+- Transformer weights are completely frozen
+- Only the prefix KV parameters are trained
+
+**Training Objective: Context Distillation**
+
+The loss function: MATHPLACEHOLDER28ENDMATH
+
+**Training Process**
+
+**Step 1: Generate training data (self-study)**
+
+\`\`\`python
+for each document chunk in corpus:
+    # Sample diverse prompt types
+    seed_prompt = random.choice([
+        "What are the key facts about...",       # factual
+        "Explain the reasoning behind...",       # reasoning  
+        "Synthesize information on...",          # synthesis
+        "Write a creative take on..."            # creative
+    ])
+    
+    # Generate synthetic query
+    q = LLM(seed_prompt + document_chunk)
+    
+    # Generate answer WITH full context (teacher)
+    y = f_θ(C, q)
+    
+    # Add to training set
+    dataset.add((q, y))
+\`\`\`
+
+**Step 2: Train the prefix KV**
+
+\`\`\`python
+for (q, y_target) in dataset:
+    # Teacher: use full corpus context
+    with torch.no_grad():
+        logits_teacher = model(
+            input_ids=concat(corpus_tokens, query_tokens)
+        )
+    
+    # Student: use learned prefix
+    logits_student = model(
+        input_ids=query_tokens,
+        past_key_values=[
+            (K_l.unsqueeze(0), V_l.unsqueeze(0))  # batch dim
+            for K_l, V_l in zip(cartridge.K, cartridge.V)
+        ]
+    )
+    
+    # Knowledge distillation loss on answer tokens
+    loss = KL_divergence(
+        log_softmax(logits_student / T),
+        softmax(logits_teacher / T)
+    )
+    
+    # Gradients flow to prefix KV only
+    loss.backward()
+    optimizer.step()  # only updates cartridge.K, cartridge.V
+\`\`\`
+
+Each layer's prefix KV learns to "answer" the queries that the model will ask at that layer.
+
+Training adjusts these slots so that when a query comes in, the model's attention naturally flows to the right "memory" at each layer.
+
+**Comparison to Prefix Tuning**
+
+**Prefix Tuning** (for task adaptation):
+
+- Learn task-specific prefix tokens
+- Goal: Adapt model behaviour for a task (e.g., "always respond formally")
+- Prefix influences *how* the model responds
+
+**CARTRIDGES** (for knowledge compression):
+
+- Learn corpus-specific prefix KV
+- Goal: Compress knowledge from documents
+- Prefix provides *what* the model knows
+
+Both use the same mechanism (trainable prefix), but optimize for different objectives.
+
+**The Limitation**
+
+CARTRIDGES work best for **static, offline knowledge**:
+
+- Documentation that doesn't change often
+- Historical records
+- Reference materials
+
+They're less suitable for:
+
+- Dynamic, frequently updated information
+- Personalized, session-specific context
+- Information that needs to be forgotten
+
+### The Three Memory Generations Compared
+
+| Aspect | Gen 1: Text | Gen 2: System | Gen 3: Representation |
+| --- | --- | --- | --- |
+| **Memory location** | External DB | External DB + Prompt | Learned KV cache |
+| **Retrieval** | Fixed algorithm | LLM-controlled | Attention mechanism |
+| **Learning** | None | None | Gradient-based |
+| **Flexibility** | Low | High | Low (frozen after training) |
+| **Capacity** | DB size limit | DB size limit | Parameter count |
+| **Best for** | Semantic search | Dynamic sessions | Static knowledge |
+
+## **5. Search Integration & Self-Improvement**
+
+We've covered how agents reason, scale, and remember. But what about tasks that require external knowledge the model doesn't have? That's the biggest pain point of most agents, and also where search comes in—not just web search, but systematic exploration of external information spaces.
+"Self-improvement" here doesn't mean weight updates. It means the agent systematically expands its solution space through search, retrieval, and structured filtering to converge on better answers at inference time.
+
+### Three Routes to Search-Augmented Intelligence
+
+### Route 1: ReAct/Toolformer — Reasoning Triggers Search
+
+The classic approach: make search part of the reasoning process.
+
+The agent generates thoughts like:
+
+\`\`\`python
+Thought: I need to know the current GDP of Brazil to answer this.
+Action: search("Brazil GDP 2025")
+Observation: [search results]
+Thought: Based on the search results, Brazil's GDP is...
+\`\`\`
+
+Search becomes a **reasoning state transition**—the model's internal reasoning triggers external knowledge retrieval.
+
+**The problem**: Documents can hijack attention. Search results come from a very different token distribution than the model's reasoning chains. When you inject raw search snippets into the reasoning context, the model's internal reasoning state gets diluted.
+
+### Route 2: Search-o1 — Double Agent Architecture
+
+**DeepSeek's insight**: Separate the agent that searches from the agent that reasons.
+
+**Why this matters**: Search and reasoning have conflicting goals:
+
+- **Search** needs high recall
+- **Reasoning** needs high precision
+
+Using the same agent for both causes **token distribution shift**—the model trying to simultaneously be a librarian and a mathematician.
+
+**The architecture**:
+
+\`\`\`python
+# Reasoning Agent main loop
+state = init_reasoning_state(question)
+
+while not state.is_finished():
+    thought = ReasoningAgent.generate_thought(state)
+    
+    if ReasoningAgent.detect_uncertainty(thought):
+        # Generate search query based on what's missing
+        query = ReasoningAgent.generate_search_query(thought)
+        
+        # Search Agent handles retrieval and compression
+        evidence = SearchAgent.search_and_summarize(query)
+        
+        # Critical: Evidence is structured facts, not raw documents
+        state.integrate_evidence(evidence)
+    else:
+        state.advance(thought)
+\`\`\`
+
+**What the Search Agent does**:
+
+\`\`\`python
+def search_and_summarize(query):
+    # Search Agent's job: find and compress
+    docs = search_api(query)
+    
+    # Read documents (Search Agent specializes in this)
+    facts = []
+    for doc in docs:
+        facts.extend(extract_facts(doc))
+    
+    # Compress into reasoning-compatible format
+    # NOT: raw text paragraphs
+    # BUT: structured facts like {"entity": "Brazil", "GDP": "$2.1T", "year": 2024}
+    return format_as_structured_facts(facts)
+\`\`\`
+
+**Why double agent is necessary**:
+
+1. **Token distribution conflict**: Search documents have different statistical patterns than reasoning chains
+2. **Goal misalignment**: Recall vs precision optimization
+3. **Context pollution**: Raw documents can override the reasoning state the model has built up
+
+Hence, deep research agents **should** be multi-agent because consumption and reasoning are fundamentally different tasks.
+
+### Route 3: AlphaCode2 — Search Over Model Outputs
+
+Completely different paradigm: don't search external knowledge, search the space of **programs the model can generate**.
+
+**The pipeline**:
+
+\`\`\`
+Problem
+  ↓
+Massive sampling (10^5 – 10^6 programs)
+  ↓
+Execution & filtering (run tests, keep only passing programs)
+  ↓
+Behavioral clustering (group programs by I/O behavior)
+  ↓
+Scoring & reranking (within each cluster, pick best by code quality metrics)
+  ↓
+Submit top-k (one from each major behavioral cluster)
+\`\`\`
+
+**Why this works**:
+
+Performance scales as **log(sample size)**. The more you sample, the more likely you hit a correct solution—but with diminishing returns.
+
+At 10^3 samples: ~30% solve rate
+At 10^5 samples: ~70% solve rate
+
+At 10^6 samples: ~85% solve rate
+
+**Core insight**: **search + verification > reasoning** when you have an executable verifier.
+
+For code, you don't need the model to reason perfectly—you need it to generate diverse candidates and let the test suite pick the winner.
+
+This only works in domains with:
+
+- **Cheap verification**: Running code is fast
+- **Clear correctness signal**: Tests either pass or fail
+- **Diverse solution space**: Multiple programs can solve the same problem
+
+For writing code, writing & optimizing GPU kernels, SQL queries etc, It's dominant.
+
+## 6. Evaluation & Long-Horizon Tasks
+
+Evaluation of agents, especially on long-horizon tasks, is always a pain. 
+
+### The Time-Based Evaluation Lens
+
+Traditional benchmarks ask: "Can the agent solve problem X?"
+
+But a more revealing question is: "How long of a task can the agent complete reliably?"
+
+A paper: *Measuring AI Ability to Complete Long Tasks* answered this question in an innovative but solid way.
+
+**The key metric**: AI can complete human tasks of **X duration** with **Y% success rate**.
+
+For example:
+
+- 5-step tasks: 90% success
+- 30-step tasks: 60% success
+- 200-step tasks: 20% success
+
+**The empirical finding**: Success probability vs. horizon length follows a **sigmoid-like decline**.
+
+### The Evaluation Landscape
+
+**The critical insight**: Agent capability isn't measured by accuracy on individual tasks, but by **failure-free time**—how long can the agent work reliably before making an unrecoverable mistake? Current agents excel at short tasks with tight feedback loops (coding, math, structured analysis) where verification is cheap and errors are caught immediately. They struggle with multi-hour tasks requiring sustained coherence, **implicit knowledge** that isn't in the prompt, and subjective quality judgments where there's no clear optimization target. From a personal perspective, I think implicit knowledge is a main pain point, how to fetch the exact knowledge efficiently - through pre-training, or searching, and how to avoid compounding errors, needs a sophisticated trade-off.`;
+    const mathFormulas = [["inline", "max_\u03b8 E_x E_{r\\sim \u03c0_\u03b8(\u00b7|x)}[R(x, r)]"], ["inline", "A_i = (R_i - mean(R_{group})) / std(R_{group})"], ["inline", "L = E[min(r_i A_i, clip(r_i, 1-\\epsilon, 1+\\epsilon) A_i)]"], ["inline", "r_i = \\pi_\\theta(o_i) / \\pi_{old}(o_i)"], ["inline", "L_{seq} = -A(\\tau) log \\pi_{\\theta}(\\tau|x)"], ["inline", "\u2207_\\theta L = \\sum_t A_{traj} \u00b7 \\nabla_\\theta log \\pi_\\theta(a_t|s_t)"], ["inline", "log \\pi(\\tau)"], ["inline", "L_{DAPO} = \\sum_t min(r_{i,t} A_i, clip(r_{i,t}) A_i)"], ["inline", "r_{i,t}"], ["inline", "\\frac{\\pi(a_t|s_t)}{\\pi_{old}(a_t|s_t)}."], ["inline", "r(\\tau) = \u03a0_t r_t"], ["inline", "clip(r, 1-\\epsilon, 1+\\epsilon)"], ["inline", "clip(r, 1-\\epsilon_{low}, 1+\\epsilon_{high})"], ["inline", "\\epsilon_{high} >> \\epsilon_{low}"], ["inline", "R_{final} = R_{correctness} - \\lambda \\times (length - baseline)^2"], ["inline", "max_\\theta E_x E_{r\\sim \\pi_\\theta(\u00b7|x)}[R(x, r)]"], ["inline", "m_i = (text_i, t_i, w_i)"], ["inline", "text_i"], ["inline", "t_i"], ["inline", "w_i"], ["inline", "text_i"], ["inline", "t_i"], ["inline", "w_i"], ["inline", "score(m_i, q) = \u03b1\u00b7relevance(q, text_i) + \u03b2\u00b7recency(t_i) + \u03b3\u00b7w_i"], ["inline", "C_{max}"], ["inline", "H = {x_1, x_2, ..., x_t}"], ["inline", "f_\u03b8"], ["inline", "f_\u03b8(Z, q) \u2248 f_\u03b8(C, q)"], ["inline", "L = E_{q,y} [KL(P_\\theta(y|C,q) || P_\\theta(y|Z,q))]"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
