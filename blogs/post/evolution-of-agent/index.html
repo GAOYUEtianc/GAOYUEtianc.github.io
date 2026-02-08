@@ -940,7 +940,71 @@ For example:
 
 ### The Evaluation Landscape
 
-**The critical insight**: Agent capability isn't measured by accuracy on individual tasks, but by **failure-free time**—how long can the agent work reliably before making an unrecoverable mistake? Current agents excel at short tasks with tight feedback loops (coding, math, structured analysis) where verification is cheap and errors are caught immediately. They struggle with multi-hour tasks requiring sustained coherence, **implicit knowledge** that isn't in the prompt, and subjective quality judgments where there's no clear optimization target. From a personal perspective, I think implicit knowledge is a main pain point, how to fetch the exact knowledge efficiently - through pre-training, or searching, and how to avoid compounding errors, needs a sophisticated trade-off.`;
+**The critical insight**: Agent capability isn't measured by accuracy on individual tasks, but by **failure-free time**—how long can the agent work reliably before making an unrecoverable mistake? Current agents excel at short tasks with tight feedback loops (coding, math, structured analysis) where verification is cheap and errors are caught immediately. They struggle with multi-hour tasks requiring sustained coherence, **implicit knowledge** that isn't in the prompt, and subjective quality judgments where there's no clear optimization target. From a personal perspective, I think implicit knowledge is a main pain point, how to fetch the exact knowledge efficiently - through pre-training, or searching, and how to avoid compounding errors, needs a sophisticated trade-off.
+
+## References
+
+1. Brown, B., Juravsky, J., Ehrlich, R., Clark, R., Le, Q. V., Ré, C., & Mirhoseini, A. (2024). [Large Language Monkeys: Scaling Inference Compute with Repeated Sampling](https://arxiv.org/abs/2407.21787). arXiv:2407.21787.
+
+2. Saad-Falcon, J., Lafuente, A. G., Natarajan, S., et al. (2024). [Archon: An Architecture Search Framework for Inference-Time Techniques](https://arxiv.org/abs/2409.15254). arXiv:2409.15254.
+
+3. Snell, C., Lee, J., Xu, K., & Kumar, A. (2024). [Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters](https://arxiv.org/abs/2408.03314). arXiv:2408.03314.
+
+4. Schaeffer, R., Kazdan, J., Hughes, J., Juravsky, J., Price, S., Lynch, A., Jones, E., Kirk, R., Mirhoseini, A., & Koyejo, S. (2025). [How Do Large Language Monkeys Get Their Power (Laws)?](https://arxiv.org/abs/2502.17578). arXiv:2502.17578.
+
+5. Saad-Falcon, J., Buchanan, W., et al. (2025). [Shrinking the Generation-Verification Gap with Weak Verifiers](https://arxiv.org/abs/2506.18203). arXiv:2506.18203.
+
+6. Cobbe, K., Kosaraju, V., et al. (2021). [Training Verifiers to Solve Math Word Problems](https://arxiv.org/abs/2110.14168). arXiv:2110.14168.
+
+7. Lightman, H., Kosaraju, V., Burda, Y., Edwards, H., Baker, B., Lee, T., Leike, J., Schulman, J., Sutskever, I., & Cobbe, K. (2023). [Let's Verify Step by Step](https://arxiv.org/abs/2305.20050). arXiv:2305.20050.
+
+8. Wang, P., Li, L., Shao, Z., et al. (2024). [Math-Shepherd: Verify and Reinforce LLMs Step-by-step without Human Annotations](https://arxiv.org/abs/2312.08935). ACL 2024.
+
+9. Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y. (2023). [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629). ICLR 2023.
+
+10. Gehring, J., et al. (2024). [RLEF: Grounding Code LLMs in Execution Feedback with Reinforcement Learning](https://arxiv.org/abs/2410.02089). arXiv:2410.02089.
+
+11. Bai, Y., Kadavath, S., Kundu, S., Askell, A., et al. (2022). [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073). arXiv:2212.08073.
+
+12. Goldie, A., et al. (2025). [SWiRL: Synthetic Data Generation & Multi-Step RL for Reasoning & Tool Use](https://arxiv.org/abs/2504.04736). arXiv:2504.04736.
+
+13. Zhou, A., Yan, K., Shlapentokh-Rothman, M., Wang, H., & Wang, Y.-X. (2024). [Language Agent Tree Search Unifies Reasoning Acting and Planning in Language Models](https://arxiv.org/abs/2310.04406). ICML 2024.
+
+14. [SPRINT: Enabling Interleaved Planning and Parallelized Execution in Reasoning Models](https://arxiv.org/abs/2506.05745). (2025). arXiv:2506.05745.
+
+15. Prasad, A., Koller, A., Hartmann, M., Clark, P., Sabharwal, A., Bansal, M., & Khot, T. (2024). [ADaPT: As-Needed Decomposition and Planning with Language Models](https://arxiv.org/abs/2311.05772). NAACL 2024 Findings.
+
+16. [Wider or Deeper? Scaling LLM Inference-Time Compute with Adaptive Branching Tree Search](https://arxiv.org/abs/2503.04412). (2025). arXiv:2503.04412.
+
+17. Zelikman, E., Wu, Y., Mu, J., & Goodman, N. D. (2022). [STaR: Bootstrapping Reasoning With Reasoning](https://arxiv.org/abs/2203.14465). NeurIPS 2022.
+
+18. Shao, Z., et al. (2024). [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300). arXiv:2402.03300.
+
+19. [DAPO: An Open-Source LLM Reinforcement Learning System at Scale](https://arxiv.org/abs/2503.14476). (2025). ByteDance. arXiv:2503.14476.
+
+20. Hu, S., Lu, C., & Clune, J. (2024). [Automated Design of Agentic Systems](https://arxiv.org/abs/2408.08435). ICLR 2025.
+
+21. Lu, C., Lu, C., Lange, R. T., Foerster, J., Clune, J., & Ha, D. (2024). [The AI Scientist: Towards Fully Automated Open-Ended Scientific Discovery](https://arxiv.org/abs/2408.06292). arXiv:2408.06292.
+
+22. [AlphaEvolve: A Gemini-powered coding agent for designing advanced algorithms](https://deepmind.google/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/). (2025). Google DeepMind.
+
+23. Li, Y., et al. (2022). [Competition-Level Code Generation with AlphaCode](https://arxiv.org/abs/2203.07814). Science.
+
+24. [AlphaCode 2 Technical Report](https://storage.googleapis.com/deepmind-media/AlphaCode2/AlphaCode2_Tech_Report.pdf). (2023). Google DeepMind.
+
+25. Li, X., et al. (2025). [Search-o1: Agentic Search-Enhanced Large Reasoning Models](https://arxiv.org/abs/2501.05366). arXiv:2501.05366.
+
+26. Ehrlich, R., Brown, B., Juravsky, J., Clark, R., Ré, C., & Mirhoseini, A. (2025). [CodeMonkeys: Scaling Test-Time Compute for Software Engineering](https://arxiv.org/abs/2501.14723). arXiv:2501.14723.
+
+27. Ouyang, A., Guo, S., Arora, S., Zhang, A. L., Hu, W., Ré, C., & Mirhoseini, A. (2025). [KernelBench: Can LLMs Write Efficient GPU Kernels?](https://arxiv.org/abs/2502.10517). arXiv:2502.10517.
+
+28. [Improving Parallel Program Performance with LLM Optimizers via Agent-System Interfaces](https://arxiv.org/abs/2410.15625). (2025). ICML 2025.
+
+29. Kwa, T., West, B., et al. (2025). [Measuring AI Ability to Complete Long Tasks](https://arxiv.org/abs/2503.14499). arXiv:2503.14499.
+
+30. Patwardhan, T., et al. (2025). [GDPval: Evaluating AI Model Performance on Real-World Economically Valuable Tasks](https://arxiv.org/abs/2510.04374). arXiv:2510.04374.
+
+31. [DeepScholar-Bench: A Live Benchmark and Automated Evaluation for Generative Research Synthesis](https://arxiv.org/abs/2508.20033). (2025). arXiv:2508.20033.`;
     const mathFormulas = [["inline", "max_\u03b8 E_x E_{r\\sim \u03c0_\u03b8(\u00b7|x)}[R(x, r)]"], ["inline", "A_i = (R_i - mean(R_{group})) / std(R_{group})"], ["inline", "L = E[min(r_i A_i, clip(r_i, 1-\\epsilon, 1+\\epsilon) A_i)]"], ["inline", "r_i = \\pi_\\theta(o_i) / \\pi_{old}(o_i)"], ["inline", "L_{seq} = -A(\\tau) log \\pi_{\\theta}(\\tau|x)"], ["inline", "\u2207_\\theta L = \\sum_t A_{traj} \u00b7 \\nabla_\\theta log \\pi_\\theta(a_t|s_t)"], ["inline", "log \\pi(\\tau)"], ["inline", "L_{DAPO} = \\sum_t min(r_{i,t} A_i, clip(r_{i,t}) A_i)"], ["inline", "r_{i,t}"], ["inline", "\\frac{\\pi(a_t|s_t)}{\\pi_{old}(a_t|s_t)}."], ["inline", "r(\\tau) = \u03a0_t r_t"], ["inline", "clip(r, 1-\\epsilon, 1+\\epsilon)"], ["inline", "clip(r, 1-\\epsilon_{low}, 1+\\epsilon_{high})"], ["inline", "\\epsilon_{high} >> \\epsilon_{low}"], ["inline", "R_{final} = R_{correctness} - \\lambda \\times (length - baseline)^2"], ["inline", "max_\\theta E_x E_{r\\sim \\pi_\\theta(\u00b7|x)}[R(x, r)]"], ["inline", "m_i = (text_i, t_i, w_i)"], ["inline", "text_i"], ["inline", "t_i"], ["inline", "w_i"], ["inline", "text_i"], ["inline", "t_i"], ["inline", "w_i"], ["inline", "score(m_i, q) = \u03b1\u00b7relevance(q, text_i) + \u03b2\u00b7recency(t_i) + \u03b3\u00b7w_i"], ["inline", "C_{max}"], ["inline", "H = {x_1, x_2, ..., x_t}"], ["inline", "f_\u03b8"], ["inline", "f_\u03b8(Z, q) \u2248 f_\u03b8(C, q)"], ["inline", "L = E_{q,y} [KL(P_\\theta(y|C,q) || P_\\theta(y|Z,q))]"]];
 
     // First render markdown
