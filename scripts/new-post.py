@@ -15,6 +15,26 @@ import re
 from datetime import datetime
 
 
+def convert_markdown_codeblocks(content):
+    """
+    Convert ```markdown ... ``` blocks into <pre> HTML blocks where
+    **...** is rendered as <strong>...</strong>, preserving preformatted layout
+    while allowing bold text rendering.
+    """
+    import html as html_module
+
+    def replace_block(match):
+        inner = match.group(1)
+        # Escape HTML entities so raw content is safe
+        inner = html_module.escape(inner)
+        # Convert **...** to <strong>...</strong>
+        inner = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', inner)
+        return f'<pre>{inner}</pre>'
+
+    content = re.sub(r'```markdown\s*\n([\s\S]*?)```', replace_block, content)
+    return content
+
+
 def protect_math_formulas(content):
     r"""
     Replace $...$ and $$...$$ with placeholders that marked.js won't touch.
@@ -102,7 +122,7 @@ TEMPLATE = '''<!DOCTYPE html>
     footer a, .content a, .related-posts li a:hover {{ color: #BD5D38; }}
     code.has-jax {{ font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }}
     #markdown-content img {{ max-width: 100%; height: auto; }}
-    #markdown-content pre {{ background: #f5f5f5; padding: 1em; overflow-x: auto; }}
+    #markdown-content pre {{ background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }}
     #markdown-content code {{ background: #f5f5f5; padding: 0.2em 0.4em; }}
     #markdown-content blockquote {{ border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }}
   </style>
@@ -234,6 +254,9 @@ def main():
     # Read markdown file
     with open(os.path.expanduser(md_file), 'r', encoding='utf-8') as f:
         markdown_content = f.read()
+
+    # Convert ```markdown blocks to <pre> with bold support
+    markdown_content = convert_markdown_codeblocks(markdown_content)
 
     # Extract math formulas and replace with placeholders
     markdown_content, math_formulas = protect_math_formulas(markdown_content)

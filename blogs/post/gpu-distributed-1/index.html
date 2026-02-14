@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPU Distributed Training Learning Notes Series · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="GPU Distributed Training Learning Notes Series"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>GPU Distributed Training Learning Notes Series</h1>
+      <div class="post-date">
+        <time datetime="2026-02-14">Feb 14, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `# GPU Distributed Training: From Basics to Advanced (I)
+
+When I first trained LLMs from scratch, I struggled with GPU optimization concepts—DDP bucketing, FSDP sharding, communication overlap. This learning note turns those headaches into simple, memorable patterns.
+
+## **Part 1: Foundation - Understanding the GPU Communication Primitives**
+
+### **1.1 The Core Problem: Why We Need Communication**
+
+Picture this: You're training a 7B parameter model. Each parameter is 4 bytes (FP32), so that's 28GB just for the weights. Add gradients (another 28GB) and optimizer states for AdamW (56GB more), and you're looking at 112GB total. However, A100 GPU only has 80GB.
+
+The solution? Use multiple GPUs. But now you have a different problem: these GPUs need to work together, which means they need to **communicate**.
+
+The challenge is: **sharing answers between GPUs takes time**. Every optimization trick in distributed training is basically trying to answer: "How do we minimize communication time while keeping GPUs busy?"
+
+The fundamental tradeoff:
+
+<pre>1. More GPUs = More memory available
+2. More GPUs = More communication needed
+</pre>
+
+Your job as an ML engineer is to make the impact of 1 bigger than 2.
+
+### **1.2 Basic Collective Operations (The Communication Alphabet)**
+
+Before diving into DDP or FSDP, you need to understand the basic building blocks. These are called **collective operations** because they involve multiple GPUs working together.
+
+### **1.2.1 Broadcast**
+
+**Mental model:** Teacher makes photocopies of the exam for all students
+
+<pre>Before:   GPU 0: [A, B, C]
+          GPU 1: [?, ?, ?]
+          GPU 2: [?, ?, ?]
+
+After:    GPU 0: [A, B, C]
+          GPU 1: [A, B, C]  ← copied from GPU 0
+          GPU 2: [A, B, C]  ← copied from GPU 0
+</pre>
+
+One GPU (the "root") has some data. That data gets copied to all other GPUs.
+
+**Real use case:** At the start of training, GPU 0 might initialize the model parameters randomly, then broadcast them to all other GPUs. This ensures everyone starts with the same model.
+
+\`\`\`python
+# GPU 0 has the initial parameters
+if rank == 0:
+    tensor = torch.randn(10000)
+else: 
+    tensor = torch.empty(10000)
+
+# Broadcast from rank 0 to everyone
+dist.broadcast(tensor, src=0) # Now, all GPUs have the same tensor
+\`\`\`
+
+### **1.2.2 Reduce**
+
+**Mental model:** Students submit homework, teacher collects it and calculates the class summation or average or minimum or maximum (but keeps it to themselves)
+
+<pre>Before:  GPU 0: [1, 2, 3]
+         GPU 1: [4, 5, 6]
+         GPU 2: [7, 8, 9]
+
+After:   GPU 0: [12, 15, 18]  ← sum of all
+         GPU 1: [4, 5, 6]      ← unchanged
+         GPU 2: [7, 8, 9]      ← unchanged
+</pre>
+
+Every GPU has some data. All the data gets combined using an operation (sum, max, min, average) and the result goes to ONE GPU (the root).
+
+**Real use case:** Less common in modern training, but you might use it if GPU 0 needs to collect and log total loss across all GPUs.
+
+\`\`\`python
+def run(rank_id):
+    local_loss = torch.arange(3, dtype=torch.int64) + 1 + 3 * rank_id
+    dist.reduce(local_loss, dst = 0, op=dist.ReduceOp.SUM,)
+# Then only rank 0 has the sum of all local loss, others still have their local values
+\`\`\`
+
+### **1.2.3 All-Reduce**
+
+**Mental model:** Everyone submits homework, everyone gets back the class average
+
+<pre>Before:  GPU 0: [1, 2]
+         GPU 1: [3, 4]
+         GPU 2: [5, 6]
+
+After:   GPU 0: [3, 4]  ← average of all
+         GPU 1: [3, 4]  ← average of all
+         GPU 2: [3, 4]  ← average of all
+</pre>
+
+Every GPU has data. All data gets combined by an operation (summed/averaged/etc.), and **every GPU gets the result**.
+
+**Real use case:** This is the operation for standard data parallel training (DDP). After backward pass, each GPU has different gradients (because they trained on different data). All-reduce averages these gradients so every GPU can update its model identically.
+
+Note that **All-Reduce = Reduce + Broadcast**
+
+\`\`\`python
+def run(rank_id, size):
+    # the for rank 0, the data is [1, 2]; for rank 1, data is [3, 4], ...
+    tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * rank_id
+    print(f"Before reudce, Rank {rank_id} has data {tensor}")
+    dist.all_reduce(tensor, op=dist.ReduceOp.AVG)
+    print(f"After reudce, Rank {rank_id} has data {tensor}")
+\`\`\`
+
+### 1.2.4 Scatter
+
+**Mental model:** Teacher distributes different exam sections to different students
+
+<pre>Before:  GPU 0: [1, 2]
+         GPU 1: [3, 4]
+         GPU 2: [5, 6]
+         GPU 3: [7, 8]
+         scatter list : [tennsor([0, 0]), tensor([1, 1]), tensor([2, 2]), tensor([3, 3])]
+
+After:   GPU 0: [0, 0]
+         GPU 1: [1, 1]
+         GPU 2: [2, 2]
+         GPU 3: [3, 3]
+</pre>
+
+**Real use case:** Distributing different batches of data to different GPUs at the start of training.
+
+\`\`\`python
+def run(rank_id, size):
+    tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * rank_id
+    if rank_id == 0:
+        scatter_list = [torch.tensor([0,0]), torch.tensor([1,1]), torch.tensor([2,2]), torch.tensor([3,3])]
+        print('scater list:', scatter_list)
+        dist.scatter(tensor, src = 0, scatter_list=scatter_list)
+    else:
+        dist.scatter(tensor, src = 0)
+    print('after scatter',' Rank ', rank_id, ' has data ', tensor)
+\`\`\`
+
+### 1.2.5 Gather
+
+**Mental model**: Teacher collects different homework sections from students into one complete set.
+
+<pre>Before:  GPU 0: [1, 2]
+         GPU 1: [3, 4]
+         GPU 2: [5, 6]
+         GPU 3: [7, 8]
+
+After:   GPU 0: [0, 0]
+         GPU 1: [1, 1]
+         GPU 2: [2, 2]
+         GPU 3: [3, 3]
+         gather_list: [tensor([1, 2]), tensor([3, 4]), tensor([5, 6]), tensor([7, 8])]
+</pre>
+
+**Real use case**: After each GPU processes its batch, you might gather all results to GPU 0 for logging or evaluation. 
+
+Note that for dst rank, gather_list must be explicitly allocated.
+
+\`\`\`python
+def run(rank_id, size):
+    tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * rank_id
+    print('before gather',' Rank ', rank_id, ' has data ', tensor)
+    if rank_id == 0:
+        # Important : Create gather_list in correct format, i.e., list of tensors
+        gather_list = [torch.zeros(2, dtype=torch.int64) for _ in range(4)]
+        dist.gather(tensor, dst = 0, gather_list=gather_list)
+        print('after gather',' Rank ', rank_id, ' has data ', tensor)
+        print('gather_list:', gather_list)
+    else:
+        dist.gather(tensor, dst = 0)
+        print('after gather',' Rank ', rank_id, ' has data ', tensor)
+\`\`\`
+
+### 1.2.6 All-Gather
+
+**Mental model**: Everyone shares their homework session, everyone gets the complete homework
+
+<pre>Before:  GPU 0: tensor([1, 2])
+         GPU 1: tensor([3, 4])
+         GPU 2: tensor([5, 6])
+         GPU 3: tensor([7, 8])
+
+After:   GPU 0: [tensor([1, 2]), tensor([3, 4]), tensor([5, 6]), tensor([7, 8])]
+         GPU 1: [tensor([1, 2]), tensor([3, 4]), tensor([5, 6]), tensor([7, 8])]
+         GPU 2: [tensor([1, 2]), tensor([3, 4]), tensor([5, 6]), tensor([7, 8])]
+         GPU 3: [tensor([1, 2]), tensor([3, 4]), tensor([5, 6]), tensor([7, 8])]
+</pre>
+
+**Real use case**: This is critical for FSDP. When parameters are sharded (each GPU owns part of the model), before doing a forward pass, you need to all-gather to temporarily reconstruct the full layer. 
+
+**Note**: All-gather = gather + broadcast
+
+\`\`\`python
+def run(rank_id, size):
+    tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * rank_id
+    gather_list = [torch.zeros(2, dtype=torch.int64) for _ in range(4)]
+    dist.all_gather(gather_list, tensor)
+\`\`\`
+
+### 1.2.7 Reduce-Scatter
+
+**Mental model**: Everyone calculates the class average, but each person only remembers their assigned part. 
+
+**What happened**? Each rank’s tensor gets split into N chunks (N = number of GPUs), then each chunk position gets summed across all GPUs, then each GPU receives one of the summed chunks. 
+
+<pre><strong>Step 1 : Each GPU does its own split</strong>
+
+GPU0:  ── a0 ── | ── a1 ── | ── a2 ── | ── a3 ──
+GPU1:  ── b0 ── | ── b1 ── | ── b2 ── | ── b3 ──
+GPU2:  ── c0 ── | ── c1 ── | ── c2 ── | ── c3 ──
+GPU3:  ── d0 ── | ── d1 ── | ── d2 ── | ── d3 ──
+          ↑          ↑          ↑          ↑
+        chunk0     chunk1     chunk2     chunk3
+
+<strong>Step 2 : Reduce (vertically)</strong>
+          chunk0           chunk1           chunk2         chunk3
+    --------------------------------------------------------------------
+SUM    a0+b0+c0+d0       a1+b1+c1+d1      a2+b2+c2+d2    a3+b3+c3+d3
+
+<strong>Step 3 : Scatter</strong>
+
+GPU0: a0+b0+c0+d0
+GPU1: a1+b1+c1+d1
+GPU2: a2+b2+c2+d2
+GPU3: a3+b3+c3+d3
+</pre>
+
+**Real use case**: FSDP uses this during backward pass. Each GPU computes gradients for the full model, but we only want each GPU to keep the gradients for its parameter shard. Reduce-scatter does exactly this : reduce (sum) the gradients and scatter them so each GPU gets its assigned chunk. 
+
+**Note: Reduce-Scatter + All-Gather = All-Reduce**
+
+Code example for a 2-GPU case
+
+\`\`\`python
+# Each GPU has computed full gradients
+local_gradients = torch.tensor([1.0, 2.0, 3.0, 4.0])
+# Prepare to receive one shard
+output = torch.zeros(2)
+# Reduce-scatter
+dist.reduce_scatter(output, 
+                   [local_gradients[:2], local_gradients[2:]], 
+                   op=dist.ReduceOp.SUM)
+# Now GPU 0 gets reduced first half, GPU 1 gets reduced second half
+\`\`\`
+
+## 1.3 Ring All-Reduce Algorithm
+
+We’ve learned what all-reduce does. And a naive way to work would be : 
+
+\`Reduce (to GPU 0) + Broadcast (from GPU 0)\`
+
+This works, but clearly creates a bottleneck at GPU 0. If you have 64 GPUs, GPU 0 has to receive from 63 others, then send to 63 others, making GPU 0 over busy. 
+
+**Ring all-reduce** is a clever algorithm that makes all-reduce scale beautifully. 
+
+**Mental model**: Relay race where everyone passes the handkerchief in a circle
+
+Imagine 4 GPUs arranged in a ring : 
+
+<pre>GPU 0 → GPU 1 
+  ↑	 ↓
+GPU 3 ← GPU 2 
+</pre>
+
+Each GPU initially has a tensor divided into 4 chunks (one per GPU):
+
+<pre>GPU0:  ── a0 ── | ── a1 ── | ── a2 ── | ── a3 ──
+GPU1:  ── b0 ── | ── b1 ── | ── b2 ── | ── b3 ──
+GPU2:  ── c0 ── | ── c1 ── | ── c2 ── | ── c3 ──
+GPU3:  ── d0 ── | ── d1 ── | ── d2 ── | ── d3 ──
+</pre>
+
+1. **Phase 1: Reduce-Scatter** 
+    
+    **Goal** : Every GPU only keeps the sum of ‘its chunk’
+    
+    **Step 1**: GPU i send its chunk i to GPU i+1, and receives from its left neighbour, then add the received chunk into its corresponding chunk
+    
+    <pre> GPU0:  ── <strong>a0↓</strong>── | ── a1 ── | ── a2 ── | ── a3 ──
+    GPU1:  ── b0 ── | ── <strong>b1↓</strong>── | ── b2 ── | ── b3 ──
+    GPU2:  ── c0 ── | ── c1 ── | ── <strong>c2↓</strong>── | ── c3 ──
+    GPU3:  ── d0 ── | ── d1 ── | ── d2 ── | ── <strong>d3↓</strong>──
+    
+    Then after receiving and reducing, 
+    
+    GPU0:  ── a0    ── | ── a1    ── | ── a2    ── | ── a3+d3 ──
+    GPU1:  ── a0+b0 ── | ── b1    ── | ── b2    ── | ── b3    ──
+    GPU2:  ── c0    ── | ── b1+c1 ── | ── c2    ── | ── c3    ──
+    GPU3:  ── d0    ── | ── d1    ── | ── c2+d2 ── | ── d3    ──
+    </pre>
+    
+    Step 2: Each GPU send its ‘just updated’ chunk to its right neighbour
+    
+    <pre> GPU0:  ── a0    ── | ── a1    ── | ── a2    ── | ── <strong>a3+d3↓</strong>──
+    GPU1:  ── <strong>a0+b0↓</strong>── | ── b1    ── | ── b2    ── | ── b3    ──
+    GPU2:  ── c0    ── | ── <strong>b1+c1↓</strong>── | ── c2    ── | ── c3    ──
+    GPU3:  ── d0    ── | ── d1    ── | ── <strong>c2+d2↓</strong>── | ── d3    ──
+    
+    Then after receiving and reducing,
+    
+    GPU0:  ── a0       ── | ── a1       ── | ── a2+c2+d2 ── | ── a3+d3    ──
+    GPU1:  ── a0+b0    ── | ── b1       ── | ── b2       ── | ── a3+b3+d3 ──
+    GPU2:  ── a0+b0+c0 ── | ── b1+c1    ── | ── c2       ── | ── c3       ──
+    GPU3:  ── d0       ── | ── b1+c1+d1 ── | ── c2+d2    ── | ── d3       ──
+    </pre>
+    
+    Step 3: Continue
+    
+    <pre> GPU0:  ── a0       ── | ── a1       ── | ── <strong>a2+c2+d2↓</strong>── | ── a3+d3    ──
+    GPU1:  ── a0+b0    ── | ── b1       ── | ── b2       ── | ── <strong>a3+b3+d3↓</strong>──
+    GPU2:  ── <strong>a0+b0+c0↓</strong>── | ── b1+c1    ── | ── c2       ── | ── c3       ──
+    GPU3:  ── d0       ── | ── <strong>b1+c1+d1↓</strong>── | ── c2+d2    ── | ── d3       ──
+    
+    Then after receiving and reducing,
+    
+    GPU0:  ── a0          ── | ── <strong>a1+b1+c1+d1</strong> ── | ── a2+c2+d2    ── | ── a3+d3       ──
+    GPU1:  ── a0+b0       ── | ── b1          ── | ── <strong>a2+b2+c2+d2</strong> ── | ── a3+b3+d3    ──
+    GPU2:  ── a0+b0+c0    ── | ── b1+c1       ── | ── c2          ── | ── <strong>a3+b3+c3+d3</strong> ──
+    GPU3:  ── <strong>a0+b0+c0+d0</strong> ── | ── b1+c1+d1    ── | ── c2+d2       ── | ── d3          ──
+    </pre>
+    
+    After N-1 steps, it can be observed that GPU i has the full i-sum (ai+bi+ci+di)
+    
+2. **Phase 2: All-Gather (the ‘Sharding’ phase)**
+    
+    Now that each GPU has one fully-reduced chunk. We do another ring pass to share these:
+    
+    <pre> Step 1: First share : GPU0 sends sum0 to GPU1, GPU1 sends sum1 to GPU2, ...
+    		GPU0:  sum0 <strong>↓</strong>
+    		GPU1:  sum1 <strong>↓</strong>
+    		GPU2:  sum2 <strong>↓</strong>
+    		GPU3:  sum3 <strong>↓</strong>
+    		Then the snapshot becomes
+    		GPU0:  [sum0, sum3]
+    		GPU1:  [sum0, sum1]
+    		GPU2:  [sum1, sum2]
+    		GPU3:  [sum2, sum3]
+    
+    Step 2: GPU1 sends its just received sum0 to GPU2, ...
+    		GPU0:  [sum0, sum3<strong>↓</strong>]
+    		GPU1:  [sum0<strong>↓</strong>, sum1]
+    		GPU2:  [sum1<strong>↓</strong>, sum2]
+    		GPU3:  [sum2<strong>↓</strong>, sum3]
+    		Then the snapshot becomes
+    		GPU0:  [sum0, sum2, sum3]
+    		GPU1:  [sum0, sum1, sum3]
+    		GPU2:  [sum0, sum1, sum2]
+    		GPU3:  [sum1, sum2, sum3]
+    
+    Step 3: Continue, everyone send the sum they just received to its right neighbour
+    		GPU0:  [sum0, sum2<strong>↓</strong>, sum3]
+    		GPU1:  [sum0, sum1, sum3<strong>↓</strong>]
+    		GPU2:  [sum0<strong>↓</strong>, sum1, sum2]
+    		GPU3:  [sum1<strong>↓</strong>, sum2, sum3]
+    		Then the snapshot becomes
+    		GPU0:  [sum0, sum1, sum2, sum3]
+    		GPU1:  [sum0, sum1, sum2, sum3]
+    		GPU2:  [sum0, sum1, sum2, sum3]
+    		GPU3:  [sum0, sum1, sum2, sum3]
+    </pre>
+    
+
+### The math behind ring all-reduce
+
+- Data transferred per GPU : MATHPLACEHOLDER0ENDMATH , where MATHPLACEHOLDER1ENDMATH is the total data size, MATHPLACEHOLDER2ENDMATH is the number of GPUs.
+- Total time: MATHPLACEHOLDER3ENDMATH, where MATHPLACEHOLDER4ENDMATH is the bandwidth
+- When N is large, the total time is roughly MATHPLACEHOLDER5ENDMATH
+
+Hence the insight is, the time is essentially independent of the number of GPUs.
+
+In contrast, how about naive reduce + broadcast? 
+
+Recall that naive reduce + broadcast will require GPU 0 to transfer N-1 times for all data, hence the time is MATHPLACEHOLDER6ENDMATH, which grows linearly with MATHPLACEHOLDER7ENDMATH
+
+### Real use case - Handled by NCCL
+
+When you use \`torch.distributed\` with \`backend=”nccl”\`, Pytorch doesn’t just send data randomly, it performs a **Topology Detection** to see how your GPUs are connected (NVLink vs PCle), 
+
+NCCL is very smart. For small tensors, it might use a "Tree" algorithm to reduce latency. For large tensors (like gradients in DL), it automatically employs the **Ring All-Reduce** to maximize bandwidth utilization.
+
+In a real world scenario, you rarely implement the ring steps manually. Instead, you use the collective communication primitive \`dist.all_reduce\`. 
+
+\`\`\`python
+
+import torch
+import torch.distributed as dist
+import os
+
+def setup(rank, world_size):
+    # Standard environment variables for distributed orchestration
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+
+    # Initialize the process group. 
+    # Using "nccl" backend is crucial as it implements the optimized Ring All-Reduce.
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    
+    # Ensure each process uses its assigned GPU
+    torch.cuda.set_device(rank)
+    
+def run_ring_all_reduce(rank_id, world_size):
+    setup(rank_id, world_size)
+    
+    # 1. Initialize data unique to each GPU
+    data = torch.arange(4, dtype=torch.float32).cuda(rank_id) + (rank_id * 4) + 1
+    print(f"Rank {rank_id} initial data: {data}")
+
+    # 2. Execute All-Reduce
+    # Behind the scenes, NCCL performs the Phase 1 (Reduce-Scatter) and Phase 2 (All-Gather) to synchronize the sum across all nodes.
+    dist.all_reduce(data, op=dist.ReduceOp.SUM)
+
+    # 3. Every GPU now holds the identical, fully reduced tensor
+    print(f"Rank {rank_id} synchronized data: {data}")
+    
+    dist.destroy_process_group()
+\`\`\`
+
+Ring all-reduce is optimal when:
+
+- Data size MATHPLACEHOLDER8ENDMATH is large (so bandwidth MATHPLACEHOLDER9ENDMATH dominates, latency is negligible)
+- Number of GPUs MATHPLACEHOLDER10ENDMATH is moderate to large
+- You want to avoid bottlenecks at any single GPU
+
+For very small messages or very few GPUs, a tree-based algorithm might be better (lower latency), but ring all-reduce is the go-to for most LLM training scenarios.
+`;
+    const mathFormulas = [["inline", "(N-1)\\times (V/N)"], ["inline", "V"], ["inline", "N"], ["inline", "(N-1)\\times V / (N\\times \\beta)"], ["inline", "\\beta"], ["inline", "V/\\beta"], ["inline", "2\\times (N-1)\\times V / \\beta"], ["inline", "N"], ["inline", "V"], ["inline", "\\beta"], ["inline", "N"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
