@@ -311,10 +311,10 @@
         // Add city markers (in separate pane so they stay on top)
         visitedCities.forEach(function(city) {
           L.circleMarker([city[0], city[1]], {
-            radius: 6,
+            radius: 3,
             fillColor: '#dc3545',
-            color: '#fff',
-            weight: 2,
+            color: '#000',
+            weight: 1,
             opacity: 1,
             fillOpacity: 0.9,
             pane: 'cityMarkers'
