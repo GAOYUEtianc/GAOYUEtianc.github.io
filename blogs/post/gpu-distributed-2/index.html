@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPU Distributed Training Part 2 · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="GPU Distributed Training Part 2"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>GPU Distributed Training Part 2</h1>
+      <div class="post-date">
+        <time datetime="2026-03-08">Mar 08, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `## Part 2: Data Parallel Training - The DDP Journey
+
+### 2.1 Naive DDP
+
+Let's start with the simplest (yet bad) possible approach to data parallel training. Understanding why this is bad will be helpful to understand all the clever optimizations in real DDP.
+
+Continuing the narrative format from Part 1, I’ll begin each method with its own mental model.
+
+**Mental model:** "Everyone works independently, then has a long meeting at the end to sync up"
+
+**Pseudocode for Naive DDP**
+
+\`\`\`python
+for batch in dataloader:
+    # Step 1: Forward pass (each GPU on different data)
+    outputs = model(batch)
+    loss = criterion(outputs, labels)
+    
+    # Step 2: Backward pass (compute gradients)
+    loss.backward()
+    
+    # Step 3: WAIT for all gradients to be ready
+    # (doing nothing... just wait... -_- and wait...)
+    
+    # Step 4: Synchronize ALL gradients at once
+    for param in model.parameters():
+        dist.all_reduce(param.grad, op=dist.ReduceOp.AVG)
+    
+    # Step 5: Update parameters
+    optimizer.step()
+    optimizer.zero_grad()
+\`\`\`
+
+If looking at the timeline, it’s obvious there’s a waste of time: 
+
+<pre>GPU0: [Forward] [Backward] [WAIT ...] [All-reduce all grads] [Optimizer]
+GPU1: [Forward] [Backward] [WAIT ...] [All-reduce all grads] [Optimizer]
+GPU2: [Forward] [Backward] [WAIT ...] [All-reduce all grads] [Optimizer]
+                           ^^^^^^^^waste time here!
+</pre>
+
+There are several bottlenecks : 
+
+1. **Sequential communication** : The all-reduce is per-parameter, i.e., if there’re 1 thousand parameters, there’s 1 thousand separate all-reduce calls
+2. **No overlap** : GPUs keep idle during communication, doing nothing
+3. **Late start** : Communication can’t begin until the entire backward pass finishes
+
+So, starting from this, there’re several evolution of methods that fix these problems step by step.
+
+### 2.2 Gradient Bucketing
+
+**Mental model**: Instead of shipping each item separately, pack multiple items into one boxes
+
+Instead of on all-reduce per-parameter, group multiple parameter gradients into buckets and do one all-reduce per bucket
+
+Let’s walk through an example of a 2-GPU Training for a small transformer:
+
+\`\`\`python
+class SimpleTransformer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embedding = nn.Embedding(1000, 128)# vocab_size=1000, hidden_size=128
+        self.layer1 = TransformerLayer(128)     # Self-attention + FFN
+        self.layer2 = TransformerLayer(128)
+        self.output = nn.Linear(128, 1000)
+
+class TransformerLayer(nn.Module):
+    def __init__(self, hidden_size):
+        super().__init__()
+        self.attention = nn.Linear(128, 128)  # Simplified attention
+        self.ffn = nn.Linear(128, 128)        # Feed-forward
+        
+# Model parameters (simplified for clarity):
+# embedding.weight:        [1000, 128] = 128,000 params
+# layer1.attention.weight: [128, 128] = 16,384 params
+# layer1.ffn.weight:       [128, 128] = 16,384 params
+# layer2.attention.weight: [128, 128] = 16,384 params
+# layer2.ffn.weight:       [128, 128] = 16,384 params
+# output.weight:           [1000, 128] = 128,000 params
+# Total: ~321,536 params
+\`\`\`
+
+**Data Distribution Across GPUs**
+
+Each GPU has **same** model (**full copy of parameters**), while different data batches
+
+\`\`\`python
+# GPU 0 processes batch 0
+GPU 0:
+  Input: sentences [0, 1, 2, 3]  # 4 different sentences
+  Model: [embedding, layer1, layer2, output] # Full model copy (same initialization)
+  
+# GPU 1 processes batch 1
+GPU 1:
+  Input: sentences [4, 5, 6, 7]  # 4 different sentences
+  Model: [embedding, layer1, layer2, output] # Full model copy (same initialization)
+\`\`\`
+
+**Forward and Backward on Each GPU**
+
+\`\`\`python
+# GPU0 Forward
+outputs = model(batch_0)  # sentences [0,1,2,3]
+loss_0 = criterion(outputs, labels_0)
+# GPU0 Backward
+loss_0.backward()
+# GPU 0 now has gradients based on batch_0:
+embedding.weight.grad:        [1000, 128]  # shape, computed from batch_0
+layer1.attention.weight.grad: [128, 128]
+layer1.ffn.weight.grad:       [128, 128]
+layer2.attention.weight.grad: [128, 128]
+layer2.ffn.weight.grad:       [128, 128]
+output.weight.grad:           [1000, 128]
+
+# What happens on GPU 1 (simultaneously):
+outputs = model(batch_1)  # sentences [4,5,6,7]
+loss_1 = criterion(outputs, labels_1)
+loss_1.backward()
+# GPU 1 now has gradients based on batch_1:
+embedding.weight.grad:        [1000, 128]  # Same shape, computed from batch_1
+layer1.attention.weight.grad: [128, 128]
+layer1.ffn.weight.grad:       [128, 128]
+layer2.attention.weight.grad: [128, 128]
+layer2.ffn.weight.grad:       [128, 128]
+output.weight.grad:           [1000, 128]
+\`\`\`
+
+Recall that in standard SGD, we compute gradient on the full batch. With DDP, we split the batch across GPUs. To simulate the full batch gradient, we need to average the gradients from each mini-batch. 
+
+Recall from last subsection that since each \`all_reduce\` call has overhead (kernel launch, synchronization etc), for a real transformer with thousands of parameters, we must not do \`all_reduce\`  per parameter, instead, we do it per-bucket
+
+\`\`\`python
+# Bucket 0: "Large" parameters
+bucket_0 = [
+    embedding.weight.grad,    # [1000, 128]
+    output.weight.grad        # [1000, 128]
+]
+
+# Bucket 1: "Small" parameters  
+bucket_1 = [
+    layer1.attention.weight.grad,  # [128, 128]
+    layer1.ffn.weight.grad,        # [128, 128]
+    layer2.attention.weight.grad,  # [128, 128]
+    layer2.ffn.weight.grad         # [128, 128]
+]
+\`\`\`
+
+**How Bucketing Works : A Step by Step Breakdown**
+
+**Step 1: Flatten and Concatenate Gradients**
+
+\`\`\`python
+# On GPU 0, create bucket_0:
+
+# Flatten each gradient tensor
+embedding_grad_flat = embedding.weight.grad.flatten()  # [128,000] (was [1000,128])
+output_grad_flat = output.weight.grad.flatten()        # [128,000] (was [1000,128])
+# Concatenate into one big tensor
+bucket_0_gpu0 = torch.cat([
+    embedding_grad_flat,
+    output_grad_flat
+])  # Shape: [256,000]
+
+# Actual values on GPU 0 (example):
+bucket_0_gpu0 = [0.1, 0.2, 0.3, ..., 0.5, 0.6, ..., 0.8]
+                 └──embedding grads──┘ └─output grads─┘
+                 
+# On GPU 1, create the same bucket:
+bucket_0_gpu1 = [0.3, 0.1, 0.4, ..., 0.2, 0.8, ..., 0.1]
+                 └──embedding grads──┘ └─output grads─┘
+\`\`\`
+
+**Step 2: All-Reduce the Bucket**
+
+\`\`\`python
+# Before all-reduce:
+GPU 0 bucket_0: [0.1, 0.2, 0.3, ..., 0.5, 0.6, ..., 0.8]
+GPU 1 bucket_0: [0.3, 0.1, 0.4, ..., 0.2, 0.8, ..., 0.1]
+
+# Perform all-reduce with AVERAGE operation
+dist.all_reduce(bucket_0, op=ReduceOp.AVG)
+
+# After all-reduce (element-wise average):
+GPU 0 bucket_0: [0.2, 0.15, 0.35, ..., 0.35, 0.7, ..., 0.45]
+GPU 1 bucket_0: [0.2, 0.15, 0.35, ..., 0.35, 0.7, ..., 0.45]
+                 └─(0.1+0.3)/2  (0.2+0.1)/2...┘
+# Now both GPUs have identical averaged gradients
+\`\`\`
+
+**Step 3: Copy Back to Original Gradient Tensors**
+
+\`\`\`python
+# Split the averaged bucket back into individual gradients
+averaged_bucket = [0.2, 0.15, 0.35, ..., 0.35, 0.7, ..., 0.45]
+
+# Extract embedding gradients (first 128,000 elements)
+embedding_grad_averaged = averaged_bucket[0:128000]
+embedding.weight.grad = embedding_grad_averaged.view(1000, 128)  # Reshape
+
+# Extract output gradients (next 128,000 elements)
+output_grad_averaged = averaged_bucket[128000:256000]
+output.weight.grad = output_grad_averaged.view(1000, 128)  # Reshape
+
+# Now embedding.weight.grad and output.weight.grad contain averaged values
+\`\`\`
+
+Do the same steps 1-3 on bucket 1, then both GPU0 and GPU1 have updated average parameters \`l1.attn + l1.ffn + l2.attn + l2.ffn\`
+
+For a real transformer, e.g., LLaMA-7B with ~200 parameter tensors, with bucketing into ~10 buckets, the overhead will be reduced significantly to ~MATHPLACEHOLDER0ENDMATH original overhead.
+
+**Summary** 
+
+Bucketing helps to reduce number of communication calls, reducing overhead across multiple parameters. The key process includes flatten each tensor, concatenate into 1 big 1D tensor, running all-reduce on the big tensor, then split and reshape back to original tensors.
+
+### 2.3 DDP with Bucketing + Overlap
+
+Even with bucketing we reduced overhead time, there’s still a problem: we are waiting for ALL gradients to be computed before starting ANY communication, if we can overlap them, we can save a lot of time. 
+
+**Mental model**: Cook the next dish while the first is baking in the oven.
+
+Taking the \`SimpleTransformer\` in **section 2.2** as an example again, this time we bucketing in reverse parameter order:
+
+\`\`\`python
+bucket_0 = [output.weight.grad, layer2.ffn.weight.grad]
+bucket_1 = [layer2.attention.weight.grad, layer1.ffn.weight.grad]
+bucket_2 = [layer1.attention.weight.grad, embedding.weight.grad]
+\`\`\`
+
+Why **reverse parameter order** matters? During backward pass, gradients are computed in reverse order of the forward pass, and during backpropagation using chain rule, gradients flow backwards through the computation graph. 
+
+Before doing overlap, let’s see what happens in bucketing only-backward computation : 
+
+<pre># Timeline on GPU 0:
+# === Backward Pass (compute ALL gradients first) ===
+t=0ms:  Compute output.weight.grad           [1000, 128]  
+t=5ms:  Compute layer2.ffn.weight.grad       [128, 128]   
+t=8ms:  Compute layer2.attention.weight.grad [128, 128]  
+t=11ms: Compute layer1.ffn.weight.grad       [128, 128]   
+t=14ms: Compute layer1.attention.weight.grad [128, 128]  
+t=20ms: Compute embedding.weight.grad        [1000, 128] 
+</pre>
+
+Then the communication starts after t=20ms, after all computation finished. However, the computation for bucket 1 has already finished before t=8ms, and thus it kept idle while waiting for communication. Hence, why not starting communication as soon as each bucket is ready?
+
+<pre># Timeline on GPU 0:
+# === Backward Pass with Overlapped Communication ===
+t=0ms:  Compute output.weight.grad [1000, 128]
+        ↓ output.grad is ready!
+        
+t=1ms:  Check bucket_0: [output.grad, layer2.ffn.grad]
+        ✗ Not all ready yet (still waiting for layer2.ffn.grad)
+        Continue computing...
+
+t=5ms:  Compute layer2.ffn.weight.grad [128, 128]
+        ↓ layer2.ffn.grad is ready!
+        
+t=6ms:  Check bucket_0: [output.grad ✓, layer2.ffn.grad ✓]
+        ✓ Bucket full! Launch async all-reduce immediately
+        
+        # Flatten and concatenate bucket_0
+        bucket_0_flat = cat([output.grad.flatten(), 
+                            layer2.ffn.grad.flatten()])
+        # Launch non-blocking all-reduce
+        handle_0 = dist.all_reduce(bucket_0_flat, async_op=True)
+        
+        # ↓ Communication starts in background
+        # ↓ GPU continues computing next gradients
+        
+t=8ms:  Compute layer2.attention.weight.grad [128, 128]
+        [while bucket_0 is communicating in background...]
+        
+t=11ms: Compute layer1.ffn.weight.grad [128, 128]
+        ↓ Check bucket_1: [layer2.attn.grad ✓, layer1.ffn.grad ✓]
+        ✓ Bucket full! Launch async all-reduce
+        
+        handle_1 = dist.all_reduce(bucket_1_flat, async_op=True)
+        
+        # Now TWO all-reduces happening simultaneously:
+        # - bucket_0 still communicating (started at t=6ms)
+        # - bucket_1 just started communicating
+        
+t=14ms: Compute layer1.attention.weight.grad [128, 128]
+        [while bucket_0 and bucket_1 are communicating...]
+
+t=20ms: Compute embedding.weight.grad [1000, 128]
+        ↓ Check bucket_2: [layer1.attn.grad ✓, embedding.grad ✓]
+        ✓ Bucket full! Launch async all-reduce
+        
+        handle_2 = dist.all_reduce(bucket_2_flat, async_op=True)
+        
+# === Wait for All Communication to Finish ===
+t=20ms: All gradient computation done
+        Now wait for any remaining communication:
+        
+        handle_0.wait()  # Probably already done (started at t=6ms)
+        handle_1.wait()  # Probably already done (started at t=11ms)
+        handle_2.wait()  # Still running (just started at t=20ms)
+
+# Assumption : at t=23ms: All communication complete
+Then the optimizer step starts at t=23 ms
+</pre>
+
+Hence, GPU utilization is very high, and communication time is ‘hidden’ between computations.
+
+In Pytorch, DDP is implemented with **autograd hooks** to detect when each gradient is ready. 
+
+\`\`\`python
+# Pseudo Code for how DDP uses hooks to detect when each gradient is ready
+class DDPModel:
+    def __init__(self, model):
+        self.buckets = {
+            0: Bucket([output.weight, layer2.ffn.weight]),
+            1: Bucket([layer2.attention.weight, layer1.ffn.weight]),
+            2: Bucket([layer1.attention.weight, embedding.weight])
+        }
+        
+        # Install hooks on each parameter
+        for bucket_id, bucket in self.buckets.items():
+            for param in bucket.params:
+                param.register_hook(
+                    lambda grad: self._grad_ready_hook(param, bucket_id)
+                )
+    
+    def _grad_ready_hook(self, param, bucket_id):
+        """Called automatically when param.grad is ready"""
+        bucket = self.buckets[bucket_id]
+        
+        # Mark this parameter's gradient as ready
+        bucket.mark_ready(param)
+        
+        # Check if all gradients in bucket are ready
+        if bucket.all_ready():
+            # Launch async all-reduce immediately once ready
+            self._launch_bucket_all_reduce(bucket_id)
+    
+    def _launch_bucket_all_reduce(self, bucket_id):
+        """Launch async all-reduce for a bucket"""
+        bucket = self.buckets[bucket_id]
+        
+        # Flatten and concatenate all gradients in bucket
+        bucket.flat_grads = torch.cat([
+            param.grad.flatten() for param in bucket.params
+        ])
+        
+        # Launch NON-BLOCKING all-reduce
+        bucket.handle = dist.all_reduce(
+            bucket.flat_grads,
+            async_op=True  # ← KEY: Returns immediately!
+        )
+        
+        print(f"t={current_time()}ms: Launched all-reduce for bucket {bucket_id}")
+
+# During backward pass:
+loss.backward()
+# ↓ As each grad becomes ready, hook fires automatically
+# ↓ When bucket fills, NCCL starts runing all-reduce in background
+# ↓ Computation continues while communication happens
+
+# At end of backward, wait for remaining communication:
+for bucket in self.buckets.values():
+    if bucket.handle:
+        bucket.handle.wait()  # Wait if not done yet
+\`\`\`
+
+The real production code is actually simpler, as we can take utility of \`torch.distributed.dist\` and \`torch.nn.parallel.DistributedDataParallel\` , which handle all the bucketing, hook installation, and async communication automatically. 
+
+So when does overlap works best? 
+
+The answer is straightforward, if communication time is << compute time, then overlap works best since communication will be almost free compared to sequential. And for LLM training, it’s indeed the case.
+
+**Summary**
+
+Through async all-reduce + reverse-order bucketing, overlap can let communication happen in background while GPU computes next gradients. 
+
+### 2.4 Gradient Accumulation with no_sync
+
+**Mental model:** Save receipts for multiple purchases, submit expense reimbursement report once at the end of the month
+
+When the batch size is large but GPU memory is limited, it doesn’t fit in GPU memory, but you want to keep the batch size for better convergence, how to resolve this contradiction? A solution is to split the large batch into smaller micro-batches, accumulate gradients over multiple forward / backward passes, then update once. 
+
+A naive gradient accumulation (do loss.backward per-micro-batch) won’t work, as recall from the previous section that this will trigger DDP all-reduce, i.e., average all gradients.
+
+\`\`\`python
+# What we want (correct gradient accumulation):
+grad_total = grad_batch0 + grad_batch1 + grad_batch2 + grad_batch3
+grad_avg_across_gpus = (grad_total_gpu0 + grad_total_gpu1) / 2
+
+# What naive approach gives us (WRONG):
+# After micro-batch 0:
+grad = (grad_batch0_gpu0 + grad_batch0_gpu1) / 2  # Averaged
+# After micro-batch 1:
+grad += grad_batch1_gpu0  # Add local gradient
+grad = (grad_gpu0 + grad_gpu1) / 2  # Average again!
+# = ((prev_avg + grad_batch1_gpu0) + (prev_avg + grad_batch1_gpu1)) / 2
+# The problem: We're averaging MULTIPLE times instead of once at the end
+\`\`\`
+
+**The Correct Solution : no_sync Context Manager to Disable Gradient Synchronization**
+
+\`\`\`python
+# In one iteration : 
+accumulation_steps = 4
+for i in range(accumulation_steps):
+    # Get micro-batch
+    inputs, labels = get_micro_batch(i)
+    inputs = inputs.cuda(rank)
+    labels = labels.cuda(rank)
+    
+    # Decide whether to sync, only sync at last step
+    is_last_step = (i == accumulation_steps - 1)
+    
+    if not is_last_step:
+        # Disable gradient synchronization for micro-batches 0, 1, 2
+        with ddp_model.no_sync():
+            outputs = ddp_model(inputs)
+            loss = criterion(outputs, labels) / accumulation_steps
+            loss.backward()  # No all-reduce! Gradients accumulate locally
+    else:
+        # Enable synchronization for last micro-batch (micro-batch 3)
+        outputs = ddp_model(inputs)
+        loss = criterion(outputs, labels) / accumulation_steps
+        loss.backward()  # DDP all-reduces here!
+# Now update with synchronized accumulated gradients
+optimizer.step()
+optimizer.zero_grad()
+\`\`\`
+
+**What no_sync Actually Does**
+
+\`\`\`python
+class DistributedDataParallel:
+    @contextmanager
+    def no_sync(self):
+        # Save old state
+        old_require_backward_grad_sync = self.require_backward_grad_sync
+        
+        # Disable gradient synchronization
+        self.require_backward_grad_sync = False
+        
+        try:
+            yield  # Run the code inside "with" block
+        finally:
+            # Restore old state
+            self.require_backward_grad_sync = old_require_backward_grad_sync
+            
+# When require_backward_grad_sync = False:
+# - Autograd hooks still fire
+# - But _mark_grad_ready() doesn't launch all-reduce
+# - Gradients accumulate in param.grad without communication
+\`\`\`
+
+**Summary**
+
+Gradient accumulation = Multiple forward / backward before one optimizer step, it enables simulation on larger batch size, and gradients sum across micro-batches.
+`;
+    const mathFormulas = [["inline", "1/20\\cdot"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
