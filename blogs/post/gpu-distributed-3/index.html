@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPU Distributed Training Part 3 · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="GPU Distributed Training Part 3"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>GPU Distributed Training Part 3</h1>
+      <div class="post-date">
+        <time datetime="2026-03-15">Mar 15, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `# GPU3
+
+## Part 3: Memory-Efficient Training - Sharding Strategies
+
+### 3.1 The Memory Problem Breakdown
+
+Before diving into sharding, let's understand exactly where your GPU memory goes during training. Short answer : 3 giant monsters are eating up VRAM : model parameters, gradients, and optimizer states.
+
+For a model with \`N\` parameters
+
+\`\`\`python
+
+# Example: 7B parameter model in FP32
+N = 7_000_000_000  # 7 billion parameters
+
+# 1. Model Parameters (W)
+params_memory = N × 4 bytes  # FP32 = 4 bytes per param # = 28 GB
+
+# 2. Gradients (∇W) - same size as parameters
+gradients_memory = N × 4 bytes # = 28 GB
+
+# 3. Optimizer States (for AdamW)
+# AdamW keeps two extra values per parameter:
+# - First moment (momentum): 4 bytes
+# - Second moment (variance): 4 bytes
+optimizer_memory = N × 8 bytes # = 56 GB
+
+# Total model states
+total_memory = 28 + 28 + 56 = 112 GB
+\`\`\`
+
+Recall from Section 2 that in DDP, every GPU needs the full model copy. However, 1 A100 only has 80GB memory, hence this cannot fit in. And we haven’t even counted activations and temporary buffers. 
+
+### 3.2 ZeRO (Zero Redundancy Optimizer) Stages
+
+ZeRO has three stages, each sharding more aggressively:
+
+**Stage 0: DDP Baseline (No Sharding)**
+
+\`\`\`python
+
+GPU 0: [All params] [All grads] [All optimizer states]
+GPU 1: [All params] [All grads] [All optimizer states]
+GPU 2: [All params] [All grads] [All optimizer states]
+GPU 3: [All params] [All grads] [All optimizer states]
+
+Memory per GPU: 16 bytes per param (FP32)
+\`\`\`
+
+**Stage 1: Optimizer State Sharding**
+
+What’s sharded in this stage is each GPU only keeps optimizer states (momentum, variance) for its assigned parameters.
+
+\`\`\`python
+
+GPU 0: [All params] [All grads] [1/4 optimizer states]
+GPU 1: [All params] [All grads] [1/4 optimizer states]
+GPU 2: [All params] [All grads] [1/4 optimizer states]
+GPU 3: [All params] [All grads] [1/4 optimizer states]
+
+Memory per GPU: 10 bytes per param
+Total per GPU : 70 GB
+\`\`\`
+
+**How it works:**
+
+1. All GPUs do forward/backward → all have full gradients
+2. Each GPU updates only its shard of parameters using its shard of optimizer states
+3. All-gather to broadcast updated parameters to all GPUs
+
+**Conceptual code example :** 
+
+\`\`\`python
+
+# Each GPU owns a shard of optimizer states
+if rank == 0:
+    owned_params = model.parameters()[0:N//4]
+elif rank == 1:
+    owned_params = model.parameters()[N//4:N//2]
+# ...
+
+# After backward, each GPU has full gradients
+loss.backward()
+# Uses all-reduce for gradients (everyone gets full averaged gradients)
+dist.all_reduce(gradients, op=dist.ReduceOp.AVG)
+# Result: All GPUs have identical full gradients
+
+# Each GPU updates only its owned parameters
+for param in owned_params:
+    optimizer.step_single_param(param)
+    
+# Broadcast updated params so everyone has the full model
+for param in model.parameters():
+    dist.broadcast(param, src=owner_rank)
+\`\`\`
+
+**Stage 2: Optimizer State + Gradient Sharding** 
+
+\`\`\`python
+
+GPU 0: [All params] [1/4 grads] [1/4 optimizer states]
+GPU 1: [All params] [1/4 grads] [1/4 optimizer states]
+GPU 2: [All params] [1/4 grads] [1/4 optimizer states]
+GPU 3: [All params] [1/4 grads] [1/4 optimizer states]
+
+Memory per GPU: 7 bytes per param
+Total per GPU: 49 GB
+\`\`\`
+
+Conceptual code example of how it works
+
+\`\`\`python
+
+# Each GPU owns a shard of parameters
+if rank == 0:
+    owned_params = model.parameters()[0:N//4]
+elif rank == 1:
+    owned_params = model.parameters()[N//4:N//2]
+elif rank == 2:
+    owned_params = model.parameters()[N//2:3*N//4]
+else:  # rank == 3
+    owned_params = model.parameters()[3*N//4:N]
+    
+# Forward pass - all GPUs have full parameters
+outputs = model(inputs)
+loss = criterion(outputs, labels)
+
+# Backward pass - compute full gradients locally
+loss.backward()
+# Now each GPU has ALL gradients (for all parameters)
+
+# Key difference from ZeRO-1: Use reduce-scatter instead of all-reduce
+# This averages and shards gradients in one operation
+for param in model.parameters():
+    # Reduce-scatter: average gradients across GPUs and distribute shards
+    # Each GPU receives only its assigned shard of the averaged gradient
+    dist.reduce_scatter(
+        output=param.grad_shard,  # Each GPU gets 1/4 of averaged gradients
+        input_list=[param.grad],   # Each GPU contributes full gradients
+        op=dist.ReduceOp.AVG
+    )
+    
+# Each GPU now has:
+# - Full parameters (still)
+# - Only its shard of averaged gradients
+# - Only its shard of optimizer states
+
+# Update only owned parameter shard
+for param in owned_params:
+    optimizer.step_single_param(param)  # Uses owned grad shard + optimizer shard
+
+# Broadcast updated params so everyone has the full model again
+for param_idx, param in enumerate(model.parameters()):
+    owner_rank = param_idx // (N // 4)  # Determine which rank owns this param
+    dist.broadcast(param.data, src=owner_rank)
+
+# All GPUs now have updated full parameters
+# Ready for next iteration
+\`\`\`
+
+**Stage 3: Full Sharding (FSDP)**
+
+\`\`\`python
+
+GPU 0: [1/4 params] [1/4 grads] [1/4 optimizer states]
+GPU 1: [1/4 params] [1/4 grads] [1/4 optimizer states]
+GPU 2: [1/4 params] [1/4 grads] [1/4 optimizer states]
+GPU 3: [1/4 params] [1/4 grads] [1/4 optimizer states]
+
+Memory per GPU: 4 bytes per param (+ 4 bytes temporarily during compute)
+Total Memory: 28 GB
+\`\`\`
+
+So how does FSDP training actually shards parameters, gradients, as well as optimizer states?
+
+I would call this pattern ‘borrow-compute-return’ like rental library system. Here’s a breakdown of the forward computation for layer 0 of the model. 
+
+<pre>4 GPUs, assume the model has 4 layers
+Each GPU owns one layer&#x27;s parameters
+GPU 0 owns: [Layer 0 params]
+GPU 1 owns: [Layer 1 params]
+GPU 2 owns: [Layer 2 params]
+GPU 3 owns: [Layer 3 params]
+
+<strong>Forward Pass: All-Gather → Compute → Discard</strong>
+
+The pattern for each layer:
+Step 1: All-Gather (Gather parameters)
+GPU 0: [Layer 0 params]  ─┐
+GPU 1: [Layer 1 params]  ─┤→ All-Gather → Everyone has [Layer 0 full params]
+GPU 2: [Layer 2 params]  ─┤
+GPU 3: [Layer 3 params]  ─┘
+
+Step 2: Compute forward
+All GPUs: compute output using full Layer 0 params
+
+Step 3: Discard non-owned params
+GPU 0: Keep [Layer 0 params]
+GPU 1: Delete Layer 0 params, keep only [Layer 1 params]
+GPU 2: Delete Layer 0 params, keep only [Layer 2 params]
+GPU 3: Delete Layer 0 params, keep only [Layer 3 params]
+</pre>
+
+A timeline based full forward pass (conceptual code) :
+
+\`\`\`python
+
+# Layer 0 forward
+all_gather(layer0_params)        # All GPUs get full layer 0
+output0 = layer0.forward(input)  # Compute
+discard_non_owned(layer0_params) # Each GPU keeps only its shard
+
+# Layer 1 forward
+all_gather(layer1_params)        # All GPUs get full layer 1
+output1 = layer1.forward(output0)# Compute forward for layer 1
+discard_non_owned(layer1_params) # Each GPU keeps only its shard
+
+# Layer 2 forward
+all_gather(layer2_params)        # All GPUs get full layer 2
+output2 = layer2.forward(output1)# Compute forward for layer 2
+discard_non_owned(layer2_params) # Each GPU keeps only its shard
+
+# Layer 3 forward
+all_gather(layer3_params)        # All GPUs get full layer 3
+output3 = layer3.forward(output2)# Compute forward for layer 3
+discard_non_owned(layer3_params) # Each GPU keeps only its shard
+
+loss = criterion(output3, labels)
+\`\`\`
+
+A memory view during forward pass inside GPU0: 
+
+<pre>Time → → → ...
+        Layer 0            Layer 1                  Layer 2               Layer 3
+GPU 0: [Full L0]──────→ [Shard L0, Full L1]──→ [Shard L0, Full L2]──→ [Shard L0, Full L3]
+        28GB              7GB + 28GB             7GB + 28GB             7GB + 28GB
+       
+After each layer: discard borrowed params, keep only owned shard
+</pre>
+
+Now look into the backward pass, which is All-Gather → Compute Gradients → Reduce-Scatter → Discard
+
+<pre><strong>The pattern for each layer (in reverse order, so take layer 3 as an example)</strong>
+
+<strong>Step 1</strong>: All-Gather parameters (need them to compute gradients)
+        All GPUs gather full Layer 3 params again
+        
+<strong>Step 2</strong>: Compute gradients
+				All GPUs compute gradients for Layer 3
+				
+<strong>Step 3</strong>: Reduce-Scatter gradients
+				GPU 0: Sends gradient shard to GPU 0, receives gradient for its param shard
+				GPU 1: Sends gradient shard to GPU 1, receives gradient for its param shard
+				GPU 2: Sends gradient shard to GPU 2, receives gradient for its param shard
+				GPU 3: Sends gradient shard to GPU 3, receives gradient for its param shard
+        Result: Each GPU has averaged gradient for its owned params
+
+<strong>Step 4</strong>: <strong>GPU0, GPU1, GPU2 will discard non-owned parameters (i.e., parameters of Layer 3)</strong>
+				Each GPU keeps only its param shard
+</pre>
+
+The full backward pass timeline can be demonstrated by this conceptual code:
+
+\`\`\`python
+
+loss.backward()
+
+# Layer 3 backward (last in forward, first in backward)
+all_gather(layer3_params)              # Re-gather full layer 3
+compute_gradients_layer3()             # All GPUs compute full gradients
+reduce_scatter(layer3_grads)           # Average and distribute gradient shards
+discard_non_owned(layer3_params)       # Keep only owned shard
+
+# Layer 2 backward
+all_gather(layer2_params)     
+compute_gradients_layer2()    
+reduce_scatter(layer2_grads)
+discard_non_owned(layer2_params)
+
+# Layer 1 backward
+all_gather(layer1_params)
+compute_gradient_layer1()
+reduce_scatter(layer1_grads)
+discard_non_owned(layer1_params)
+
+# Layer 0 backward
+all_gather(layer0_params)
+compute_gradients_layer0()
+reduce_scatter(layer0_grads)
+discard_non_owned(layer0_params)
+\`\`\`
+
+Looking deep into the detail, what does the reduce-scatter operation do?
+
+\`\`\`python
+
+# Each GPU computes full gradient locally 
+GPU 0 local grads: [g0_0, g0_1, g0_2, g0_3] # For all 4 param shards
+GPU 1 local grads: [g1_0, g1_1, g1_2, g1_3]
+GPU 2 local grads: [g2_0, g2_1, g2_2, g2_3]
+GPU 3 local grads: [g3_0, g3_1, g3_2, g3_3]
+
+# Reduce-scatter: average and distribute
+GPU 0 receives: avg([g0_0, g1_0, g2_0, g3_0]) # Averaged grad for shard 0
+GPU 1 receives: avg([g0_1, g1_1, g2_1, g3_1]) # Averaged grad for shard 1
+GPU 2 receives: avg([g0_2, g1_2, g2_2, g3_2]) # Averaged grad for shard 2
+GPU 3 received: avg([g0_3, g1_3, g2_3, g3_3]) # Averaged grad for shard 3
+\`\`\`
+
+Optimizer Step: Local update without communication needed
+
+\`\`\`python
+
+# Each GPU updates only its owned parameter shard
+GPU 0: optimizer.step(layer0_params_shard, layer0_grads_shard)
+GPU 1: optimizer.step(layer1_params_shard, layer1_grads_shard)
+GPU 2: optimizer.step(layer2_params_shard, layer2_grads_shard)
+GPU 3: optimizer.step(layer3_params_shard, layer3_grads_shard)
+
+# No communication needed in optimizer step
+# Parameters remain sharded
+\`\`\`
+
+Memory view during optimizer step
+
+\`\`\`python
+
+GPU 0: [Layer 0 shard: params + grads + optimizer states]
+GPU 1: [Layer 1 shard: params + grads + optimizer states]
+GPU 2: [Layer 2 shard: params + grads + optimizer states]
+GPU 3: [Layer 3 shard: params + grads + optimizer states]
+
+Each GPU: 7GB params + 7GB grads + 14GB optimizer = 28GB total
+\`\`\`
+
+**Communication Pattern Summary**
+
+Forward Pass (per layer):
+
+All-Gather params → Compute → Discard
+
+Backward Pass (per layer):
+
+All-Gather params → Compute grads → Reduce-Scatter grads → Discard
+
+Optimizer Step:
+
+No communication (local update)
+
+**Key Insight** : Parameters are only “full” temporarily during computation. Most of the time, they’re sharded. 
+
+**Visual TimeLine of FSDP**
+
+<pre>Time →
+                Forward                    Backward                  Optimizer
+GPU 0:    [AG][Compute][Discard]...  [AG][Compute][RS][Discard]...  [Update owned]
+          └─Layer 0─┘└─Layer 1─┘      └─Layer 3─┘└─Layer 2─┘        └─Layer 0─┘
+           28GB temp   28GB temp      28GB temp   28GB temp         7GB only
+
+AG = All-Gather (gather full params)
+RS = Reduce-Scatter (average and distribute grads)
+</pre>
+
+### 3.4 4D Parallelism
+
+Modern LLM training uses multiple parallelism strategies simultaneously. FSDP is just one axis in a multi-dimensional parallelism mesh. This section summarizes the parallelism mesh.
+
+**The Four Axes of Parallelism** 
+
+When training large models, we can parallelize along four independent dimensions: 
+
+\`\`\`python
+
+# A 4D parallelism mesh with 64 GPUs:
+mesh_shape = (
+	  data_parallel=2,      # DP: Different batches
+    fsdp_tensor=4,        # FSDP+TP: Shard weights and activations
+    pipeline_parallel=8,  # PP: Different layers
+    expert_parallel=1     # EP: Different experts (for MoE models)
+)
+# Total: 2 × 4 × 8 × 1 = 64 GPUs
+\`\`\`
+
+1. **Data Parallelism (DP) - "Same model, different data"**
+
+      <strong>What it does:</strong> Split the batch across GPUs. Each GPU has the full model and processes different data batches. 
+
+    \`\`\`python
+
+    # 4 GPUs with DP=4
+    GPU 0: model_copy processes batch [0, 1, 2, 3]
+    GPU 1: model_copy processes batch [4, 5, 6, 7]
+    GPU 2: model_copy processes batch [8, 9, 10, 11]
+    GPU 3: model_copy processes batch [12, 13, 14, 15]
+
+    # After backward:
+    # All-reduce gradients across DP dimension
+    # All GPUs update with averaged gradients
+    \`\`\`
+
+    Communication: All-reduce gradients (happens during backward)
+
+    **Memory:** Each GPU holds full model replica
+
+    This is exactly what we covered in **Part 2 (DDP)**
+
+2. **Fully-Sharded Data Parallelism (FSDP) + Tensor Parallelism (TP)**
+
+    These two are typically combined into a single axis because they work well together
+
+    FSDP- “Shard the Weights”, split model parameters, gradients, and optimizer states across GPUs. This is already covered in section 3.3. 
+
+    Tensor Parallelism (TP) - “Shard the activations”. It split individual layer computations across GPUs by sharding the weight matrices and activations.   
+
+    \`\`\`python
+
+    # Example: Linear Layer Y = XW
+    # Input X: [batch, seq_len, hidden_size]
+    # Weight W: [hidden_size, ffn_size]
+    # Output Y: [batch, seq_len, ffn_size]
+
+    # Without TP (single GPU):
+    Y = X@W # Shape: [batch, seq_len, ffn_size]
+
+    # With TP=4 (column-parallel):
+    # Split W into 4 columns: [W0, W1, W2, W3]
+    GPU 0: Y0 = X@W0  # Shape: [batch, seq_len, ffn_size/4]
+    GPU 1: Y1 = X@W1  # Shape: [batch, seq_len, ffn_size/4]
+    GPU 2: Y2 = X@W2  # Shape: [batch, seq_len, ffn_size/4]
+    GPU 3: Y3 = X@W3  # Shape: [batch, seq_len, ffn_size/4]
+
+    # Each GPU computes 1/4 of the output
+    # All-gather at the end to get full output Y = [Y0, Y1, Y2, Y3]
+    \`\`\`
+
+    **Key insight:** FSDP shards weights **across layers** (layer 0 on GPU 0, layer 1 on GPU 1 etc). TP shards weights within a layer (column 0-255 on GPU 0, columns 256-511 on GPU 1).
+
+    **When to use TP** : Very large layers (e.g., 128K hidden dimension); Want to reduce memory further for each GPU; Have extremely fast interconnect. 
+
+    **Communication** : All-reduce activations within each layer. Can overlap with FSDP’s all-gather
+
+      **Note that FSDP and TP are shared along different dimensions!** 
+
+      \`\`\`python
+      # FSDP shards: Which layer
+      layer_0_weights → GPU 0
+      layer_1_weights → GPU 1
+
+      # TP shards: Within a layer
+      layer_0_weights[:, 0:256] → GPU 0
+      layer_0_weights[:, 256:512] → GPU 1
+
+      # Combined FSDP+TP:
+      Layer 0, columns 0-256 → GPU (0,0)
+      Layer 0, columns 256-512 → GPU (0,1)
+      Layer 1, columns 0-256 → GPU (1,0)
+      Layer 1, columns 256-512 → GPU (1,1)
+      \`\`\`
+
+3. **Pipeline Parallelism (PP) - Different layers on different GPUs**
+    
+    It looks similar to FSDP, which also shards along different layers. However, they actually work in fundamentally different ways. FSDP shards parameters ownership, and during computations, all GPUs work together to compute all layers, on same batch. However, PP is a permanent sharding on different data, like an assembly line, where each worker has a fixed station and works on different items. 
+    
+    \`\`\`python
+    # Pipeline Parallel with 4 GPUs, 4 stages (layers 0-7, 8-15, 16-23, 24-31)
+    
+    # Storage (what each GPU owns):
+    GPU 0: owns layers [0-7]    # Stage 0 - PERMANENTLY
+    GPU 1: owns layers [8-15]   # Stage 1 - PERMANENTLY  
+    GPU 2: owns layers [16-23]  # Stage 2 - PERMANENTLY
+    GPU 3: owns layers [24-31]  # Stage 3 - PERMANENTLY
+    
+    # Forward computation - Each GPU works on different micro-batches
+    
+    # Micro-batch 0:
+    t=0ms:  GPU 0: Compute layers [0-7]   on micro-batch 0
+            GPU 1: idle
+            GPU 2: idle
+            GPU 3: idle
+    t=5ms:  GPU 0: Compute layers [0-7]   on micro-batch 1
+            GPU 1: Compute layers [8-15]  on micro-batch 0 (received from GPU 0)
+            GPU 2: idle
+            GPU 3: idle     
+    t=10ms: GPU 0: Compute layers [0-7]   on micro-batch 2
+            GPU 1: Compute layers [8-15]  on micro-batch 1
+            GPU 2: Compute layers [16-23] on micro-batch 0 (received from GPU 1)
+            GPU 3: idle
+    t=15ms: GPU 0: Compute layers [0-7]   on micro-batch 3
+            GPU 1: Compute layers [8-15]  on micro-batch 2
+            GPU 2: Compute layers [16-23] on micro-batch 1
+            GPU 3: Compute layers [24-31] on micro-batch 0 (received from GPU 2)
+    \`\`\`
+    
+    Each GPU only computes its own layers, on different micro-batches, no borrowing and return in FSDP anymore! From a timeline perspective:
+    
+    \`\`\`python
+    Time →
+    GPU 0: [F0]──[F1]──[F2]──[F3]──[B0]──[B1]──[B2]──[B3]
+    GPU 1:    [F0]──[F1]──[F2]──[F3]──[B0]──[B1]──[B2]──[B3]
+    GPU 2:       [F0]──[F1]──[F2]──[F3]──[B0]──[B1]──[B2]──[B3]
+    GPU 3:          [F0]──[F1]──[F2]──[F3]──[B0]──[B1]──[B2]──[B3]
+    
+    F=forward, B=backward
+    Micro-batches overlap to kepp all GPUs busy
+    \`\`\`
+    
+    **When to use PP** : When model is extremely deep, or cross-node communication is slow, or if we want to minimize communication (only send activations between stages)
+    
+    **PP Communication** : Point-to-point : Send activations to next stage. 
+    
+     Much cheaper than FSDP, as it only sends activation tensors, not weights
+    
+4. **Expert Parallelism  (EP) - Different experts on different GPUs**
+    
+    For MoE models, place different experts on different GPUs. During forward pass, router decides on which tokens go to which expert, then tokens are routed to appropriate GPU, and each GPU processes only its expert’s tokens. 
+    
+
+### The Parallelism Mesh: Putting it All Together
+
+Imagine a 3D grid where each dimension represents a different way to split the work, as introduced in the beginning of this section: 
+
+\`\`\`python
+
+# Example: 64 GPUs training a large model
+mesh_shape = {
+    'dp': 2,    # Data parallel
+    'fsdp': 4,  # FSDP (shard weights across layers)
+    'pp': 8,    # Pipeline parallel (8 stages)
+}
+# Total: 2 × 4 × 8 = 64 GPUs
+\`\`\`
+
+How to visualize this mesh as a whole? 
+
+8 pipeline stages are for different layers; Inside each stage, it has 4 FSDP shards (weight split within stage); 2 data parallel replicas (different batches). 
+
+The 64 GPUs will be sharded as this : 
+
+<pre>GPUs 0-31 : Replica 0
+		GPUs 0-3 :  Stage 0, FSDP shards 0-3
+		GPUs 4-7 :  Stage 1, FSDP shards 0-3
+		GPUs 8-11:  Stage 2, FSDP shards 0-3
+		...
+		GPUs 28-31: Stage 7, FSDP shards 0-3
+		
+GPUs 32-63: Replica 1 (same structure)
+</pre>
+
+From a timeline perspective, what happens inside a forward pass? 
+
+<pre><strong>t=0ms - Initialization</strong> 
+Micro-batch assignment:
+MB0: samples [0-7]    → Replica 0, Stage 0 (GPUs 0-3)
+MB1: samples [8-15]   → Replica 0, Stage 0 (GPUs 0-3)
+MB2: samples [16-23]  → Replica 0, Stage 0 (GPUs 0-3)
+MB3: samples [24-31]  → Replica 0, Stage 0 (GPUs 0-3)
+MB4: samples [32-39]  → Replica 1, Stage 0 (GPUs 32-35)
+MB5: samples [40-47]  → Replica 1, Stage 0 (GPUs 32-35)
+MB6: samples [48-55]  → Replica 1, Stage 0 (GPUs 32-35)
+MB7: samples [56-63]  → Replica 1, Stage 0 (GPUs 32-35)
+
+<strong>t=0-10ms : Replica 0, Stage 0 Processes MBO</strong>
+┌─ GPU 0 ─────────────────────────────────────────┐
+│ Step 1: Receive MB0 (samples [0-7])             │
+│                                                 │
+│ Step 2: Process Layer 0 with FSDP               │
+│   2a. All-gather layer 0 params:                │
+│       GPU 0 broadcasts shard 0 → GPUs 1,2,3     │
+│       GPU 1 broadcasts shard 1 → GPUs 0,2,3     │
+│       GPU 2 broadcasts shard 2 → GPUs 0,1,3     │
+│       GPU 3 broadcasts shard 3 → GPUs 0,1,2     │
+│       [Now all GPUs 0-3 have full layer 0]      │
+│                                                 │
+│   2b. Compute: out = layer_0(MB0)               │
+│       All GPUs 0-3 compute same operation       │
+│                                                 │
+│   2c. Discard non-owned params                  │
+│       GPU 0 keeps only shard 0                  │
+│                                                 │
+│ Step 3: Process Layer 1 (same FSDP pattern)     │
+│   All-gather → Compute → Discard                │
+│                                                 │
+│ Step 4: Process Layer 2 (same FSDP pattern)     │
+│ Step 5: Process Layer 3 (same FSDP pattern)     │
+│                                                 │
+│ Step 6: Send activations to Stage 1 (GPU 4-7)   │
+│   GPU 0 sends to GPU 4                          │
+└─────────────────────────────────────────────────┘
+┌─ GPU 1 ─────────────────────────────────────────┐
+│ [Same as GPU 0, but owns shard 1]               │
+│ - Participates in all-gather                    │
+│ - Computes same outputs                         │
+│ - Keeps only shard 1 after each layer           │
+│ - Sends activations to GPU 5                    │
+└─────────────────────────────────────────────────┘
+┌─ GPU 2 ─────────────────────────────────────────┐
+│ [Same as GPU 0, but owns shard 2]               │
+│ - Sends activations to GPU 6                    │
+└─────────────────────────────────────────────────┘
+┌─ GPU 3 ─────────────────────────────────────────┐
+│ [Same as GPU 0, but owns shard 3]               │
+│ - Sends activations to GPU 7                    │
+└─────────────────────────────────────────────────┘
+
+GPUs 4-31  (Replica 0, Stages 1-7): IDLE (waiting for MB0)
+GPUs 32-35 (Replica 1, Stage 0):    Processing MB4 (different data)
+GPUs 36-63 (Replica 1, Stages 1-7): IDLE
+
+<strong>t=10-20ms: Pipeline Progresses</strong>
+Stage 0 (GPUs 0-3):   Processing MB1 [samples 8-15]
+  └─ FSDP: All-gather → Compute layers 0-3 → Send to Stage 1
+
+Stage 1 (GPUs 4-7):   Processing MB0 [received from Stage 0]
+  └─ FSDP: All-gather → Compute layers 4-7 → Send to Stage 2
+  
+Stages 2-7:           IDLE
+
+Replica 1 (GPUs 32-63): Similar pattern with MB4, MB5...
+</pre>
+
+**A complete (mock) timeline summary for Replica 0:** 
+
+<pre>Time (ms)  │ GPU 0      │ GPU 5      │ GPU 10     │ GPU 28     │ GPU 32
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+0-10       │ MB0 Fwd    │ Idle       │ Idle       │ Idle       │ MB4 Fwd
+           │ (Layers    │            │            │            │ (Different
+           │  0-3)      │            │            │            │  data!)
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+10-20      │ MB1 Fwd    │ MB0 Fwd    │ Idle       │ Idle       │ MB5 Fwd
+           │            │ (Layers    │            │            │
+           │            │  4-7)      │            │            │
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+20-30      │ MB2 Fwd    │ MB1 Fwd    │ MB0 Fwd    │ Idle       │ MB6 Fwd
+           │            │            │ (Layers    │            │
+           │            │            │  8-11)     │            │
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+70-80      │ Idle       │ Idle       │ Idle       │ MB0 Fwd    │ MB4 Fwd
+           │            │            │            │ (Layers    │ (Last
+           │            │            │            │  28-31)    │  stage)
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+80-90      │ Idle       │ MB3 Fwd    │ MB2 Fwd    │ MB0 Bwd    │ MB4 Bwd
+           │            │            │            │ MB1 Fwd    │
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+90-100     │ Idle       │ MB3 Fwd    │ MB2 Fwd    │ MB1 Bwd    │ MB5 Bwd
+           │            │            │            │ MB2 Fwd    │
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+140-150    │ MB3 Bwd    │ MB3 Bwd    │ MB3 Bwd    │ MB3 Bwd    │ MB7 Bwd
+           │            │            │            │            │
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+150-160    │ DP All-Reduce with GPU 32                         │
+           │ (Average gradients between replicas)              │
+───────────┼────────────┼────────────┼────────────┼────────────┼───────────
+160-165    │ Optimizer  │ Optimizer  │ Optimizer  │ Optimizer  │ Optimizer
+           │ Update     │ Update     │ Update     │ Update     │ Update
+───────────┴────────────┴────────────┴────────────┴────────────┴───────────
+</pre>
+
+### 3.5 Compute-Bound vs Communication-Bound - Finding the Optimal Configuration
+
+After understanding the parallelism strategies, a crucial follow-up question would be : When does communication become the bottleneck? This will determine the optimal mesh configuration. 
+
+First, establish some hardware parameters:
+
+MATHPLACEHOLDER0ENDMATH = FLOPs per second per chip (A100: ~312 TFLOPs (FP16 with sparsity))
+
+MATHPLACEHOLDER1ENDMATH = Intra-node bandwidth (bidirectional, bytes/s) (NVLink (8x A100): ~600 GB/s per GPU)
+
+MATHPLACEHOLDER2ENDMATH= Inter-node bandwidth (bidirectional, bytes/s) (InfiniBand: ~200 GB/s (per node))
+
+The critical ratio : 
+
+MATHPLACEHOLDER3ENDMATH , also called arithmetic intensity. Taken the above example A100 and NVLink, MATHPLACEHOLDER4ENDMATH, which means per-GPU batch size must be > 520 to stay compute-bound.
+
+**Strategy 1: Data Parallelism (DP)**
+
+**Communication pattern** : All-reduce gradients after backward pass
+
+Per layer, per training step: 
+
+MATHPLACEHOLDER5ENDMATH
+
+where 8 = 4 matmuls (2 forward , 2 backward) x 2 FLOPs per multiply-add; B = batch size; D = hidden dimention; F = FFN dimension; X = number of GPUs doing data parallelism
+
+MATHPLACEHOLDER6ENDMATH
+
+where 8 = 2 weight matrices x 2 bytes (bf16) x 2 (AllReduce factor), note that communication is independent of batch size. 
+
+Hence, the compute-bound condition (i.e., MATHPLACEHOLDER7ENDMATH) is : 
+
+MATHPLACEHOLDER8ENDMATH
+
+Hence, per-GPU batch size B must exceed arithmetic intensity MATHPLACEHOLDER9ENDMATH
+
+**Strategy 2: FSDP (Fully-Sharded Data Parallel)**
+
+Communication pattern : All-gather weights (during forward pass), Reduce-scatter gradients (backward pass)
+
+Per layer, per training step, the compute time is : 
+
+MATHPLACEHOLDER10ENDMATH
+
+Per layer, per training step, communication time is : 
+
+MATHPLACEHOLDER11ENDMATH
+
+All-reduce = All-gather + Reduce-scatter, note that this is exactly the same as total volume as pure DP. 
+
+Hence, for FSDP, the compute-bound condition is exactly the same as DP : per-GPU batch size B must exceed arithmetic intensity MATHPLACEHOLDER12ENDMATH.
+
+Then we have a big take-away that FSDP has the same communication cost as DP, however it saves massive memory by sharding parameters, that’s why we always prefer FSDP over DP. 
+
+**Strategy 3: Tensor Parallelism (TP)**
+
+Communication pattern: All-gather activations before MATHPLACEHOLDER13ENDMATH, Reduce-scatter activations after MATHPLACEHOLDER14ENDMATH.
+
+For per GPU, per layer, forward pass only (backward is just the transpose of each operation)
+
+MATHPLACEHOLDER15ENDMATH
+
+where Y is the number of GPUs doing tensor parallelism 
+
+MATHPLACEHOLDER16ENDMATH
+
+where 4 = 2 (All-gather + Reduce-scatter) * 2 bytes (bf16)
+
+MATHPLACEHOLDER17ENDMATH is because we do the all-gather of activations before the matrix multiplication, hence we only need to gather activations of size MATHPLACEHOLDER18ENDMATH, and hence communication scales with BATCH SIZE.
+
+Hence, the compute-bound condition is, the maximum tensor parallelism degree: MATHPLACEHOLDER19ENDMATH
+
+**Strategy 4 : Mixed FSDP + TP (The Sweet Spot)**
+
+Per layer (forward pass): 
+
+MATHPLACEHOLDER20ENDMATH
+
+where X is FSDP degree, Y is TP degree
+
+MATHPLACEHOLDER21ENDMATH
+
+FSDP gathers weights (reduced by TP factor Y)
+
+MATHPLACEHOLDER22ENDMATH is number of mesh axes for FSDP
+
+MATHPLACEHOLDER23ENDMATH
+
+TP gathers activations (reduced by FSDP factor X)
+
+MATHPLACEHOLDER24ENDMATH is number of mesh axes for TP
+
+MATHPLACEHOLDER25ENDMATH
+
+In order to minimize communication, set MATHPLACEHOLDER26ENDMATH
+
+we can get : MATHPLACEHOLDER27ENDMATH, where MATHPLACEHOLDER28ENDMATH = total number of GPUs.
+
+So what is the compute-bound condition? 
+
+MATHPLACEHOLDER29ENDMATH
+
+At optimal X, this simplifies to : MATHPLACEHOLDER30ENDMATH, which can be very low.`;
+    const mathFormulas = [["inline", "C"], ["inline", "W_{ici}"], ["inline", "W_{dcn}"], ["inline", "\\alpha = C / W_{ici}"], ["inline", "\\alpha \\sim 520"], ["inline", "T_{compute} = (8\\times B\\times D \\times F) / (X\\times C)"], ["inline", "T_{communication} = (8\\times D \\times F) / W_{ici}"], ["inline", "T_{compute}>T_{communication}"], ["inline", "B/X > C/W_{ici}"], ["inline", "\\alpha"], ["inline", "T_{compute} = (8\\times B\\times D \\times F) / (X\\times C)"], ["inline", "T_{communication} = (8\\times D \\times F) / W_{ici}"], ["inline", "\\alpha"], ["inline", "W_{in}"], ["inline", "W_{out}"], ["inline", "T_{compute} = (4\\times B\\times D \\times F) / (Y\\times C)"], ["inline", "T_{communication} = (4\\times B \\times D) / W_{ici}"], ["inline", "B \\times D"], ["inline", "B \\times D"], ["inline", "Y < F / \\alpha"], ["inline", "T_{compute} = (4\\times B\\times D\\times F) / (X\\times Y\\times C)"], ["inline", "T_{{communication}_{FSDP}} = (4\\times D\\times F) / (Y\\times W_{ici} \\times M_X)"], ["inline", "M_X"], ["inline", "T_{{communication}_{TP}} = (4\\times B \\times D) / (X\\times W_{ici}\\times M_Y)"], ["inline", "M_Y"], ["inline", "T_{communication} = max(T_{{communication}_{FSDP}}, T_{{communication}_{TP}})"], ["inline", "T_{{communication}_{TP}} = T_{{communication}_{FSDP}}"], ["inline", "X_{opt} = \\sqrt{(B/F)\\times(M_X/M_Y)\\times N}"], ["inline", "N=X\\times Y"], ["inline", "max(T_{{communication}_{FSDP}},  T_{{communication}_{TP}}) < T_{compute}"], ["inline", "B/N > \\alpha^2/(M_X \\times M_Y \\times F)"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
