@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning</h1>
+      <div class="post-date">
+        <time datetime="2026-03-22">Mar 22, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+Credit assignment and sample inefficiency is bothering RL methods like GRPO for a long time. The recent work, GEPA, blazed a new trail by taking advantage of the prior of LLMs to make implicit credit assignment, and transforming the objective from optimizing LLM weights into optimizing system prompts.
+
+## Part 1: How GEPA Works
+
+### The Problem It's Solving
+
+Standard RL methods like GRPO adapt LLMs to new tasks by treating success metrics as scalar rewards and estimating policy gradients:
+
+MATHPLACEHOLDER0ENDMATH
+
+This works, but it's extraordinarily sample-hungry. Recent GRPO papers routinely use 24,000 to hundreds of thousands of rollouts. The core problem is that collapsing a rich trajectory into a single number r∈[0,1] throws away almost all the diagnostic information. You need massive amounts of these impoverished signals to learn anything.
+
+GEPA's central observation is that an LLM rollout is already natural language. The reasoning chains, tool calls, compiler errors, and evaluator feedback are all text. A language model can read that text, understand what went wrong, and propose a fix — directly, in language. So why compress it to a scalar first?
+
+---
+
+### The Formal Setup
+
+GEPA defines a **compound AI system** as:
+
+MATHPLACEHOLDER1ENDMATH
+
+Let's make this concrete with a customer service bot:
+
+| Symbol | Meaning | Example |
+| --- | --- | --- |
+| MATHPLACEHOLDER2ENDMATH | Ordered list of LLM modules | MATHPLACEHOLDER3ENDMATH = intent classifier, MATHPLACEHOLDER4ENDMATH= reply generator |
+| MATHPLACEHOLDER5ENDMATH | Control flow logic | "Run MATHPLACEHOLDER6ENDMATH, pass output to MATHPLACEHOLDER7ENDMATH, if output contains 'refund' loop back" |
+| MATHPLACEHOLDER8ENDMATH | Global input schema | \`{user_message: str, history: list}\` |
+| MATHPLACEHOLDER9ENDMATH | Global output schema | \`{reply: str, sentiment_tag: str}\` |
+
+Each module MATHPLACEHOLDER10ENDMATH breaks down as:
+
+| Symbol | Meaning | Example for  MATHPLACEHOLDER11ENDMATH |
+| --- | --- | --- |
+| MATHPLACEHOLDER12ENDMATH | System prompt (the text instructions) | \`"You are a professional support agent..."\` |
+| MATHPLACEHOLDER13ENDMATH | Model weights | GPT-4.1-Mini parameters |
+| MATHPLACEHOLDER14ENDMATH | Module input schema | \`{intent: str, keywords: list}\` |
+| MATHPLACEHOLDER15ENDMATH | Module output schema | \`{reply: str}\` |
+
+For a single task instance MATHPLACEHOLDER16ENDMATH, where MATHPLACEHOLDER17ENDMATH is the input and MATHPLACEHOLDER18ENDMATH is evaluation metadata (like gold answers, rubrics, test cases etc), the system then produces output MATHPLACEHOLDER19ENDMATH and a metric  MATHPLACEHOLDER20ENDMATH scores it. The optimization objective is:
+
+MATHPLACEHOLDER21ENDMATH
+
+**Note that GEPA only updates MATHPLACEHOLDER22ENDMATH (prompt text) and freezes MATHPLACEHOLDER23ENDMATH (model weights).**
+
+---
+
+### What Is Natural Language Reflection?
+
+The information channel in traditional GRPO looks like this:
+
+MATHPLACEHOLDER24ENDMATH
+
+In contrast, GEPA's channel looks like this:
+
+MATHPLACEHOLDER25ENDMATH
+
+The **execution trace** — everything the system produces when running on an input — is already interpretable text like this:
+
+<pre>[M1 input]  User: &quot;My order hasn&#x27;t arrived&quot;
+[M1 output] Intent: logistics query; Keywords: order, not arrived
+[M2 input]  Intent: logistics query
+[M2 output] &quot;What is your order number?&quot;   ← no apology
+[Eval]      Score: 0.3 | Feedback: &quot;No empathy expressed, tone feels cold&quot;
+</pre>
+
+**NL Reflection** means showing this entire trace to a *reflection LM*, which then outputs:
+
+<pre>Analysis: M2&#x27;s prompt contains no instruction to express empathy first.
+Fix: Add &quot;Begin with a sincere apology before requesting information.&quot;
+New prompt: &quot;You are a professional support agent. When a user 
+             reports a problem, first apologize sincerely, then 
+             politely request the information you need...&quot;
+</pre>
+
+The key intuition here is that LLMs have strong priors about language — they can do **implicit credit assignment** by reading a trace in a way that policy gradients can only approximate with thousands of numerical samples.
+
+---
+
+### Reflective Prompt Mutation: Every Symbol Unpacked
+
+The mutation step is:
+
+MATHPLACEHOLDER26ENDMATH
+
+**MATHPLACEHOLDER27ENDMATH**— the current prompt for module MATHPLACEHOLDER28ENDMATH. For example:\`"Answer the user's question."\`
+
+**MATHPLACEHOLDER29ENDMATH** — a minibatch of 3 training samples drawn randomly from :
+
+\`M = {
+  sample_1: x = "order not arrived",  m = {gold = "apologize then ask for order ID"}
+  sample_2: x = "requesting refund",  m = {gold = "explain policy with timeline"}
+  sample_3: x = "item damaged",       m = {gold = "apologize and arrange exchange"}
+}\`
+
+**MATHPLACEHOLDER30ENDMATH** — the execution trace for sample MATHPLACEHOLDER31ENDMATH. All intermediate text produced while running the system on MATHPLACEHOLDER32ENDMATH:
+
+\`τ_1 = {
+  M1_input:  "order not arrived",
+  M1_output: "intent = logistics",
+  M2_input:  "intent = logistics",
+  M2_output: "What is your order number?"  ← no apology
+}\`
+
+**MATHPLACEHOLDER33ENDMATH** — the extended feedback function. This is a key GEPA innovation. Standard MATHPLACEHOLDER34ENDMATH returns only a scalar. MATHPLACEHOLDER35ENDMATH returns a tuple:
+
+MATHPLACEHOLDER36ENDMATH
+
+In practice, \`feedback_text\` can come from compiler error messages (code tasks), LLM-as-a-judge commentary, human annotations, or structural signals in a multi-hop QA system.
+
+**MATHPLACEHOLDER37ENDMATH** — the reflection LM call. It receives a meta-prompt combining the current prompt, all traces, and all feedback texts, and outputs a new instruction  MATHPLACEHOLDER38ENDMATH.
+
+After mutation, the new system is run on the same minibatch:
+
+MATHPLACEHOLDER39ENDMATH
+
+Only if MATHPLACEHOLDER40ENDMATH does the new prompt enter the candidate pool. Then it gets fully evaluated on MATHPLACEHOLDER41ENDMATH (the validation set used for candidate selection).
+
+---
+
+### Pareto-Based Candidate Selection: Every Symbol Unpacked
+
+This is what separates GEPA from TextGrad (greedy best) and APO BeamSearch. The mechanism prevents the optimizer from getting stuck in a local optimum.
+
+Say the candidate pool has three prompt versions after a few iterations, scored on four validation samples:
+
+|  | Sample 1 (order) | Sample 2 (refund) | Sample 3 (damage) | Sample 4 (complaint) |
+| --- | --- | --- | --- | --- |
+| MATHPLACEHOLDER42ENDMATH (original) | 0.3 | 0.4 | 0.5 | 0.6 |
+| MATHPLACEHOLDER43ENDMATH (good at empathy) | **0.9** | **0.8** | 0.4 | 0.5 |
+| MATHPLACEHOLDER44ENDMATH (good at policy) | 0.4 | 0.5 | **0.9** | **0.8** |
+
+**Step 1.** For each sample MATHPLACEHOLDER45ENDMATH, find the best score across all candidates: MATHPLACEHOLDER46ENDMATH
+
+**Step 2.** For each sample MATHPLACEHOLDER47ENDMATH, collect the instance-level Pareto set — all candidates that achieve that best score: MATHPLACEHOLDER48ENDMATH
+
+| Sample | MATHPLACEHOLDER49ENDMATH|
+| --- | --- |
+| Sample 1 | MATHPLACEHOLDER50ENDMATH |
+| Sample 2 | MATHPLACEHOLDER51ENDMATH |
+| Sample 3 | MATHPLACEHOLDER52ENDMATH |
+| Sample 4 | MATHPLACEHOLDER53ENDMATH |
+
+**Step 3.** Take the union across all samples:
+
+MATHPLACEHOLDER54ENDMATH
+
+Since MATHPLACEHOLDER55ENDMATH is not optimal on any sample, so it's excluded.
+
+**Step 4.** Remove dominated candidates. MATHPLACEHOLDER56ENDMATH is dominated by MATHPLACEHOLDER57ENDMATH if MATHPLACEHOLDER58ENDMATH scores MATHPLACEHOLDER59ENDMATH
+on all samples and strictly higher on at least one. Here, MATHPLACEHOLDER60ENDMATH and MATHPLACEHOLDER61ENDMATH are incomparable — neither dominates the other — so MATHPLACEHOLDER62ENDMATH.
+
+**Step 5.** Sample proportional to Pareto frequency:
+
+MATHPLACEHOLDER63ENDMATH
+
+MATHPLACEHOLDER64ENDMATH 
+
+MATHPLACEHOLDER65ENDMATH
+Both strategies get equal exploration.
+
+The paper's ablation (Table 3) shows this matters enormously: SelectBestCandidate achieves +6.05% aggregate improvement, BeamSearch achieves +5.11%, and GEPA's Pareto selection achieves +12.44%. It balances exploitation & exploration well, instead of wasting rollouts on a single candidate.
+
+---
+
+## Part 2: Experimental Results
+
+#### Experimental Setup
+
+The paper evaluates GEPA across 2 models: Qwen3-B for open-source experiments and GPT-4.1 Mini for closed-source experiments. Within each experiment, the same model serves all roles, it acts as the task LM executing the compound AI system, and it also serves as the reflection LM proposing updated prompts. 
+
+Experiments are conducted across six open benchmarks datasets - HotpotQA, HoVer, IFBench, AIME-2025, LiveBench-Math, and PUPA, spanning multi-hop question answering, multi-hop fact verification, instruction following under output constraints, competition mathematics, broad mathematical reasoning, and privacy-conscious delegation respectively. 
+
+GEPA is evaluated against four baseline optimizers: MIPROv2, the prior state-of-the-art prompt optimizer that jointly optimizes instructions and few-shot demonstrations via Bayesian optimization; TextGrad, which backpropagates textual feedback greedily from the best current candidate; Trace with its OptoPrime optimizer; and GRPO (GPRO is not conducted on GPT4-4.1 Mini as it’s close-source model).
+
+#### Experimental Results - GEPA vs. Reinforcement Learning
+
+The most striking result in the paper is how decisively GEPA outperforms GRPO despite using a fraction of its #rollouts. GRPO, running for a fixed budget of 24,000 rollouts with LoRA fine-tuning on Qwen3-8B, represents the reinforcement learning baseline. GEPA beats it on five out of six benchmarks while using up to 35 times fewer rollouts. The only benchmark where GRPO wins is AIME-2025, which indicates that on hard mathematical reasoning tasks, prompt optimization can only surface and organize capabilities that already exist, instead of improving the model’s internal reasoning machinery. 
+
+What makes this comparison particularly meaningful is what happens when you look at where GEPA's rollout budget actually goes. The majority of it is spent on validation rather than on generating learning signal. If you count only the rollouts used for training, GEPA needs as few as 6 to 179 rollouts to match GRPO's best validation score across tasks.
+
+#### Experimental Results - GEPA vs. Prompt Optimization Baselines
+
+Against other prompt optimizers, GEPA is equally dominant. One result that stands out is MIPROv2's behaviour on AIME-2025 with Qwen3-8B, where it scores 20.00%, worse than the unoptimized baseline at 27.33%. This is a concrete failure mode of few-shot demonstration optimization: on hard mathematical reasoning tasks, including worked examples can introduce misleading reasoning patterns that actively hurt generalization to novel problems. However, GEPA, which optimizes only declarative instructions and includes no demonstrations, does not exhibit this failure.
+
+#### Experimental Results - Prompt Length and Computational Efficiency
+
+Beyond accuracy, GEPA produces prompts that are dramatically more compact than MIPROv2's. On HotpotQA with GPT-4.1 Mini, MIPROv2's optimized prompt contains 15,454 tokens while GEPA's contains roughly 2,000 — a 7.2 times reduction. Aggregated across all benchmarks, GEPA's prompts are between 4.3 and 9.2 times shorter than MIPROv2's depending on the task and model.
+
+#### Experimental Results - Cross Model Generalization
+
+One of the more surprising findings is how well GEPA-optimized prompts transfer across model families. The authors take prompts optimized entirely using Qwen3-8B and evaluate them on GPT-4.1 Mini without any modification. This configuration, called GEPA-Qwen-Opt, achieves a +9.00% aggregate improvement on GPT-4.1 Mini. That number is higher than every baseline that was optimized *directly* on GPT-4.1 Mini: MIPROv2 at +5.64%, TextGrad at +6.11%, and Trace at +3.27%. On HotpotQA alone, the transferred prompts achieve +27.67% over baseline on the target model.
+
+This result suggests that what GEPA learns is not a set of model-specific statistical quirks but something closer to task-level reasoning strategies. It also has a practical implication that we can run GEPA optimization using cheaper, open-source models and deploy the resulting prompts on expensive closed-source models, capturing most of the performance gain at a fraction of the cost.
+
+---
+
+## Part 3: Take-Aways & Brainstorms
+
+### Distribution Shift
+
+GEPA's optimization process systematically moves AI-generated text away from the baseline LLM output’s distribution. The mechanisms are concrete:
+
+**Hedging language is removed.** Reflection LMs consistently identify phrases like "I think", "it seems", "perhaps", and "it's worth noting" as weakening the output. This makes sense: on factual retrieval tasks, hedging language reduces precision scores; on instruction-following tasks, it introduces ambiguity that violates output constraints; on mathematical tasks, it is simply irrelevant noise. GEPA-optimized prompts therefore explicitly instruct the model to be direct and confident. From a distributional perspective, this means the probability mass that the model previously placed on hedged phrasings gets redistributed toward direct, assertive formulations. 
+
+**Domain-specific detail is injected as an explicit optimization target.** GEPA prompts grow to include explicit instructions for knowledge density, entity specificity, and factual grounding, this moves the output distribution toward the statistical territory of expert human writing. 
+
+**The generative distribution becomes a mixture.** GEPA's Pareto mechanism maintains multiple candidates MATHPLACEHOLDER66ENDMATH, each optimal for different input types. The deployed system samples from:
+
+MATHPLACEHOLDER67ENDMATH
+
+This mixture distribution has several properties that differ fundamentally from any single component. Its support is broader — it might cover regions of output space that no single prompt would reach. Its modes are more dispersed. And its marginal statistics, computed across all inputs, do not match the statistics of any individual component, which means that any system trained on outputs from a single component will be miscalibrated when applied to the mixture.
+
+### Distribution Over the Evolution Path
+
+The trajectory, as a sequence of conditional distributions under distinct prompts, 
+
+MATHPLACEHOLDER68ENDMATH 
+
+raises several questions that have not been studied. Does this sequence converge monotonically toward a stable distribution? Does it oscillate? Do early iterations make large distributional jumps? Measuring these properties using metrics like Jensen-Shannon divergence between consecutive distributions would give a much richer understanding of what GEPA is doing. 
+
+### Prompt Injection and Adversarial Robustness
+
+GEPA's adversarial prompt search experiment, briefly described in Section 5.2 of the paper, opens a much larger set of questions about the relationship between prompt optimization and adversarial robustness that deserves its own analysis.
+
+GEPA found, through black-box optimization, that a specific combination of trivia injection and formatting constraints causes GPT-5 Mini to output placeholder text instead of answers. This failure mode was not engineered — it was discovered. It reveals something about how the model processes competing instructions, how formatting constraints interact with distractor content, and where the model's instruction-following behavior breaks down.
+
+In this sense, GEPA-style adversarial optimization is a form of behavioural probing — a way of mapping the input-output function of a blackbox model by searching for inputs that produce diagnostic outputs. The prompts it discovers are not just attacks; they are experiments that reveal model behaviour. Each adversarial prompt that succeeds tells you something about the model's failure modes.
+
+This reframes adversarial prompt search as a tool not just for security but for interpretability and model understanding, accessible without any internal access to the model, driven by the same reflective optimization machinery that GEPA uses to improve task performance. The same algorithm that teaches a model to answer questions better can, with an inverted reward signal, systematically map where and how that same model breaks.
+
+---
+
+## Reference
+
+**Agrawal, L., Shandilya, H., Opsahl-Ong, K., Ryan, M. J., et al. (2025). *GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning*. arXiv:2507.19457.**`;
+    const mathFormulas = [["inline", "\\nabla_\\theta J(\\theta) = \\mathbb{E}\\left[\\sum_t \\nabla_\\theta \\log \\pi_\\theta(a_t|s_t) \\cdot \\hat{A}_t\\right]"], ["inline", "\\Phi = (M, C, X, Y)"], ["inline", "M = \\langle M_1, M_2 \\rangle"], ["inline", "M_1"], ["inline", "M_2"], ["inline", "C"], ["inline", "M_1"], ["inline", "M_2"], ["inline", "X"], ["inline", "Y"], ["inline", "M_i = (\\pi_i, \\theta_i, X_i, Y_i)"], ["inline", "M_2"], ["inline", "\\pi_i"], ["inline", "\\theta_i"], ["inline", "X_i"], ["inline", "Y_i"], ["inline", "(x,m)"], ["inline", "x"], ["inline", "m"], ["inline", "y = \\Phi(x; \\langle \\Pi, \\Theta \\rangle_\\Phi)"], ["inline", "\\mu: Y \\times M \\to [0,1]"], ["inline", "\\langle \\Pi^*, \\Theta^* \\rangle_\\Phi = \\arg\\max_{\\langle \\Pi, \\Theta \\rangle_\\Phi} \\mathbb{E}_{(x,m) \\sim T} \\, \\mu\\!\\left(\\Phi(x; \\langle \\Pi, \\Theta \\rangle_\\Phi), m\\right) \\quad \\text{s.t.} \\quad \\#\\text{rollouts} \\leq B"], ["inline", "\\Pi_\\Phi"], ["inline", "\\Theta_\\Phi"], ["inline", "\\text{trajectory} \\xrightarrow{\\text{collapse}} r = 0.3 \\xrightarrow{\\text{policy gradient}} \\Delta\\theta"], ["inline", "\\text{trajectory} \\xrightarrow{\\text{LLM reads it}} \\Delta\\pi \\in \\text{natural language instruction space}"], ["inline", "\\pi'_j = f_{\\text{reflect}}\\!\\left(\\pi_j,\\, \\{(x_i, \\tau_i, \\mu_f(y_i, m_i))\\}_{i \\in \\mathcal{M}}\\right)"], ["inline", "\\pi_j"], ["inline", "j"], ["inline", "\\mathcal{M}"], ["inline", "\\tau_i"], ["inline", "i"], ["inline", "x_i"], ["inline", "\\mu_f(y_i, m_i)"], ["inline", "\\mu"], ["inline", "\\mu_f"], ["inline", "\\mu_f(y_i, m_i) = (\\text{score}_i,\\ \\text{feedback\\_text}_i)"], ["inline", "f_{\\text{reflect}}"], ["inline", "\\pi'_j"], ["inline", "\\sigma = \\text{avg}_{i \\in \\mathcal{M}} \\mu(y_i^{\\text{old}}, m_i), \\qquad \\sigma' = \\text{avg}_{i \\in \\mathcal{M}} \\mu(y_i^{\\text{new}}, m_i)"], ["inline", "\\sigma' > \\sigma"], ["inline", "D_{\\text{pareto}}"], ["inline", "P_0"], ["inline", "P_1"], ["inline", "P_2"], ["inline", "i"], ["inline", "s^*[i] = \\max_k S_{P_k}[i]"], ["inline", "i"], ["inline", "\\mathcal{P}^*[i] = \\{P_k : S_{P_k}[i] = s^*[i]\\}"], ["inline", "\\mathcal{P}^*[i]"], ["inline", "\\{P_1\\}"], ["inline", "\\{P_1\\}"], ["inline", "\\{P_2\\}"], ["inline", "\\{P_2\\}"], ["inline", "C = \\bigcup_i \\mathcal{P}^*[i] = \\{P_1, P_2\\}"], ["inline", "P_0"], ["inline", "P_k"], ["inline", "P_{k'}"], ["inline", "P_{k'}"], ["inline", "\\geq P_k"], ["inline", "P_1"], ["inline", "P_2"], ["inline", "\\hat{C} = \\{P_1, P_2\\}"], ["inline", "f[P_k] = |\\{i : P_k \\in \\hat{\\mathcal{P}}^*[i]\\}|"], ["inline", "P(P_1) = 2/4 = 50\\%"], ["inline", "P(P_2) = 2/4 = 50\\%"], ["inline", "\\{P_1, P_2, ...\\}"], ["inline", "p_{\\text{system}}(x) = \\sum_k w_k \\cdot p_\\theta(x | \\pi_k)"], ["inline", "p_{\\theta}(x|\\pi_{0}) \\rightarrow p_{\\theta}(x|\\pi_{1})  \\rightarrow  \u2026\\rightarrow p_{\\theta}(x|\\pi_{n})"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
