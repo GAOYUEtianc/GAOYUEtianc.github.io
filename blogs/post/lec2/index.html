@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS336 Lecture 2 Notes - PyTorch, Resource Accounting · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="CS336 Lecture 2 Notes - PyTorch, Resource Accounting"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>CS336 Lecture 2 Notes - PyTorch, Resource Accounting</h1>
+      <div class="post-date">
+        <time datetime="2026-04-04">Apr 04, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+---
+
+This lecture builds from tensors up to a full model, optimizer, and training loop. The central theme is developing a computation accounting mindset, understanding memory and compute costs at every step to build efficient large models.
+
+---
+
+## Memory Accounting
+
+### Tensors
+
+Tensors are the fundamental unit of storage in deep learning — parameters, gradients, optimizer states, activations, and data are all tensors. Rather than pure mathematical arrays, a tensor is **a pointer to VRAM + metadata**. Tensors live on a contiguous block of RAM, with stride metadata defining how multi-dimensional indices map to that flat array. Multiple tensors can share the same underlying memory, avoiding copies and saving RAM significantly.
+
+### View and Contiguous
+
+\`view()\` reshapes a tensor by modifying only its metadata — no data is copied, no extra memory is allocated. Key properties:
+
+- **Data sharing:** tensors created via \`view()\` share the underlying memory block; mutating one affects the other.
+- **No copying:** the most memory-efficient way to reshape.
+- **Contiguity requirement:** only works on contiguous tensors with the same total element count.
+
+Operations like \`transpose()\` and \`permute()\` break contiguity by changing the index-to-memory mapping. In these cases, \`contiguous()\` force-rearranges the data into a fresh contiguous block, restoring \`view()\` compatibility — but at the cost of a data copy and extra memory. Avoid \`contiguous()\` unless necessary.
+
+### Float Precision
+
+Memory occupied by a tensor = **number of elements × bytes per element**.
+
+| Format | Bytes | Notes |
+| --- | --- | --- |
+| FP32 | 4 | Standard full precision |
+| FP16 | 2 | Prone to under/overflow; largely replaced |
+| BF16 | 2 | Same dynamic range as FP32, lower mantissa precision; preferred for forward pass |
+| FP8 | 1 | H100+ only; active research area; instability remains a challenge |
+
+### Mixed Precision Training
+
+Different stages use different precisions to balance memory, stability, and speed:
+
+- **Forward pass activations:** BF16 or FP8
+- **Weights, gradients, optimizer states:** FP32
+
+The rule of thumb: accumulated state (weights, optimizer) uses high precision; transient forward-pass values use lower precision. PyTorch AMP and NVIDIA Transformer Engine both support this out of the box.
+
+---
+
+## Computation Accounting
+
+### CPU vs. GPU
+
+Tensors default to CPU. Move them explicitly:
+
+\`\`\`python
+
+x.to("cuda:0")                              # move existing tensor
+torch.zeros(32, 32, device="cuda:0")        # create directly on GPU
+\`\`\`
+
+Always be explicit about which device each tensor lives on.
+
+### Elementwise vs. Matrix Operations
+
+- **Elementwise** (sqrt, power, triu, etc.): FLOPs scale linearly with tensor size.
+- **Matrix multiplication:** MATHPLACEHOLDER0ENDMATH cost; the dominant operation in deep learning. GPUs and TPUs are architecturally optimized for it.
+
+For an MATHPLACEHOLDER1ENDMATH matmul: MATHPLACEHOLDER2ENDMATH. This holds for batched matmuls with broadcasting.
+
+### Code Readability: \`einops\` and \`jaxtyping\`
+
+\`einops\` replaces error-prone numeric indexing with named dimensions:
+
+\`\`\`python
+
+from einops import rearrange, einsum, reduce
+
+einsum(x, x, "b s1 h, b s2 h -> b s1 s2")  # batched matmul (vs. x @ x.transpose(-2,-1))
+reduce(x, "b s h -> b s", "mean")          # mean over last dim
+rearrange(x, "b s (h d) -> b s h d", h=2). # split hidden into heads × head_dim
+
+from jaxtyping import Float
+x: Float[torch.Tensor, "batch sequence hidden"] = torch.ones(16, 256, 8)
+\`\`\`
+
+\`torch.compile\` further optimizes \`einsum\` by finding the best contraction order automatically.
+
+### FLOPs and MFU
+
+- **FLOPs:** total floating-point operations performed
+- **FLOP/s:** throughput (e.g., H100 dense BF16 peak ≈ 989.5 TFLOP/s)
+
+MATHPLACEHOLDER3ENDMATH
+
+- MFU > 0.5 is excellent; MFU ≈ 5% indicates severe underutilization
+- BF16 achieves substantially higher MFU than FP32
+
+---
+
+## Backpropagation Cost
+
+For a two-layer model MATHPLACEHOLDER4ENDMATH:
+
+- **Forward pass:** MATHPLACEHOLDER5ENDMATH FLOPs
+- **Backward pass:** MATHPLACEHOLDER6ENDMATH: MATHPLACEHOLDER7ENDMATH, MATHPLACEHOLDER8ENDMATH: MATHPLACEHOLDER9ENDMATH, MATHPLACEHOLDER10ENDMATH: MATHPLACEHOLDER11ENDMATH → MATHPLACEHOLDER12ENDMATH FLOPs total
+
+**Rule of thumb:** training costs MATHPLACEHOLDER13ENDMATH FLOPs.
+
+---
+
+## Building the Full Pipeline
+
+### Weight Initialization
+
+Poor initialization causes gradient explosion or vanishing. **Xavier initialization** scales weights by MATHPLACEHOLDER14ENDMATH, keeping output variance independent of input dimension. Combined with truncated normal sampling:
+
+\`\`\`python
+w = nn.Parameter(nn.init.trunc_normal_(
+    torch.empty(input_dim, output_dim),
+    std=1 / np.sqrt(input_dim), a=-3, b=3
+))
+\`\`\`
+
+### Stochasticity Control
+
+Fix all random seeds to ensure reproducibility:
+
+\`\`\`python
+
+torch.manual_seed(1234)
+np.random.seed(1234)
+random.seed(1234)
+\`\`\`
+
+### Data Loading
+
+Training datasets at industry scale (TB+) can't be loaded into memory at once. \`np.memmap\` memory-maps files on disk, loading only the requested chunks on access. For efficient CPU→GPU transfer: use \`pin_memory=True\` and \`non_blocking=True\` to overlap data loading with GPU compute.
+
+### Optimizer
+
+SGD → AdaGrad (adaptive LR via accumulated gradient squares) → Adam (momentum + RMSProp). Adam is the standard for LLM training.
+
+### Memory Cost Breakdown (FP32)
+
+4 bytes × (parameters + gradients + optimizer states + activations)
+
+- Adam stores two momentum buffers per parameter, making optimizer state the largest non-activation cost
+- Activations are typically the largest contributor overall
+- Activation checkpointing recomputes activations during the backward pass rather than storing them, trading compute for memory
+
+### Training Loop
+
+**One-time setup:** define model → move to GPU → define optimizer
+
+**Per-iteration:**
+
+1. Load batch
+2. Forward pass → compute loss
+3. Backward pass → compute gradients
+4. Optimizer step → update weights
+5. Zero gradients → free memory
+
+Checkpoint \`{model weights, optimizer state, step}\` regularly to guard against crashes.
+
+---
+
+## Summary
+
+| Topic | Key Takeaway |
+| --- | --- |
+| Memory | Total = elements × bytes; share memory via \`view()\` rather than copying |
+| Precision | BF16 for forward pass, FP32 for accumulated state; FP8 is emerging |
+| FLOPs | Training ≈ 6 × params × tokens; matmul dominates |
+| MFU | Target > 0.5; BF16 helps significantly |
+| Initialization | Xavier + truncated normal for stability |
+| Data loading | \`memmap\` + pinned memory + async transfer |
+
+**Industry trends:** the field is pushing toward lower precision throughout (FP8 full-pipeline training is becoming viable), aggressive inference quantization, and hardware-co-designed architectures where model design is increasingly shaped by GPU constraints.
+
+## Reference
+
+[https://www.youtube.com/watch?v=msHyYioAyNE&list=PLoROMvodv4rOY23Y0BoGoBGgQ1zmU_MT_&index=2](https://www.youtube.com/watch?v=msHyYioAyNE&list=PLoROMvodv4rOY23Y0BoGoBGgQ1zmU_MT_&index=2)`;
+    const mathFormulas = [["inline", "O(n^3)"], ["inline", "(m, d) \\times (d, n)"], ["inline", "\\text{FLOPs} = 2mdn"], ["inline", "\\text{MFU} = \\frac{\\text{Actual FLOP/s}}{\\text{Peak hardware FLOP/s}} = \\frac{\\text{Total FLOPs / Wall time}}{\\text{Hardware peak}}"], ["inline", "x \\xrightarrow{W_1} h_1 \\xrightarrow{W_2} \\text{output} \\to \\text{loss}"], ["inline", "2BDD + 2BDK = 2 \\times P \\times B"], ["inline", "\\nabla W_2"], ["inline", "2BDK"], ["inline", "\\nabla h_1"], ["inline", "2BDK"], ["inline", "\\nabla W_1"], ["inline", "4BDD"], ["inline", "4 \\times P \\times B"], ["inline", "\\approx 6 \\times \\text{parameters} \\times \\text{tokens}"], ["inline", "1/\\sqrt{d_{\\text{in}}}"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
