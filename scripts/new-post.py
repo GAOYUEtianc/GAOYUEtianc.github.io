@@ -64,11 +64,18 @@ def protect_math_formulas(content):
     content = re.sub(r'\$\$([\s\S]*?)\$\$', replace_display_math, content)
 
     # Convert inline math $...$ to placeholder
+    # Add trailing space if followed by a word character to prevent concatenation
     def replace_inline_math(match):
         formula = match.group(1)
         idx = len(math_formulas)
         math_formulas.append(('inline', formula))
-        return f'MATHPLACEHOLDER{idx}ENDMATH'
+        placeholder = f'MATHPLACEHOLDER{idx}ENDMATH'
+        # Check if next char after match is a word char
+        end_pos = match.end()
+        full_str = match.string
+        if end_pos < len(full_str) and full_str[end_pos].isalpha():
+            placeholder += ' '
+        return placeholder
 
     content = re.sub(r'(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)', replace_inline_math, content)
 

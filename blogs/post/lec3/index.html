@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS336 Lecture 3 Notes · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="CS336 Lecture 3 Notes"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>CS336 Lecture 3 - Everything You Didn’t Want To Know About LM Architecture And Training</h1>
+      <div class="post-date">
+        <time datetime="2026-04-04">Apr 04, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+This lecture traces the evolution of Transformer architecture from 2017 to 2025, covering normalization, activation functions, positional encoding, attention variants, hyperparameter selection, and training stability techniques.
+
+---
+
+## Architecture Evolution Overview
+
+The table below summarizes design choices across major models (2017–2025), varying in normalization placement, activation functions, FFN structure, attention variants, and positional encodings.
+
+![Different aspects of transformers across the big LMs](https://raw.githubusercontent.com/GAOYUEtianc/GAOYUEtianc.github.io/master/img/Transformer_design.png)
+
+CS336 implements an engineering-optimized Transformer variant with the following changes from the original:
+
+| Component | Original | CS336 Variant |
+| --- | --- | --- |
+| Normalization | Post-Norm + LayerNorm | Pre-Norm + RMSNorm |
+| Positional Encoding | Sinusoidal | RoPE (inside causal MHA) |
+| Activation | ReLU | SwiGLU |
+| Bias terms | Present | Removed |
+| Input/output embeddings | — | Residual addition + token-level norm |
+
+---
+
+## Normalization
+
+### Pre-Norm vs. Post-Norm
+
+**Post-Norm** computes the sub-layer first, then adds the residual, then normalizes:
+
+MATHPLACEHOLDER0ENDMATH
+MATHPLACEHOLDER1ENDMATH
+MATHPLACEHOLDER2ENDMATH
+MATHPLACEHOLDER3ENDMATH
+
+**Pre-Norm** normalizes the input before each sub-layer, and adds the residual after:
+
+MATHPLACEHOLDER4ENDMATH
+MATHPLACEHOLDER5ENDMATH
+MATHPLACEHOLDER6ENDMATH
+MATHPLACEHOLDER7ENDMATH
+
+Pre-Norm produces smoother gradient flow and avoids gradient explosion without requiring aggressive learning rate warmup. Experiments confirm it converges faster and yields better final performance. Post-Norm is now largely abandoned.
+
+A further variant (**Double Norm**, used in Grok and Gemma 2) adds an additional normalization after the FFN output for extra stability.
+
+### RMSNorm vs. LayerNorm
+
+LayerNorm: MATHPLACEHOLDER8ENDMATH
+
+RMSNorm drops the mean-centering and the MATHPLACEHOLDER9ENDMATH term. The key motivation is runtime cost, not FLOPs: normalization operations like Softmax and LayerNorm contribute only ~0.17% of FLOPs but can account for over 25% of wall-clock time due to memory bandwidth pressure. RMSNorm reduces this overhead while matching LayerNorm's training stability in practice.
+
+### Removing Bias Terms
+
+Bias terms in linear layers introduce numerical conflicts with subsequent normalization layers and add memory bandwidth overhead. The standard practice is now to remove them entirely:
+
+MATHPLACEHOLDER10ENDMATH
+
+---
+
+## Activation Functions and Gated MLPs
+
+Since 2023, ReLU and GeLU have been almost universally replaced by **GLU (Gated Linear Unit)** variants. SwiGLU is the dominant choice; GeGLU is secondary.
+
+GLU augments the standard FFN by element-wise multiplying the activated path with a linear gate:
+
+MATHPLACEHOLDER11ENDMATH
+
+**SwiGLU** replaces ReLU with SiLU (Swish):
+
+MATHPLACEHOLDER12ENDMATH
+
+Gated activations consistently reduce pre-training loss and improve downstream task performance.
+
+### Parameter Budget and the 8/3 Rule
+
+Introducing a third weight matrix MATHPLACEHOLDER13ENDMATH increases parameters by 50% if MATHPLACEHOLDER14ENDMATH is kept at MATHPLACEHOLDER15ENDMATH. To match the standard FFN parameter budget:
+
+|  | Traditional FFN | Gated FFN (SwiGLU) |
+| --- | --- | --- |
+| Matrices | MATHPLACEHOLDER16ENDMATH | MATHPLACEHOLDER17ENDMATH |
+| Parameter count | MATHPLACEHOLDER18ENDMATH | MATHPLACEHOLDER19ENDMATH |
+| Required MATHPLACEHOLDER20ENDMATH | MATHPLACEHOLDER21ENDMATH | MATHPLACEHOLDER22ENDMATH |
+
+Setting MATHPLACEHOLDER23ENDMATH keeps parameter counts equal while retaining the gating benefit.
+
+---
+
+## Serialized vs. Parallel Layers
+
+**Serialized (standard):**
+
+MATHPLACEHOLDER24ENDMATH
+
+**Parallel:**
+
+MATHPLACEHOLDER25ENDMATH
+
+Running attention and FFN in parallel improves GPU utilization and can increase training throughput by ~15%. Used in GPT-J, Falcon2-11B, and Cohere Command R+, but did not become mainstream.
+
+---
+
+## Positional Encoding: RoPE
+
+After 2023, RoPE replaced sinusoidal, absolute, ALiBi, and other relative encoding schemes as the standard choice. Its key advantages are native relative position encoding and strong long-context generalization.
+
+**Core idea:** inner products are invariant under rotation, so encoding position as a rotation makes attention scores depend only on relative position, not absolute position.
+
+The d-dimensional embedding vector is partitioned into d/2 pairs. Each pair is rotated by an angle proportional to the token position m and a pair-specific frequency MATHPLACEHOLDER26ENDMATH:
+
+MATHPLACEHOLDER27ENDMATH
+
+High-frequency components (MATHPLACEHOLDER28ENDMATH large) capture short-range positional relationships; low-frequency components capture long-range structure.
+
+---
+
+## Hyperparameter Rules of Thumb
+
+| Hyperparameter | Common Setting |
+| --- | --- |
+| MATHPLACEHOLDER29ENDMATH (non-gated FFN) | MATHPLACEHOLDER30ENDMATH |
+| MATHPLACEHOLDER31ENDMATH (gated FFN) | MATHPLACEHOLDER32ENDMATH |
+| Attention head dimension | 64 or 128; MATHPLACEHOLDER33ENDMATH |
+| Width-depth ratio | MATHPLACEHOLDER34ENDMATH |
+| Vocabulary size | 100k–250k for multilingual; 30–50k for single-language |
+| Regularization | Weight decay + cosine LR annealing (Dropout largely abandoned) |
+
+**On aspect ratio:** deeper models (low MATHPLACEHOLDER35ENDMATH) suit pipeline parallelism; wider models suit tensor parallelism with high-bandwidth interconnects. The latter is the dominant configuration in 2024–2025.
+
+**On Dropout:** Dropout was standard in GPT-2-era models but is now largely replaced by weight decay. In large-scale pre-training, data is typically seen only once, so overfitting is not the primary concern — Dropout instead degrades training stability by causing sudden loss spikes. Weight decay combined with cosine annealing improves training dynamics without this downside.
+
+---
+
+## Training Stability Techniques
+
+Recent Transformer progress is less about architectural novelty and more about numerical stability at scale. Larger models trained for longer are increasingly susceptible to Softmax saturation, gradient explosion, and loss spikes. The root cause is typically unbounded logit growth in attention and output Softmax. Three techniques address this:
+
+### Z-Loss (Output Softmax)
+
+Adds a penalty term to the cross-entropy loss that encourages the Softmax normalization constant MATHPLACEHOLDER36ENDMATH to stay near 1:
+
+MATHPLACEHOLDER37ENDMATH
+
+MATHPLACEHOLDER38ENDMATH
+
+Large MATHPLACEHOLDER39ENDMATH indicates logit explosion; z-loss regularizes this directly.
+
+### QK Norm (Attention Softmax)
+
+Applies LayerNorm independently to Q and K before computing attention scores, bounding the magnitude of MATHPLACEHOLDER40ENDMATH and preventing Softmax saturation. A broadly applicable heuristic: when encountering instability at any point in the network, inserting a LayerNorm typically resolves it without hurting performance.
+
+### Logit Soft Capping
+
+Before passing MATHPLACEHOLDER41ENDMATH into Softmax, applies a tanh-based cap:
+
+MATHPLACEHOLDER42ENDMATH
+
+This compresses extreme logit values, preventing numerical overflow. However, Nvidia research shows it increases perplexity, so it is less widely adopted than QK Norm.
+
+---
+
+## Attention Variants
+
+### GQA (Grouped-Query Attention)
+
+KV cache is the primary memory bottleneck during autoregressive inference: storing key and value tensors for all heads across all past tokens grows linearly with sequence length and batch size.
+
+**MQA (Multi-Query Attention)** reduces this by sharing a single KV head across all query heads. **GQA (Grouped-Query Attention)** is a generalization: query heads are partitioned into groups, each group sharing one KV head.
+
+![GQA](https://raw.githubusercontent.com/GAOYUEtianc/GAOYUEtianc.github.io/master/img/GQA.png)
+
+GQA achieves near-MHA quality with near-MQA memory cost and has become the industry standard.
+
+### Long-Context Attention
+
+For context windows beyond 10M tokens, vanilla full attention is computationally prohibitive. The current standard combines:
+
+**Sliding Window Attention (SWA):** each token attends only to a local window of MATHPLACEHOLDER43ENDMATH tokens. Effective receptive field = MATHPLACEHOLDER44ENDMATH.
+
+![Sliding Window Attention](https://raw.githubusercontent.com/GAOYUEtianc/GAOYUEtianc.github.io/master/img/sliding_window.png)
+
+**Mixed Attention:** every 2–4 Transformer blocks form a group. One block per group uses full attention without positional encoding (NoPE) for long-range information propagation; the remaining blocks use RoPE + SWA for local context. This balances memory cost, compute, and long-range coherence.
+
+---
+
+## Summary
+
+| Topic | Key Takeaway |
+| --- | --- |
+| Normalization | Pre-Norm + RMSNorm is the 2024–2025 standard; Double Norm adds further stability |
+| Efficiency | Memory bandwidth dominates runtime cost, not FLOPs — design accordingly |
+| Activation | SwiGLU with MATHPLACEHOLDER45ENDMATH matches parameter budget while improving performance |
+| Stability | QK Norm + Z-Loss is the standard combination; Softmax is the primary instability source |
+| Inference | GQA is the best KV cache / performance trade-off |.
+| Long context | Mixed SWA + full attention (NoPE) is the current optimal strategy |
+
+## Reference
+
+[https://www.youtube.com/watch?v=ptFiH_bHnJw&list=PLoROMvodv4rOY23Y0BoGoBGgQ1zmU_MT_&index=3](https://www.youtube.com/watch?v=ptFiH_bHnJw&list=PLoROMvodv4rOY23Y0BoGoBGgQ1zmU_MT_&index=3)`;
+    const mathFormulas = [["display", "x^2 = \\text{Attn}(x^1)"], ["display", "x^3 = \\text{LayerNorm}(x^1 + x^2)"], ["display", "x^4 = \\text{FFN}(x^3)"], ["display", "x^5 = \\text{LayerNorm}(x^3 + x^4)"], ["display", "x^2 = \\text{LayerNorm}(x^1)"], ["display", "x^3 = x^1 + \\text{Attn}(x^2)"], ["display", "x^4 = \\text{LayerNorm}(x^3)"], ["display", "x^5 = x^3 + \\text{FFN}(x^4)"], ["inline", "y = \\frac{x - \\mathbb{E}[x]}{\\sqrt{\\text{Var}[x] + \\epsilon}} \\cdot \\gamma + \\beta \\qquad \\text{RMSNorm: } y = \\frac{x}{\\sqrt{\\|x\\|_2^2 + \\epsilon}} \\cdot \\gamma"], ["inline", "\\beta"], ["display", "\\text{Before: } \\text{FFN}(x) = \\max(0,\\, xW_1 + b_1)W_2 + b_2 \\qquad \\text{After: } \\text{FFN}(x) = \\sigma(xW_1)W_2"], ["display", "\\text{FF}_{\\text{ReGLU}}(x) = (\\max(0,\\, xW_1) \\otimes xV)\\, W_2"], ["display", "\\text{SwiGLU}(x, W, V) = \\text{SiLU}(xW) \\otimes xV = (xW \\cdot \\sigma(xW)) \\otimes xV"], ["inline", "V"], ["inline", "d_{ff}"], ["inline", "4d_{\\text{model}}"], ["inline", "W_1, W_2"], ["inline", "W, V, W_2"], ["inline", "2 \\times d_{\\text{model}} \\times 4d_{\\text{model}} = 8d_{\\text{model}}^2"], ["inline", "3 \\times d_{\\text{model}} \\times d_{ff}"], ["inline", "d_{ff}"], ["inline", "4d_{\\text{model}}"], ["inline", "\\frac{8}{3}d_{\\text{model}}"], ["inline", "d_{ff} = \\frac{8}{3}d_{\\text{model}}"], ["display", "y = x + \\text{MLP}(\\text{LayerNorm}(x + \\text{Attn}(\\text{LayerNorm}(x))))"], ["display", "y = x + \\text{MLP}(\\text{LayerNorm}(x)) + \\text{Attn}(\\text{LayerNorm}(x))"], ["inline", "\\theta_k"], ["inline", "f_{\\text{RoPE}}(x, m) = \\begin{pmatrix} \\cos m\\theta_1 & -\\sin m\\theta_1 & & \\\\ \\sin m\\theta_1 & \\cos m\\theta_1 & & \\\\ & & \\ddots & \\\\ & & & \\cos m\\theta_{d/2} & -\\sin m\\theta_{d/2} \\\\ & & & \\sin m\\theta_{d/2} & \\cos m\\theta_{d/2} \\end{pmatrix} x"], ["inline", "\\theta_k"], ["inline", "d_{ff}"], ["inline", "4\\, d_{\\text{model}}"], ["inline", "d_{ff}"], ["inline", "\\frac{8}{3}\\, d_{\\text{model}}"], ["inline", "d_{\\text{model}} = d_{\\text{head}} \\times n_{\\text{heads}}"], ["inline", "d_{\\text{model}} / n_{\\text{layers}} \\approx 100"], ["inline", "d_{\\text{model}}/n_{\\text{layers}}"], ["inline", "Z(x)"], ["inline", "Z(x) = \\sum_{r'} e^{U_{r'}(x)}"], ["inline", "\\mathcal{L} = \\sum_i \\left[\\log P(x_i) - \\alpha \\log^2 Z(x_i)\\right]"], ["inline", "Z(x)"], ["inline", "QK^\\top"], ["inline", "QK^\\top"], ["display", "\\text{logit} \\leftarrow \\text{soft}_{\\text{cap}} \\cdot \\tanh\\!\\left(\\frac{\\text{logit}}{\\text{soft}_{\\text{cap}}}\\right)"], ["inline", "w"], ["inline", "w \\times n_{\\text{layers}}"], ["inline", "d_{ff} = \\frac{8}{3}d_{\\text{model}}"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
