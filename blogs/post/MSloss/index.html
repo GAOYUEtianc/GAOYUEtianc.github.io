@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi Similarity Loss · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Multi Similarity Loss"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Multi-Similarity Loss with General Pair Weighting for Deep Metric Learning
+</h1>
+      <div class="post-date">
+        <time datetime="2026-05-02">May 02, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+---
+
+Although this paper is for CV application, I found it very insightful and reproducible in LLM embedding space analysis. The ‘implicit weighting’ of the MS loss is elegant. The signal-S, signal-P, signal-N are all informative signals to keep track of in any contrastive learning scenario.
+
+---
+
+## 1. Motivation: What is Deep Metric Learning?
+
+**Goal**: Train a neural network to produce embeddings where *similar items are close* and *dissimilar items are far apart* in the embedding space.
+
+**The setup**:
+
+> A backbone network (CNN / Transformer) maps an input → a fixed-size embedding vector. The **loss function** shapes the geometry of this embedding space. The choice of loss is the key design decision.
+> 
+
+---
+
+### 1.1 The Problem with Previous Losses
+
+By 2019, many loss functions had been proposed. Each one was motivated by a specific intuition about *which pairs of samples* matter most during training, and *how much* each pair should contribute to the gradient.
+
+The core question the paper asks:
+
+> **"Are we actually using all available information about pair difficulty when we weight our training pairs?"**
+> 
+
+The answer turns out to be **no** — every existing loss ignores at least one important signal. The paper provides a framework to see exactly what each loss is missing.
+
+---
+
+## 2. Related Work: The Family of Metric Learning Losses
+
+Before GPW, the main losses can be grouped by what structure they consume:
+
+| Loss | Input structure | Core idea |
+| --- | --- | --- |
+| **Contrastive Loss** (Chopra et al. 2005) | Pairs (i, j) + binary label | Pull same-class pairs together; push different-class pairs apart beyond margin MATHPLACEHOLDER0ENDMATH |
+| **Triplet Loss** (Schroff et al. 2015) | Triplets (anchor, positive, negative) | Positive should be closer than negative by at least margin MATHPLACEHOLDER1ENDMATH |
+| **Lifted Structure** (Oh Song et al. 2016) | All pairs in batch | Optimize the hardest pair in the batch |
+| **N-Pairs Loss** (Sohn 2016) | 1 positive + N−1 negatives per anchor | Multi-class extension of contrastive; similar to InfoNCE |
+| **Proxy NCA** (Movshovitz-Attias et al. 2017) | Samples vs learned class proxies | Replace sample-to-sample pairs with sample-to-prototype pairs |
+
+**Common limitation**: They’re not designed by a principled analysis of what signals are needed. No one had asked: *what is the right weight for each pair, and why?*
+
+![Fig1.png](https://raw.githubusercontent.com/GAOYUEtianc/GAOYUEtianc.github.io/master/img/Fig1.png)
+
+> 
+> 
+> 
+> Fig 1. The proposed multi-similarity loss is able to jointly measure the self-similarity and relative similarities of a pair, which allows it collect informative pairs by implementing iterative pair mining and weighting.
+> 
+
+---
+
+## 3. General Pair Weighting (GPW) — The Unifying Framework
+
+### 3.1 The Core Observation
+
+**Any** deep metric learning loss that operates on pairs can be written in a single unified form:
+
+MATHPLACEHOLDER2ENDMATH
+
+Where:
+
+- MATHPLACEHOLDER3ENDMATH = cosine similarity between sample MATHPLACEHOLDER4ENDMATH and sample MATHPLACEHOLDER5ENDMATH
+- MATHPLACEHOLDER6ENDMATH = same-class samples for anchor MATHPLACEHOLDER7ENDMATH (**positive pairs**)
+- MATHPLACEHOLDER8ENDMATH = different-class samples for anchor MATHPLACEHOLDER9ENDMATH (**negative pairs**)
+- MATHPLACEHOLDER10ENDMATH, MATHPLACEHOLDER11ENDMATH = **pair weights** — the key design choice
+- MATHPLACEHOLDER12ENDMATH, MATHPLACEHOLDER13ENDMATH = scalar loss functions on the similarity value
+
+**The paper's main contribution** is showing that all existing losses have specific, derivable expressions for MATHPLACEHOLDER14ENDMATH and MATHPLACEHOLDER15ENDMATH, and comparing those expressions against what the *ideal* weighting should be.
+
+---
+
+### 3.2 The Three Signals Every Good Weighting Must Capture
+
+The paper identifies three independent signals that encode pair difficulty:
+
+| Signal | What it measures | Intuition |
+| --- | --- | --- |
+| **Signal S** (self-similarity) | Absolute value of MATHPLACEHOLDER16ENDMATH | A pair where MATHPLACEHOLDER17ENDMATH is near the decision boundary is inherently hard |
+| **Signal P** (positive-relative) | How MATHPLACEHOLDER18ENDMATH compares to *other positive pairs* for the same anchor | Among all same-class pairs for anchor MATHPLACEHOLDER19ENDMATH, is this one the hardest? |
+| **Signal N** (negative-relative) | How MATHPLACEHOLDER20ENDMATH compares to *negative pair* similarities | Is this positive pair dangerously close to the nearest negative? |
+
+> 💡 **Key insight**: Signal P and Signal N are *relative* signals — they require looking at the global context of other pairs for the same anchor, not just the individual pair in isolation.
+> 
+
+![Fig2.png](https://raw.githubusercontent.com/GAOYUEtianc/GAOYUEtianc.github.io/master/img/Fig2.png)
+
+---
+
+### 3.3 Analyzing Existing Losses Through GPW
+
+The paper derives the implicit pair weights MATHPLACEHOLDER21ENDMATH and MATHPLACEHOLDER22ENDMATH for each existing loss and checks which signals they capture:
+
+| Loss | Signal S | Signal P | Signal N |
+| --- | --- | --- | --- |
+| Contrastive | ✓ (margin threshold) | ✗ | ✗ |
+| Triplet | ✓ (margin threshold) | ✗ | ✓ partial (one negative only) |
+| Lifted Structure | ✓ | ✗ | ✓ |
+| N-Pairs | ✓ | ✗ | ✓ |
+| **Multi-Similarity (proposed)** | **✓** | **✓** | **✓** |
+
+**The universal blind spot**: no existing loss captures Signal P — the relative difficulty of a positive pair compared to other positive pairs for the same anchor.
+
+**Why does missing Signal P matter?**
+
+> If anchor MATHPLACEHOLDER23ENDMATH has two positive samples — one close to the decision boundary (hard) and one already well-separated (easy) — a loss without Signal P weights them identically. The easy positive soaks up gradient that should be concentrated on the hard one.
+> 
+
+---
+
+## 4. Multi-Similarity Loss
+
+### 4.1 Design Principle
+
+MS Loss is designed from first principles to capture all three signals simultaneously. It has two steps:
+
+1. **Pair mining** — remove pairs that are too easy to contribute useful gradient
+2. **Pair weighting** — assign weights that reflect all three signals
+
+---
+
+### 4.2 Pair Mining
+
+Before computing the loss, pairs are filtered using two thresholds MATHPLACEHOLDER24ENDMATH (positive) and MATHPLACEHOLDER25ENDMATH (negative):
+
+- **Keep a positive pair** MATHPLACEHOLDER26ENDMATH only if it is *harder than at least one negative*:
+MATHPLACEHOLDER27ENDMATH
+- **Keep a negative pair** MATHPLACEHOLDER28ENDMATH only if it is *harder than at least one positive*:
+MATHPLACEHOLDER29ENDMATH
+
+**Effect**: only pairs near the decision boundary are retained. Very easy positives (already well-separated) and very easy negatives (already far apart) are dropped, focusing compute on informative pairs.
+
+---
+
+### 4.3 The MS Loss Formula
+
+After mining, the loss for anchor MATHPLACEHOLDER30ENDMATH is:
+
+MATHPLACEHOLDER31ENDMATH
+
+Where:
+
+- MATHPLACEHOLDER32ENDMATH, MATHPLACEHOLDER33ENDMATH = mined positive / negative sets
+- MATHPLACEHOLDER34ENDMATH, MATHPLACEHOLDER35ENDMATH = scaling hyper-parameters (sharpness of the weighting curve)
+- MATHPLACEHOLDER36ENDMATH = similarity threshold (typically 0)
+
+**Deriving the implicit pair weights** (via gradient):
+
+MATHPLACEHOLDER37ENDMATH
+
+MATHPLACEHOLDER38ENDMATH
+
+**Reading the weights** MATHPLACEHOLDER39ENDMATH and MATHPLACEHOLDER40ENDMATH**:**
+
+- Large when MATHPLACEHOLDER41ENDMATH is small (hard positive, far from being well-separated) → ✓ **Signal S**
+- Large when other positives MATHPLACEHOLDER42ENDMATH are also large (this is the hardest positive in the set) → ✓ **Signal P**
+- Signal N is reflected by the MATHPLACEHOLDER43ENDMATH→ ✓ **Signal N**
+
+---
+
+### 4.4 Intuition Summary
+
+> **Contrastive / Triplet**: treat all retained positive pairs equally within a triplet.
+> 
+> 
+> **N-Pairs / InfoNCE**: downweight positives based on competition from negatives (Signal N) but not from other positives (no Signal P).
+> 
+> **MS Loss**: downweight a positive pair if other positive pairs for the same anchor are already well-separated. Concentrate gradient on whichever positive is closest to being confused with a negative.
+> 
+
+---
+
+## 5. Experiments
+
+### 5.1 Setup
+
+**Datasets** (standard deep metric learning benchmarks):
+
+| Dataset | Classes | Images | Task |
+| --- | --- | --- | --- |
+| CUB-200-2011 | 200 bird species | 11,788 | Fine-grained retrieval |
+| Cars-196 | 196 car models | 16,185 | Fine-grained retrieval |
+| Stanford Online Products | 22,634 products | 120,053 | Product retrieval |
+| In-Shop Clothes | 7,982 clothing items | 52,712 | Clothes retrieval |
+
+**Standard split**: first half of classes for training, second half for test (no class overlap).
+
+**Backbone**: GoogLeNet (BN-Inception) with 512-dim embedding, pretrained on ImageNet. *(Same backbone used across all compared methods for fair comparison.)*
+
+**Metric**: Recall@K — fraction of queries where at least one same-class item appears in the top-K retrieved results. Also NMI (Normalized Mutual Information) for clustering quality.
+
+**Batch construction**: each batch contains MATHPLACEHOLDER44ENDMATH classes × MATHPLACEHOLDER45ENDMATH samples per class (e.g., 5 classes × 5 samples = 25 images per batch). All pairs within the batch are used.
+
+---
+
+### 5.2 Main Results
+
+**On CUB-200-2011 (fine-grained bird retrieval):**
+
+MS Loss achieves state-of-the-art Recall@1, outperforming:
+
+- Triplet loss variants
+- N-Pairs
+- Lifted Structure
+- Proxy NCA
+
+**On Cars-196 and Stanford Online Products:**
+
+Similar gains, with larger improvements on harder benchmarks where within-class diversity (Signal P) matters more — the more varied the positive pairs, the bigger the gap.
+
+---
+
+### 5.3 Ablations
+
+To demonstrate the importance of weighting the pairs from multi-similarities, the paper ablates the three signals independently to confirm each contributes:
+
+| Configuration | Recall@1 |
+| --- | --- |
+| Baseline (no Signal P, no mining) | lower |
+| + Signal N only (like N-Pairs) | + |
+| + Signal P only | + |
+| + Both (full MS Loss) | **highest** |
+
+**Mining ablation**: the pair mining thresholds consistently help — removing very easy pairs speeds convergence and improves final performance.
+
+### 5.4 On Embedding Size
+
+The autors study the performance of MS loss with varying embedding sizes {64,128,256,512,1024}.
+The performance is increased consistently with the embedding dimension except at 1024. This is different from lifted structure loss, which achieves its best performance at 64 on the Cars-196 dataset.
+
+---
+
+### 5.4 Comparison with State-of-the-Art
+
+The authors further compare the performance of this method with the state-of-the-art techniques on image retrieval task. MS loss improves Recall@1 by 7% on the CUB200, and 4% on the Cars-196 over Proxy-NCA at dimension 64. Compared with ABE employing an embedding size of 512 and attention modules, MS loss achieves a higher Recall@1 by +5% improvement at the same dimension on the CUB200. On the Cars-196, MS
+loss obtains the second best performance in terms of Recall@1, while the best results are achieved by ABE, which applies an ensemble method with a much heavier model. Moreover, on the remaining three datasets, MS loss is of much stronger performance than ABE.
+
+---
+
+# Reference
+
+Xun Wang, Xintong Han, Weilin Huang, Dengke Dong, and Matthew R. Scott. "Multi-Similarity Loss with General Pair Weighting for Deep Metric Learning." In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition* (CVPR), 2019, pp. 5022–5030.
+
+Chopra, S., Hadsell, R., & LeCun, Y. (2005, June). Learning a similarity metric discriminatively, with application to face verification. In *2005 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'05)* (Vol. 1, pp. 539-546). IEEE.
+
+Schroff, F., Kalenichenko, D., & Philbin, J. (2015). FaceNet: A unified embedding for face recognition and clustering. In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)* (pp. 815–823). 
+
+Song, H. O., Xiang, Y., Jegou, H., & Savarese, S. (2016). Deep metric learning via lifted structured feature embedding. In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)* (pp. 4004–4012).
+
+Sohn, K. (2016). Improved deep metric learning with multi-class N-pair loss objective. In D. Lee, M. Sugiyama, U. von Luxburg, I. Guyon, & R. Garnett (Eds.), *Advances in Neural Information Processing Systems (NeurIPS)* (Vol. 29, pp. 1857–1865). Curran Associates, Inc. Source at NeurIPS.cc
+
+Movshovitz-Attias, Y., Toshev, A., Leung, T., Ioffe, S., & Singh, S. (2017). No fuss distance metric learning using proxies. In *Proceedings of the IEEE International Conference on Computer Vision (ICCV)* (pp. 360–368). doi.org`;
+    const mathFormulas = [["inline", "m"], ["inline", "m"], ["inline", "\\mathcal{L} = \\frac{1}{|\\mathcal{A}|} \\sum_{i \\in \\mathcal{A}} \\left[ \\sum_{j \\in \\mathcal{P}(i)} w_{ij}^{+} \\cdot \\ell^{+}(s_{ij}) \\;+\\; \\sum_{k \\in \\mathcal{N}(i)} w_{ik}^{-} \\cdot \\ell^{-}(s_{ik}) \\right]"], ["inline", "s_{ij}"], ["inline", "i"], ["inline", "j"], ["inline", "\\mathcal{P}(i)"], ["inline", "i"], ["inline", "\\mathcal{N}(i)"], ["inline", "i"], ["inline", "w_{ij}^{+}"], ["inline", "w_{ik}^{-}"], ["inline", "\\ell^{+}"], ["inline", "\\ell^{-}"], ["inline", "w^+"], ["inline", "w^-"], ["inline", "s_{ij}"], ["inline", "s_{ij}"], ["inline", "s_{ij}"], ["inline", "i"], ["inline", "s_{ij}"], ["inline", "w^+"], ["inline", "w^-"], ["inline", "i"], ["inline", "\\epsilon"], ["inline", "\\delta"], ["inline", "(i, j)"], ["inline", "s_{ij} > \\min_{k \\in \\mathcal{N}(i)} s_{ik} - \\epsilon"], ["inline", "(i, k)"], ["inline", "s_{ik} < \\max_{j \\in \\mathcal{P}(i)} s_{ij} + \\delta"], ["inline", "i"], ["inline", "\\mathcal{L}{\\text{MS}}^{(i)} = \\frac{1}{\\alpha} \\log \\left[ 1 + \\sum_{j \\in \\widetilde{\\mathcal{P}}(i)} e^{-\\alpha(s_{ij} - \\lambda)} \\right] + \\frac{1}{\\beta} \\log \\left[ 1 + \\sum_{k \\in \\widetilde{\\mathcal{N}}(i)} e^{\\beta(s_{ik} - \\lambda)} \\right]"], ["inline", "\\widetilde{\\mathcal{P}}(i)"], ["inline", "\\widetilde{\\mathcal{N}}(i)"], ["inline", "\\alpha"], ["inline", "\\beta"], ["inline", "\\lambda"], ["inline", "w_{ij}^{+} = \\frac{e^{-\\alpha(s_{ij} - \\lambda)}}{1 + \\sum_{l \\in \\widetilde{\\mathcal{P}}(i)} e^{-\\alpha(s_{il} - \\lambda)}}"], ["inline", "w_{ik}^{-} = \\frac{e^{\\beta(s_{ik} - \\lambda)}}{1 + \\sum_{l \\in \\widetilde{\\mathcal{N}}(i)} e^{\\beta(s_{lk} - \\lambda)}}"], ["inline", "w_{ij}^+"], ["inline", "w_{ij}^-"], ["inline", "s_{ij}"], ["inline", "s_{il}"], ["inline", "w_{ij}^-"], ["inline", "n"], ["inline", "m"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
