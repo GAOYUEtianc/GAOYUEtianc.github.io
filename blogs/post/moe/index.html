@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS336 Lecture 4 - MoE · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="CS336 Lecture 4 - MoE"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>CS336 Lecture 4 - MoE</h1>
+      <div class="post-date">
+        <time datetime="2026-05-06">May 06, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+## Definition of MoE and Basic Architecture
+
+MoE is a **sparse modification** to the Transformer's FFN layer. It replaces a large dense feedforward network with many sparse feedforward networks and a selection layer, allowing you to scale the number of experts without affecting FLOPs.
+
+![MoE.png](https://raw.githubusercontent.com/GAOYUEtianc/GAOYUEtianc.github.io/master/img/MoE.png)
+
+- In most industrial scenarios, the **only difference** between MoE and dense Transformer is **at FFN layer**, and the self-attention layer is not modified.
+- MoE can greatly increase the total number of model parameters without increasing forward-pass FLOPs, giving the model greater capacity for knowledge retention and feature learning.
+
+## Major Reason of MoE to Become Major Choice in Industry
+
+### Under same FLOPs, the performance is significantly better than dense model
+
+Based on experiments by Fedus et al. (2022), under the same compute budget, as the number of experts increases, the LM training loss continues to drop — a 128-expert Switch-Base model improves perplexity far faster than T5-Base under the same resources.
+
+OLMoE (2024) also showed that to achieve the same downstream performance, MoE requires 3× fewer FLOPs than a dense model, with 2× faster training speed. 
+
+The gains of MoE do not fully come from assigning tokens to proper experts; they stem more from the parameter expansion benefit of sparse architectures. Even when routing lacks semantic matching ability, engaging more parameters consistently yields gain. 
+
+### Higher Training Efficiency And Effect Cost Ratio
+
+- The 128-expert Switch-Base model achieves 7× training speedup over dense T5-Base, greatly shortening the training cycle.
+- All top open-source models — DeepSeek-V2/V3, Mixtral, Llama 4, Grok, Qwen, etc. — adopt MoE architecture, achieving SOTA downstream performance with far fewer activated parameters than dense models.
+
+### Self-Adapt to Parallelism Distribution
+
+MoE makes expert parallelism a natural form of parallelization. With multiple independent FFN blocks deployable across devices, and experts sparsely activated, we only need to route each token to its corresponding device and compute there. This provides a natural partitioning point for distributing the model across devices, and is another key reason for MoE's popularity. 
+
+## Challenges of MoE
+
+- **Training stability:** With multiple experts, ensuring each receives sufficient gradient signal is non-trivial. Experts that are rarely routed to may fail to learn effectively, degrading overall model quality.
+- **Routing mechanism:** The router must decide, for each token, which expert to activate. Designing a routing strategy that is both efficient and load-balanced is one of the central engineering challenges in MoE.
+- **Implementation complexity:** MoE is substantially more complex to implement than dense models, particularly in distributed training settings where expert placement across devices introduces significant (dispatch and all-gather) communication and synchronization overhead.
+- **Fine-tuning challenge**: Fine-tuning MoE is prone to divergence and tends to overfit.
+
+## Upcycling
+
+**Upcycling** addresses the "from 0 to 1" training difficulty by initializing a MoE from a pre-trained dense Transformer: copy the FFN/MLP weights into multiple experts, add a router, and continue training. The result is a higher-parameter model that remains sparse at inference time, sidestepping the cold-start instability of training MoE from scratch. 
+
+## General Structure and Design Dimensions of MoE
+
+MoE designs differ mainly along the following three dimensions: 
+
+1. How to design routing function
+2. How to set expert sizes
+3. How to handle non-differentiable training objectives
+
+### Routing function
+
+Routing decision mainly includes three categories : 
+
+1. **token choice**: Each token computes preference scores over experts and selects the top-K. [Most common]
+2. **expert choice**: Each expert ranks tokens and selects the top-K to process, offering better load-balancing. [More balanced]
+3. **global assignment**: Uses complex optimization to achieve balanced expert-token matching with lower communication cost. 
+
+### Token-choice Router
+
+Token-choice router is the most commonly used routing function of MoE. It can be realized in multiple ways.
+
+#### Top-K Gating
+
+Top-K gating uses a linear layer to project each token's hidden state, compute a score per expert, then select the top-K. The detailed steps are:
+
+1. **Score Calculation** : For each token’s hidden state MATHPLACEHOLDER0ENDMATH, use a linear layer to compute each expert’s score. 
+MATHPLACEHOLDER1ENDMATH
+where MATHPLACEHOLDER2ENDMATH and MATHPLACEHOLDER3ENDMATH are the parameter for gates, MATHPLACEHOLDER4ENDMATH is the score of token MATHPLACEHOLDER5ENDMATH to expert MATHPLACEHOLDER6ENDMATH. 
+2. **Top-K Selection** : For each token, select K experts with highest scores : 
+MATHPLACEHOLDER7ENDMATH
+3. **Passing to Experts**: Route tokens to their selected experts. Each expert only processes its assigned tokens; others are ignored. 
+4. **Combining Outputs** : Merge experts’ outputs, get the final token representation. The most commonly used way is averaging by weighting. 
+MATHPLACEHOLDER8ENDMATH
+MATHPLACEHOLDER9ENDMATH is the final representation of token i, MATHPLACEHOLDER10ENDMATH is the processed result of expert MATHPLACEHOLDER11ENDMATH on token MATHPLACEHOLDER12ENDMATH, MATHPLACEHOLDER13ENDMATH is the Residual connection of token i (original representation), MATHPLACEHOLDER14ENDMATH is the selection result of token MATHPLACEHOLDER15ENDMATH to expert MATHPLACEHOLDER16ENDMATH.
+
+#### Top-K Variants
+
+In practice, Top-K Gating has several variants. A common one proposed by DeepSeek routes every token to a Shared Expert in addition to the Top-K selection, ensuring each token has at least one dedicated expert. This increases the model's representational capacity.  
+
+#### Choice of K
+
+The choice of K significantly impacts MoE performance. Smaller K reduces compute cost but limits representational capacity; larger K does the inverse. In practice, K=1 or K=2 is the default. 
+
+### Weak Router is Also Powerful
+
+An interesting observation is that even a very weak router (e.g., deterministic hash-based mapping) can outperform dense learned routers. A possible explanation: as long as the mapping is deterministic, each expert consistently sees some sub-distribution of inputs, naturally developing a form of specialization. 
+
+### MoE Experts
+
+In MoE, experts are multiple independent FFN layers, each responsible for a subset of tokens. Each expert is typically an FFN similar in structure to the transformer FFN layer, but with independent parameters. 
+The intermediate dimension is typically 4× the input dimension (MATHPLACEHOLDER17ENDMATH), consistent with standard FFN layers. However, DeepSeek's Fine-Grained Experts (Dai et al. 2024) reduce the intermediate dimension while increasing the number of experts, boosting model representational capacity. 
+
+## Training Objectives
+
+Beyond next-token prediction, MoE training requires additional objectives to prevent expert collapse — a failure mode where the router funnels all tokens to the same expert. 
+
+A central challenge is how to encourage uniform, efficient expert utilization. 
+
+### RL Based Optimization
+
+MoE routing can be framed as an RL problem: design a reward function to guide the router toward an optimal strategy. However, gradient estimation variance is high and training is unstable, so this approach is rarely used in practice.
+
+### Stochastic Approximation
+
+Stochastic Approximation resembles the exploration strategy in multi-armed bandits. By injecting noise into the router logits, top-K selection explores more routing paths during early training. One example is Stochastic Jittering:
+
+1. Router computation : For each token’s hidden state MATHPLACEHOLDER18ENDMATH, use a linear layer to compute the score of each expert : 
+MATHPLACEHOLDER19ENDMATH.
+2. Adding noise : Add Gaussian noise to each expert's score : 
+MATHPLACEHOLDER20ENDMATH
+3. Top-K selection : For each token, select the top K experts after adding noise
+MATHPLACEHOLDER21ENDMATH
+
+Here, MATHPLACEHOLDER22ENDMATH is a learnable function, usually realized by a small neural network. By adjusting the noise size, we can control the router’s exploration, hence improve the model’s performance. 
+
+### Auxiliary / Heuristic Balancing Losses
+
+Since expert collapse is the central challenge in MoE training, a direct approach is to add auxiliary losses on top of the cross-entropy loss to encourage balanced expert utilization. Commonly used auxiliary losses include Load Balancing Loss and Z-Loss.
+
+#### Load Balancing Loss
+
+Load Balancing Loss, proposed in Switch Transformer (Fedus et al., 2022), encourages the router to distribute tokens evenly across experts. 
+
+MATHPLACEHOLDER23ENDMATH
+
+where MATHPLACEHOLDER24ENDMATH is the frequency of expert i being selected. MATHPLACEHOLDER25ENDMATH
+
+MATHPLACEHOLDER26ENDMATH is the average routing probability of expert i, which is defined as MATHPLACEHOLDER27ENDMATH, where MATHPLACEHOLDER28ENDMATH is the output score of the router of expert MATHPLACEHOLDER29ENDMATH. 
+
+Intuitively, if an expert processes many tokens (large MATHPLACEHOLDER30ENDMATH) and the router continues to assign it high probability (large MATHPLACEHOLDER31ENDMATH), the loss increases, pushing the router to spread tokens more evenly. 
+
+#### DeepSeek Load Balancing Loss
+
+Based on the load balancing loss above, Deepseek designed an improved version. They proposed :
+
+- Per-expert Balancing Loss: Expand the above load balancing loss into Top-K expert.
+- Per-device Balancing Loss: In DDP training, consider the expert load balancing in each device : MATHPLACEHOLDER32ENDMATH, where MATHPLACEHOLDER33ENDMATH is the number of devices, MATHPLACEHOLDER34ENDMATH is the frequency of an expert being selected on device MATHPLACEHOLDER35ENDMATH MATHPLACEHOLDER36ENDMATH is the average routing probability of experts on device MATHPLACEHOLDER37ENDMATH.
+
+#### DeepSeek Auxiliary Loss Free Balancing
+
+DeepSeek V3 also proposed another loss, Auxiliary Loss Free Balancing, its core idea is to not mainly reply on MATHPLACEHOLDER38ENDMATH for load balancing, instead, adjust the Bias term of router to realize load balancing. 
+
+MATHPLACEHOLDER39ENDMATH
+
+If expert MATHPLACEHOLDER40ENDMATH got too few tokens, increase MATHPLACEHOLDER41ENDMATH to make it easier to be selected. Vice versa. 
+
+#### Z-Loss
+
+Z-loss is another commonly used auxiliary loss, to encourage router’s output to be more uniform. 
+
+MATHPLACEHOLDER42ENDMATH
+
+, where MATHPLACEHOLDER43ENDMATH is the output score for expert MATHPLACEHOLDER44ENDMATH, MATHPLACEHOLDER45ENDMATH is the total number of experts. Minimizing Z-Loss encourages the router to output more uniform scores, improving overall model performance. 
+
+### Loss Combination
+
+MoE’s total loss is usually composed of Cross Entropy Loss and Auxiliary Loss : 
+
+MATHPLACEHOLDER46ENDMATH
+
+## References
+
+Fedus, W., Zoph, B., & Shazeer, N. (2022). Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity. *Journal of Machine Learning Research, 23*(120), 1–39.
+
+Muennighoff, N., Sanders, T., Schwenk, H., Gokaslan, A., Akiki, C., Penedo, G. L., ... & Wolf, T. (2024). *OLMoE: Open Mixture-of-Experts Language Models* (arXiv:2409.01704). arXiv.
+
+Dai, D., Deng, C., Zhao, C., Xu, R. X., Gao, H., Chen, D., Li, J., Zeng, W., Yu, X., Wu, Y., Zuo, Z., Li, M., Xie, N., Hu, Y., Pan, Y., Li, X., Zhou, S., Wu, Z., Ba, Z., ... Liang, W. (2024). DeepSeekMoE: Towards ultimate expert specialization in mixture-of-experts language models. In *Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)* (pp. 658–680). Association for Computational Linguistics. doi.org
+
+Lepikhin, D., Lee, H., Xu, Y., Chen, D., Firat, O., Huang, Y., Krikun, M., Shazeer, N., & Chen, Z. (2020). *GShard: Scaling giant models with conditional computation and automatic sharding* (arXiv:2006.16668). arXiv.
+
+DeepSeek-AI. (2024). *DeepSeek-V2: A strong, economical, and efficient mixture-of-experts language model* ([**arXiv**](https://arxiv.org/pdf/2405.04434):2405.04434). arXiv.
+
+DeepSeek-AI. (2024). *DeepSeek-V3 technical report* (arXiv:2412.19437). arXiv. [**https://arxiv.org/abs/2412.19437**](https://arxiv.org/abs/2412.19437)`;
+    const mathFormulas = [["inline", "h_i"], ["display", "s_{i, j}=W_g h_i + b_g"], ["inline", "W_g"], ["inline", "b_g"], ["inline", "s_{i, j}"], ["inline", "i"], ["inline", "j"], ["display", "g_{i, j} = \\begin{cases} s_{i, j} & \\text{if } s_{i, j} \\in \\text{Top-K}(s_i) \\\\ 0 & \\text{otherwise} \\end{cases}"], ["display", "h_{i}^{\\prime}=\\sum_{j}g_{i, j}Expert_j(h_i) + h_i"], ["inline", "h^{\\prime}_{i}"], ["inline", "Expert_j(h_i)"], ["inline", "j"], ["inline", "i"], ["inline", "h_i"], ["inline", "g_{i, j}"], ["inline", "i"], ["inline", "j"], ["inline", "4d_{model}"], ["inline", "h_i"], ["display", "s_{i, j} = W_gh_i + b_g"], ["display", "\\tilde{s}_{i,j} = s_{i,j}+\\epsilon_{i,j}, \\qquad \\epsilon_{i,j}\\sim\\mathcal{N}(0, \\sigma(x_i)^2)"], ["display", "g_{i, j} = \\begin{cases} \\tilde{s}_{i, j} & \\text{if } \\tilde{s}_{i, j} \\in \\text{Top-K}(\\tilde{s}_i) \\\\ 0 & \\text{otherwise} \\end{cases}"], ["inline", "\\sigma(x_i)"], ["display", "\\mathcal{L} = N _{i=1}^{N} f_i P_i"], ["inline", "f_i"], ["display", "f_i = \\frac{1}{T}\\sum_{x\\in\\mathcal{B}}\\mathbb{1}\\{argmax\\;p(x)=i\\}"], ["inline", "P_i"], ["display", "P_i=\\frac{1}{T}\\sum_{x\\in\\mathcal{B}}p_i(x)"], ["inline", "p_i(x)"], ["inline", "i"], ["inline", "f_i"], ["inline", "P_i"], ["display", "L_{device} = \\beta\\cdot D\\cdot \\sum_{d=1}^{D}f_d P_d"], ["inline", "D"], ["inline", "f_d"], ["inline", "d,"], ["inline", "P_d"], ["inline", "d"], ["inline", "\\mathcal{L}_{ExpBal}"], ["display", "g_{i, j} = \\begin{cases}s_{i, j}+b_{j}, \\quad s_{i, j}\\in \\text{Top-K}\\\\0, \\quad\\text{otherwise}\\end{cases}"], ["inline", "i"], ["inline", "b_{i}"], ["display", "\\mathcal{L}_{z} = \\sum_{i}\\left(\\frac{p_i}{\\sum_{j}p_j} - \\frac{1}{E}\\right)^2"], ["inline", "p_i"], ["inline", "i"], ["inline", "E"], ["display", "\\mathcal{L}_{total} = \\mathcal{L}_{CE} + \\lambda_{load}\\mathcal{L}_{load} + \\lambda_{z}\\mathcal{L}_{z}"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
