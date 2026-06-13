@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlashAttention - Math Behind It · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="FlashAttention - Math Behind It"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>FlashAttention - Math Behind It</h1>
+      <div class="post-date">
+        <time datetime="2026-06-12">Jun 12, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+FlashAttention computes exact attention without materializing the full attention matrix. This post walks through the math behind it. A follow-up post will cover the Triton implementation and the GPU memory model.
+
+## 1. Motivation: Why FlashAttention?
+
+FlashAttention is mathematically equivalent to standard attention — same output, same gradients. The trick is purely in how the computation is scheduled on the GPU, so that the expensive movement of data between HBM and SRAM is minimized.
+
+Recall the standard attention:
+
+MATHPLACEHOLDER0ENDMATH
+
+On a GPU, a naive implementation looks like:
+
+1. Compute MATHPLACEHOLDER1ENDMATH, write to HBM
+2. Read MATHPLACEHOLDER2ENDMATH from HBM, compute softmax, write the result back to HBM
+3. Read MATHPLACEHOLDER3ENDMATH and MATHPLACEHOLDER4ENDMATH from HBM, compute the final attention output
+
+The intermediate MATHPLACEHOLDER5ENDMATH has shape MATHPLACEHOLDER6ENDMATH. Every step shuttles this large tensor between HBM and the compute units. Because attention has a low FLOPs/Byte ratio, the GPU spends most of its time waiting on memory — it is heavily **memory-bound**, and the compute units sit idle.
+
+The optimization goal is therefore: **keep hot data on SRAM, fuse kernels, and minimize HBM accesses.**
+
+## 2. Three Pillars of FlashAttention
+
+FlashAttention rests on three ideas that work together:
+
+1. **Tiling / Blocking** — split MATHPLACEHOLDER7ENDMATH, MATHPLACEHOLDER8ENDMATH, MATHPLACEHOLDER9ENDMATH into blocks along the sequence dimension, so that every intermediate quantity fits in SRAM.
+2. **Online Softmax** — reformulate softmax so it can be computed incrementally, one block at a time, without ever materializing the full MATHPLACEHOLDER10ENDMATH logits matrix.
+3. **Kernel Fusion** — perform matmul → softmax → matmul inside a single fused kernel, so that intermediate results never touch HBM.
+
+None of the three alone is enough; the IO win comes from combining them.
+
+## 3. Pillar 1 — Tiling
+
+The goal of tiling is simple: **at no point should the full** MATHPLACEHOLDER11ENDMATH **matrix exist on HBM, and SRAM should only hold values related to the current query block and the current key/value block.**
+
+To keep things readable, look at a single query MATHPLACEHOLDER12ENDMATH and the MATHPLACEHOLDER13ENDMATH-th K/V block of length MATHPLACEHOLDER14ENDMATH: MATHPLACEHOLDER15ENDMATH, MATHPLACEHOLDER16ENDMATH.
+
+The local logits between this query and the MATHPLACEHOLDER17ENDMATH-th K/V block are:
+
+MATHPLACEHOLDER18ENDMATH
+
+(Real GPU kernels organize matrices as query-block × key-block to maximize tensor-core throughput; the math is equivalent to the row-vector formulation above.)
+
+The processing order is:
+
+- **Outer loop (over query blocks):** Fix one tile of MATHPLACEHOLDER19ENDMATH in SRAM / registers.
+- **Inner loop (over K/V blocks):** Iteratively scan each K/V block along the sequence dimension. For each block, compute the local logits MATHPLACEHOLDER20ENDMATH, then merge its contribution into the running output via online softmax (next section).
+
+Tiling alone is not enough — the moment we try to apply softmax to a single block in isolation, we hit a problem: softmax needs the **global** maximum and the **global** sum of exponentials across the full row. That is what online softmax fixes.
+
+## 4. Pillar 2 — Online Softmax
+
+When we process the MATHPLACEHOLDER21ENDMATH-th K/V block, we have only seen blocks MATHPLACEHOLDER22ENDMATH. But the standard softmax needs quantities computed over the *entire* row — values we don't have yet, and won't have until the very last block arrives.
+
+Online softmax solves this by maintaining **running estimates** of these quantities and updating them as new blocks arrive.
+
+Start from the safe softmax expression:
+
+MATHPLACEHOLDER23ENDMATH
+
+We need an online update rule for both the numerator and the denominator separately, given that MATHPLACEHOLDER24ENDMATH itself is also computed online.
+
+Maintain three running state variables:
+
+- MATHPLACEHOLDER25ENDMATH — running max of all logits seen so far
+- MATHPLACEHOLDER26ENDMATH — running sum of exponentials (denominator), normalized against the current MATHPLACEHOLDER27ENDMATH
+- MATHPLACEHOLDER28ENDMATH — running weighted output (numerator), normalized against the current MATHPLACEHOLDER29ENDMATH
+
+Before processing the MATHPLACEHOLDER30ENDMATH-th K/V block, denote the old states as MATHPLACEHOLDER31ENDMATH, MATHPLACEHOLDER32ENDMATH, MATHPLACEHOLDER33ENDMATH.
+
+For the MATHPLACEHOLDER34ENDMATH-th block, compute the local quantities:
+
+MATHPLACEHOLDER35ENDMATH
+
+**Update rule for** MATHPLACEHOLDER36ENDMATH**.** The new global max is simply the larger of the old running max and the new block's local max:
+
+MATHPLACEHOLDER37ENDMATH
+
+**Update rule for** MATHPLACEHOLDER38ENDMATH**.** We want MATHPLACEHOLDER39ENDMATH to equal the exact sum of exponentials over all blocks seen so far, but rebased to MATHPLACEHOLDER40ENDMATH:
+
+MATHPLACEHOLDER41ENDMATH
+
+MATHPLACEHOLDER42ENDMATH
+
+Define rescaling factors MATHPLACEHOLDER43ENDMATH and MATHPLACEHOLDER44ENDMATH. Then:
+
+MATHPLACEHOLDER45ENDMATH
+
+The old running sum is "shifted" from baseline MATHPLACEHOLDER46ENDMATH to baseline MATHPLACEHOLDER47ENDMATH by multiplying by MATHPLACEHOLDER48ENDMATH; the new block's local sum is shifted from baseline MATHPLACEHOLDER49ENDMATH to baseline MATHPLACEHOLDER50ENDMATH by multiplying by MATHPLACEHOLDER51ENDMATH.
+
+**Update rule for** MATHPLACEHOLDER52ENDMATH**.** Analogously, we want:
+
+MATHPLACEHOLDER53ENDMATH
+
+MATHPLACEHOLDER54ENDMATH
+
+The old term rescales by the same MATHPLACEHOLDER55ENDMATH factor as before. For the new block's contribution, define the local weight vector MATHPLACEHOLDER56ENDMATH. The contribution is a weighted sum of the rows of MATHPLACEHOLDER57ENDMATH:
+
+MATHPLACEHOLDER58ENDMATH
+
+Note this is a **vector-matrix product.**
+
+So the update is:
+
+MATHPLACEHOLDER59ENDMATH
+
+After iterating through all K/V blocks, the final attention output for this query is:
+
+MATHPLACEHOLDER60ENDMATH
+
+## 5. Pillar 3 — Kernel Fusion
+
+With tiling localizing the data and online softmax localizing the math, **every intermediate quantity** — MATHPLACEHOLDER61ENDMATH, MATHPLACEHOLDER62ENDMATH, MATHPLACEHOLDER63ENDMATH, the weighted MATHPLACEHOLDER64ENDMATH contribution, the running MATHPLACEHOLDER65ENDMATH, MATHPLACEHOLDER66ENDMATH, MATHPLACEHOLDER67ENDMATH — lives entirely inside SRAM; they exist only as transient values inside one fused kernel.
+
+A FlashAttention kernel therefore performs, in a single launch:
+
+1. Load one tile of MATHPLACEHOLDER68ENDMATH and one tile of MATHPLACEHOLDER69ENDMATH, MATHPLACEHOLDER70ENDMATH from HBM into SRAM
+2. Compute local logits MATHPLACEHOLDER71ENDMATH and the local block max MATHPLACEHOLDER72ENDMATH
+3. Merge into running MATHPLACEHOLDER73ENDMATH, MATHPLACEHOLDER74ENDMATH, MATHPLACEHOLDER75ENDMATH via the online softmax update rules
+4. Repeat steps 1–3 over all K/V blocks for this query tile
+5. Write the final MATHPLACEHOLDER76ENDMATH back to HBM — **once** per query block
+
+The IO win is now concrete: each element of MATHPLACEHOLDER77ENDMATH, MATHPLACEHOLDER78ENDMATH, MATHPLACEHOLDER79ENDMATH is read from HBM MATHPLACEHOLDER80ENDMATH times instead of MATHPLACEHOLDER81ENDMATH times, and the MATHPLACEHOLDER82ENDMATH logits matrix is never materialized. This is what turns attention from memory-bound back toward compute-bound, and is the entire reason FlashAttention is fast.`;
+    const mathFormulas = [["inline", "attn = softmax(\\frac{1}{\\sqrt{d_k}}Q K^{\\top})V, \\quad Q, K, V\\in \\mathbb{R}^{N\\times d}"], ["inline", "QK^{\\top}"], ["inline", "QK^{\\top}"], ["inline", "softmax(\\cdot)"], ["inline", "V"], ["inline", "QK^{\\top}"], ["inline", "N\\times N"], ["inline", "Q"], ["inline", "K"], ["inline", "V"], ["inline", "N\\times N"], ["inline", "N\\times N"], ["inline", "q\\in \\mathbb{R}^{d}"], ["inline", "j"], ["inline", "B_K"], ["inline", "K_j \\in \\mathbb{R}^{B_K \\times d}"], ["inline", "V_j \\in \\mathbb{R}^{B_K \\times d}"], ["inline", "j"], ["inline", "s_j = \\frac{1}{\\sqrt{d_k}}\\cdot K_j q \\in \\mathbb{R}^{B_K}"], ["inline", "Q"], ["inline", "s_j"], ["inline", "j"], ["inline", "1, \\dots, j"], ["inline", "\\frac{\\sum_i exp(s_i - max(s_i)) V_i}{\\sum_i exp(s_i - max(s_i))}"], ["inline", "max(s_i)"], ["inline", "M"], ["inline", "L"], ["inline", "M"], ["inline", "O"], ["inline", "M"], ["inline", "j"], ["inline", "M_{old}"], ["inline", "L_{old}"], ["inline", "O_{old}"], ["inline", "j"], ["inline", "s_j = \\frac{1}{\\sqrt{d_k}}K_j q; \\quad m_j = max(s_j); \\quad \\ell_j = \\sum_{i\\in block_j}exp(s_i-m_j)"], ["inline", "M"], ["inline", "M_{new} = max(M_{old}, m_j)"], ["inline", "L"], ["inline", "L_{new}"], ["inline", "M_{new}"], ["inline", "L_{old} = \\sum_{i\\in \\text{seen}}exp(s_i - M_{old})"], ["inline", "L_{new} = \\sum_{i\\in\\text{seen}}exp(s_i - M_{new})+\\sum_{i\\in block_j}exp(s_i - M_{new})"], ["inline", "exp_{old} = exp(M_{old}-M_{new})"], ["inline", "exp_{new} = exp(m_j-M_{new})"], ["inline", "L_{new} = L_{old}\\cdot exp_{old}+\\ell_j\\cdot exp_{new}"], ["inline", "M_{old}"], ["inline", "M_{new}"], ["inline", "exp_{old}"], ["inline", "m_j"], ["inline", "M_{new}"], ["inline", "exp_{new}"], ["inline", "O"], ["inline", "O_{old} = \\sum_{i\\in\\text{seen}}exp(s_i - M_{old})V_i"], ["inline", "O_{new} = \\sum_{i\\in\\text{seen}}exp(s_i - M_{new})V_i + \\sum_{i\\in block_j}exp(s_i-M_{new})V_i"], ["inline", "exp_{old}"], ["inline", "\\text{weights}_j = exp(s_j - M_{new}) \\in \\mathbb{R}^{B_K}"], ["inline", "V_j"], ["inline", "\\sum_{i\\in block_j}exp(s_i - M_{new})V_i = \\text{weights}_j^{\\top} V_j \\in \\mathbb{R}^{d}"], ["inline", "O_{new} = O_{old}\\cdot exp_{old} + \\text{weights}_j^{\\top} V_j"], ["inline", "O_{final}/L_{final}"], ["inline", "s_j"], ["inline", "m_j"], ["inline", "\\ell_j"], ["inline", "V"], ["inline", "M"], ["inline", "L"], ["inline", "O"], ["inline", "Q"], ["inline", "K"], ["inline", "V"], ["inline", "s_j"], ["inline", "m_j"], ["inline", "M"], ["inline", "L"], ["inline", "O"], ["inline", "O / L"], ["inline", "Q"], ["inline", "K"], ["inline", "V"], ["inline", "O(1)"], ["inline", "O(N)"], ["inline", "N\\times N"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
