@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flash Attention - Triton Implementation And GPU Structure · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Flash Attention - Triton Implementation And GPU Structure"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Flash Attention - Triton Implementation And GPU Structure</h1>
+      <div class="post-date">
+        <time datetime="2026-06-14">Jun 14, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+## Triton Quick Intro
+
+Triton is a Python-embedded DSL for writing GPU kernels. A Triton kernel can be launched directly from PyTorch with no glue code.
+
+The single most important difference from CUDA is the level of abstraction. CUDA exposes thread-level programming, while Triton exposes tile-level programming. You describe what one program does to one tile of data, and the compiler generates the per-thread code, the vectorization, the memory coalescing, and (within limits) the scheduling. The result is dramatically less boilerplate, with performance that is competitive with hand-tuned CUDA for most operations relevant to deep learning.
+
+## Background Knowledge
+
+Before writing the actual FlashAttention kernel, it’s necessary to walk through the hardware and software concepts that determine how a Triton kernel actually executes.
+
+### GPU Hardware Structure
+
+Taking H100 as the running example, the top-down structure is:
+
+| Layer | Count | Note |
+| --- | --- | --- |
+| GPU | 1 | The full device |
+| SM (Streaming Multiprocessor) | 132 | An independent compute unit with its own warp schedulers, register file, and SRAM |
+| Warp | 4–64 concurrently resident per SM | 32 threads that always execute the same instruction in lockstep (SIMT) |
+| Thread | 32 per warp | The smallest execution unit, with private registers and a program counter |
+
+Each SM contains:
+
+- 128 FP32 cores + 4 Tensor Cores
+- \\~228 KB of SRAM, serving as both L1 cache and shared memory
+- 65,536 32-bit registers
+- 4 warp schedulers
+
+**The key hardware constraint:** the warp is the hardware-level execution atom. An SM cannot issue an instruction to a single thread, instructions are always broadcast to all 32 threads of a warp simultaneously. This is hardwired into the SIMD lanes of the SM and applies to every NVIDIA GPU. (AMD CDNA uses 64-wide wavefronts; the same idea, different number.)
+
+### Memory Hierarchy
+
+| Memory | Physical Location | Visibility | Size | Latency |
+| --- | --- | --- | --- | --- |
+| Register | Per-SM register file | Private to one thread | \\~256 per thread | \\~1 cycle |
+| Shared Memory / SRAM | Per-SM | Shared by all threads within a block / program | \\~100–228 KB per SM | \\~20 cycles |
+| L2 Cache | Global to the GPU | Shared by all SMs | \\~50 MB (H100) | \\~200 cycles |
+| HBM | DRAM stacks beside the GPU die | Shared by all SMs | 80 GB (H100) | \\~500 cycles |
+
+Two implications worth internalizing before reading any kernel:
+
+- When you write \`x = tl.load(...)\` in Triton, the compiler decides whether the resulting tile lives in registers or in shared memory, depending on its size and how it is used downstream.
+- SRAM is *physically* tied to one SM. A program may use the SRAM of the SM it runs on, but **it cannot read another program's SRAM**. This is precisely why FlashAttention requires that one Q tile be processed entirely by one program , as splitting it would require cross-SM SRAM access, which does not exist.
+
+The entire IO argument for FlashAttention rests on the gap between SRAM (\\~20 cycles) and HBM (\\~500 cycles): every value that stays in SRAM throughout the kernel is a value that did not have to cross that 25× latency gap twice.
+
+### CUDA's Software Model
+
+CUDA exposes three software layers that map directly onto the hardware:
+
+| CUDA Concept | Where It Runs | Limits |
+| --- | --- | --- |
+| Grid | The whole GPU (spread across SMs) | Up to MATHPLACEHOLDER0ENDMATH blocks |
+| Block (Thread Block) | Entirely on a single SM | MATHPLACEHOLDER1ENDMATH 1024 threads per block |
+| Thread | One execution stream | Packed into warps of 32 |
+
+When writing CUDA, you write from the perspective of a single thread:
+
+\`\`\`
+__global__ void add(float* x, float* y, float* out) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;   // my global index
+    out[i] = x[i] + y[i];                            // I handle one element
+}
+\`\`\`
+
+\`blockIdx.x\` tells you which block you belong to; \`threadIdx.x\` tells you your position within the block.
+
+The block is the meaningful middle layer:
+
+- All threads in the same block share that SM's SRAM and can synchronize via \`__syncthreads()\`.
+- Blocks cannot communicate directly with each other; cross-block communication must go through HBM.
+- A block must live entirely on one SM and cannot be split.
+
+### Triton's Abstraction: Hide Thread, Expose Program
+
+Triton collapses CUDA's three layers into two:
+
+| CUDA | Triton | Relationship |
+| --- | --- | --- |
+| Grid | Grid | Identical |
+| Block | Program | Identical concept, renamed to avoid confusion with \`BLOCK_SIZE\` |
+| Thread | (not exposed) | Generated automatically by the compiler |
+
+Consequently:
+
+- \`tl.program_id(axis)\` is the Triton analogue of \`blockIdx.{x,y,z}\`.
+- Triton code has no notion of a thread index;
+
+How does Triton decide how many threads a program uses? It depends on the tile shape and the operations performed. The compiler picks a default (typically 4 warps, i.e. 128 threads per program), and you can override it explicitly with \`num_warps=\`. When you write
+
+\`\`\`python
+x = tl.load(ptr + offs)   # offs is a length-128 vector
+\`\`\`
+
+Triton statically distributes the 128 loads across the threads of the program, ensuring (when possible) that 32 contiguous loads issued by the same warp coalesce into a single HBM transaction.
+
+### Program vs Warp: The Containment Relationship
+
+Because Triton hides threads, it is easy to confuse programs and warps. They form a containment hierarchy:
+
+\`\`\`
+Grid
+└── Program 0           (= one CUDA block, runs on one SM)
+    ├── Warp 0          (threads  0–31,  lockstep)
+    ├── Warp 1          (threads 32–63,  lockstep)
+    ├── Warp 2          (threads 64–95,  lockstep)
+    └── Warp 3          (threads 96–127, lockstep)
+└── Program 1
+    └── ...
+\`\`\`
+
+**One program contains** MATHPLACEHOLDER2ENDMATH **warps; each warp contains exactly 32 threads; therefore a program holds** MATHPLACEHOLDER3ENDMATH **threads in total.** The value of MATHPLACEHOLDER4ENDMATH is controlled by \`num_warps=\`.
+
+The SM can only broadcast an instruction across 32 lanes simultaneously, so the smallest unit of execution that the hardware understands is 32 threads. You cannot shrink it.
+
+Why does a program contain multiple warps rather than just one?
+
+1. **Tensor cores need volume.** A FlashAttention Q tile is typically MATHPLACEHOLDER5ENDMATH, which requires more than one warp's worth of threads to keep the tensor cores fed.
+2. **Intra-program latency hiding.** Each SM has 4 warp schedulers, each of which can issue one instruction per cycle to a ready warp. If a program contains only one warp, the moment that warp stalls on HBM (hundreds of cycles), the SM must look to another program's warps to stay busy — a more expensive form of scheduling than swapping among warps of the same program. With 4 warps in a program, the schedulers can keep all four busy while any one of them waits on memory.
+3. **Reductions cross warp boundaries.** Operations such as \`tl.sum(x, axis=1)\` or \`tl.max(x, axis=1)\` over a tile wider than 32 elements require warp-internal shuffles followed by cross-warp reduction through shared memory. A single-warp program cannot perform reductions wider than 32 elements.
+
+In practice \`num_warps\` is chosen from MATHPLACEHOLDER6ENDMATH. Triton's \`autotuner\` sweeps it together with the tile sizes.
+
+### Latency Hiding and the Occupancy Trade-off
+
+GPU performance under heavy memory traffic depends on **latency hiding**: while one warp is waiting on a load, the SM's warp scheduler issues instructions to a different warp that is ready. The more warps an SM can keep resident simultaneously, the more thoroughly it can hide latency. This metric is called **occupancy**.
+
+Occupancy is bounded by the SM's resource budget:
+
+- 65,536 32-bit registers
+- \\~228 KB of SRAM
+- A hard cap of \\~2048 resident threads (i.e. \\~64 resident warps)
+
+Increasing \`num_warps\` makes each program larger, which has two opposing effects:
+
+- **Better intra-program latency hiding**, because the SM can swap among more of *this* program's warps without the cost of context-switching across programs.
+- **Lower occupancy**, because fewer programs fit on the SM at once when each one consumes more registers and SRAM.
+
+The same trade-off applies to \`BLOCK_SIZE\`: larger tiles reduce the cost of address computation and feed tensor cores more efficiently, but they consume more SRAM, reducing the number of co-resident programs.
+
+This is precisely why Triton kernels are autotuned: there is no universally correct choice of \`num_warps\`, \`BLOCK_M\`, \`BLOCK_N\`, or \`BLOCK_K\`. The right configuration depends on the operation, the input shapes, and the GPU's resource limits.
+
+## Implementation of FlashAttention
+
+Following the same first-principles approach we used for the math (in previous blog), the kernel can be derived from five questions, asked in order from the outermost structure to the innermost detail. 
+
+### What Can Be Parallelized?
+
+Look at each output element and ask which inputs it depends on. Two output elements with non-overlapping dependency sets can be computed in parallel.
+
+MATHPLACEHOLDER7ENDMATH
+
+Observations:
+
+- Different MATHPLACEHOLDER8ENDMATH pairs are fully independent and can be parallelized.
+- Within the same MATHPLACEHOLDER9ENDMATH, different query rows MATHPLACEHOLDER10ENDMATH are independent and can be parallelized.
+- Within a single row, the MATHPLACEHOLDER11ENDMATH output dimensions are coupled through the shared softmax normalizer, so we cannot parallelize along MATHPLACEHOLDER12ENDMATH.
+
+We do not, however, assign one program per query row. Since MATHPLACEHOLDER13ENDMATH and MATHPLACEHOLDER14ENDMATH are shared by every query within the same MATHPLACEHOLDER15ENDMATH, packing MATHPLACEHOLDER16ENDMATH adjacent query rows into a single program lets them amortize the cost of each MATHPLACEHOLDER17ENDMATH load: the HBM cost of fetching a MATHPLACEHOLDER18ENDMATH block is paid once for MATHPLACEHOLDER19ENDMATH rows instead of once per row. The grid is therefore:
+
+\`grid = (cdiv(N, BQ), B * H)\` (cdiv in Triton is the ceiling division)
+
+The outer dimension iterates over Q blocks; the K/V dimension is handled by the inner loop *inside* a program, because that is the only place where multiple queries can reuse a single MATHPLACEHOLDER20ENDMATH load.
+
+### What Does One Program Do?
+
+Before writing any Triton, describe the program's identity:
+
+> "I am the MATHPLACEHOLDER21ENDMATH-th Q block within the MATHPLACEHOLDER22ENDMATH-th MATHPLACEHOLDER23ENDMATH pair. I hold one fixed Q tile of shape MATHPLACEHOLDER24ENDMATH in SRAM. I scan all MATHPLACEHOLDER25ENDMATH blocks belonging to this MATHPLACEHOLDER26ENDMATH, maintain three running state variables — MATHPLACEHOLDER27ENDMATH, MATHPLACEHOLDER28ENDMATH, MATHPLACEHOLDER29ENDMATH — and finally emit one O tile of shape MATHPLACEHOLDER30ENDMATH."
+> 
+
+Every line of code in the kernel maps directly to a clause of this sentence:
+
+| Clause | Code |
+| --- | --- |
+| "I am the MATHPLACEHOLDER31ENDMATH-th Q block, MATHPLACEHOLDER32ENDMATH-th MATHPLACEHOLDER33ENDMATH" | \`tl.program_id(0)\` / \`tl.program_id(1)\` |
+| "I hold one fixed Q tile" | One \`tl.load\` of Q, then no further Q traffic |
+| "scan all MATHPLACEHOLDER34ENDMATH blocks" | Inner \`for\` loop over \`start_n\` |
+| "running state MATHPLACEHOLDER35ENDMATH, MATHPLACEHOLDER36ENDMATH, MATHPLACEHOLDER37ENDMATH" | Initialize before the loop, update inside |
+| "emit one O tile" | One \`tl.store\` after the loop |
+
+At the Triton level you only describe a tile's trajectory; the compiler maps it onto warps.
+
+### How to Compute Pointers?
+
+A PyTorch tensor is a contiguous 1-D buffer indexed via strides:
+
+MATHPLACEHOLDER38ENDMATH
+
+In Triton, every 2-D pointer tile follows a single template:
+
+\`ptrs = BASE + row_offsets[:, None] * row_stride + col_offsets[None, :] * col_stride\`
+
+Two practical refinements that apply to every kernel:
+
+- **Fold the batch and head offsets into \`BASE\`.** They are constant across the entire tile and should not enter the broadcast.
+- **\`[:, None]\` is the row axis; \`[None, :]\` is the column axis.** Reversing them silently produces a transposed pointer grid, which compiles but reads the wrong memory.
+
+### Masking — Two Independent Concerns — Boundary Mask And Causal Mask
+
+Two unrelated correctness issues force us to insert masks inside the kernel.
+
+**Boundary mask.** The sequence length MATHPLACEHOLDER39ENDMATH is not necessarily divisible by MATHPLACEHOLDER40ENDMATH or MATHPLACEHOLDER41ENDMATH. Without protection, the tail block reads past the end of the tensor. There are two distinct failure modes:
+
+1. **An out-of-bounds load is undefined behaviour.** Triton's \`tl.load\` against an unmapped HBM address may crash the kernel or return garbage. The standard fix is to pass a mask together with an \`other=\` default:
+
+\`\`\`python
+n_mask = offs_n < N
+k = tl.load(K_ptrs, mask=n_mask[:, None], other=0.0)
+v = tl.load(V_ptrs, mask=n_mask[:, None], other=0.0)
+\`\`\`
+
+- *Even with \`other=0.0\`, the dot product still produces non-zero logits at out-of-bounds columns, and softmax would attribute non-zero weight to them. To neutralize these positions, set them to MATHPLACEHOLDER42ENDMATH before applying \`exp\`:
+
+\`\`\`python
+s = tl.where(n_mask[None, :], s, -float("inf"))
+\`\`\`
+
+MATHPLACEHOLDER43ENDMATH becomes MATHPLACEHOLDER44ENDMATH after \`exp\`, contributing nothing to either the running denominator or the running numerator. The same boundary logic applies along the Q axis: both the \`tl.load\` of Q and the \`tl.store\` of O must be masked along \`offs_m\`, otherwise we read from and write to positions past the end of the tensor.
+
+**Causal mask.** In decoder-only models, the score at position MATHPLACEHOLDER45ENDMATH must vanish whenever MATHPLACEHOLDER46ENDMATH. Using the absolute row and column indices already available inside the kernel:
+
+\`\`\`python
+causal_mask = offs_m[:, None] >= offs_n[None, :]
+s = tl.where(causal_mask, s, -float("inf"))
+\`\`\`
+
+\`offs_m\` is the global query index in the full sequence and \`offs_n\` is the global key index. Broadcasting them yields a MATHPLACEHOLDER47ENDMATH Boolean grid.
+
+**A causality aware optimization.** When the kernel runs in causal mode, a Q block at MATHPLACEHOLDER48ENDMATH can attend only up to key index MATHPLACEHOLDER49ENDMATH. Any K block whose first index exceeds the last query in this Q block lies entirely above the diagonal and contributes nothing — we can skip loading it altogether by capping the inner loop:
+
+\`\`\`python
+N_end = (pid_q + 1) * BQ if IS_CAUSAL else N
+for start_n in range(0, N_end, BK):
+    ...
+\`\`\`
+
+This eliminates roughly half of the K/V loads in causal decoding, which is one of FlashAttention-2's most impactful contributions.
+
+**Summary of mask placement.** Three categories of locations inside the kernel:
+
+1. \`tl.load\` on Q, K, V : prevents undefined behaviour on the tail block.
+2. \`tl.where\` on \`s\`, applied up to twice : once for boundary columns, once for causal positions.
+3. \`tl.store\` on O : prevents writing past the output buffer.
+
+### The Forward Kernel
+
+With the four design questions answered, the kernel writes itself:
+
+\`\`\`python
+@triton.jit
+def flash_attn_fwd(
+    Q, K, V, O,
+    stride_qb, stride_qh, stride_qm, stride_qd,
+    stride_kb, stride_kh, stride_kn, stride_kd,
+    stride_vb, stride_vh, stride_vn, stride_vd,
+    stride_ob, stride_oh, stride_om, stride_od,
+    H, N, scale,
+    D:  tl.constexpr,
+    BQ: tl.constexpr,
+    BK: tl.constexpr,
+    IS_CAUSAL: tl.constexpr,
+):
+    # ----- Step 1: identify the program -----
+    pid_q  = tl.program_id(0)
+    pid_bh = tl.program_id(1)
+    b = pid_bh // H
+    h = pid_bh %  H
+
+    # ----- Step 2: base pointers + load Q tile -----
+    Q_base = Q + b * stride_qb + h * stride_qh
+    K_base = K + b * stride_kb + h * stride_kh
+    V_base = V + b * stride_vb + h * stride_vh
+    O_base = O + b * stride_ob + h * stride_oh
+
+    offs_m = pid_q * BQ + tl.arange(0, BQ)
+    offs_d = tl.arange(0, D)
+    m_mask = offs_m < N
+
+    q = tl.load(
+        Q_base
+        + offs_m[:, None] * stride_qm
+        + offs_d[None, :] * stride_qd,
+        mask=m_mask[:, None],
+        other=0.0,
+    )  # (BQ, D), resident in SRAM for the rest of the kernel
+
+    # ----- Step 3: initialize online state -----
+    m_i   = tl.full((BQ,),  -float("inf"), dtype=tl.float32)
+    l_i   = tl.zeros((BQ,),                dtype=tl.float32)
+    O_acc = tl.zeros((BQ, D),              dtype=tl.float32)
+
+    # ----- Step 4: inner loop over K/V blocks -----
+    # In causal mode, skip K blocks that lie entirely above the diagonal.
+    N_end = (pid_q + 1) * BQ if IS_CAUSAL else N
+
+    for start_n in range(0, N_end, BK):
+        offs_n = start_n + tl.arange(0, BK)
+        n_mask = offs_n < N
+
+        k = tl.load(
+            K_base
+            + offs_n[:, None] * stride_kn
+            + offs_d[None, :] * stride_kd,
+            mask=n_mask[:, None],
+            other=0.0,
+        )
+        v = tl.load(
+            V_base
+            + offs_n[:, None] * stride_vn
+            + offs_d[None, :] * stride_vd,
+            mask=n_mask[:, None],
+            other=0.0,
+        )
+
+        # logits + masks
+        s = tl.dot(q, tl.trans(k)) * scale                   # (BQ, BK)
+        s = tl.where(n_mask[None, :], s, -float("inf"))
+        if IS_CAUSAL:
+            causal_mask = offs_m[:, None] >= offs_n[None, :]
+            s = tl.where(causal_mask, s, -float("inf"))
+
+        # online softmax update
+        m_new   = tl.maximum(m_i, tl.max(s, axis=1))         # (BQ,)
+        p       = tl.exp(s - m_new[:, None])                 # (BQ, BK)
+        exp_old = tl.exp(m_i - m_new)                        # (BQ,)
+        l_i     = l_i * exp_old + tl.sum(p, axis=1)          # (BQ,)
+        O_acc   = O_acc * exp_old[:, None] + tl.dot(p, v)    # (BQ, D)
+        m_i     = m_new
+
+    # ----- Step 5: normalize and write back -----
+    O_out = O_acc / l_i[:, None]
+    tl.store(
+        O_base
+        + offs_m[:, None] * stride_om
+        + offs_d[None, :] * stride_od,
+        O_out,
+        mask=m_mask[:, None],
+    )
+\`\`\`
+
+This kernel is correct for arbitrary MATHPLACEHOLDER50ENDMATH, supports both causal and non-causal modes via the \`IS_CAUSAL\` flag, and is safe against out-of-bounds reads and writes.
+
+## Parallelization Layout On GPU : Forward and Backward
+
+The same principle determines the grid layout for both passes:
+
+> **Whichever axis indexes the output stays in the grid; 
+Whichever axis is the inner reduction stays inside the program's loop.**
+> 
+
+The dependency structure of the math determines how to decide the outer and inner layout on GPU.
+
+### Forward
+
+The output decomposes as
+
+MATHPLACEHOLDER51ENDMATH
+
+- Output is indexed by MATHPLACEHOLDER52ENDMATH; the reduction is over MATHPLACEHOLDER53ENDMATH.
+- MATHPLACEHOLDER54ENDMATH MATHPLACEHOLDER55ENDMATH (Q) goes into the grid; MATHPLACEHOLDER56ENDMATH (K, V) goes into the inner loop.
+
+Grid shape: MATHPLACEHOLDER57ENDMATH. With MATHPLACEHOLDER58ENDMATH, MATHPLACEHOLDER59ENDMATH, MATHPLACEHOLDER60ENDMATH, MATHPLACEHOLDER61ENDMATH:
+
+<pre>               pid_q  (Q-block index, along N)
+           ────────────────────────────────────►
+               0           1           2
+           ┌──────────┬──────────┬──────────┐
+pid_bh=0   │ P(0, 0)  │ P(1, 0)  │ P(2, 0)  │ ← b=0, h=0
+           ├──────────┼──────────┼──────────┤
+pid_bh=1   │ P(0, 1)  │ P(1, 1)  │ P(2, 1)  │ ← b=0, h=1
+           ├──────────┼──────────┼──────────┤
+pid_bh=2   │ P(0, 2)  │ P(1, 2)  │ P(2, 2)  │ ← b=1, h=0
+           ├──────────┼──────────┼──────────┤
+pid_bh=3   │ P(0, 3)  │ P(1, 3)  │ P(2, 3)  │ ← b=1, h=1
+           └──────────┴──────────┴──────────┘
+</pre>
+
+Inside each program: one MATHPLACEHOLDER62ENDMATH Q tile is loaded into SRAM and stays resident throughout the kernel; the inner loop streams in successive MATHPLACEHOLDER63ENDMATH K and V tiles and updates the running state MATHPLACEHOLDER64ENDMATH.
+
+### Backward
+
+Three gradients, each with its own reduction direction:
+
+MATHPLACEHOLDER65ENDMATH
+
+MATHPLACEHOLDER66ENDMATH
+
+MATHPLACEHOLDER67ENDMATH
+
+Applying the same principle:
+
+- MATHPLACEHOLDER68ENDMATH and MATHPLACEHOLDER69ENDMATH reduce over MATHPLACEHOLDER70ENDMATH MATHPLACEHOLDER71ENDMATH **K block goes into the grid, Q goes into the inner loop.**
+- MATHPLACEHOLDER72ENDMATH reduces over MATHPLACEHOLDER73ENDMATH MATHPLACEHOLDER74ENDMATH **Q block goes into the grid, K goes into the inner loop.**
+
+These two requirements are incompatible inside a single kernel. Whichever axis is fixed in the outer grid, the other gradient's reduction has to be accumulated across programs, forcing an \`atomicAdd\` into HBM which is slow, and numerically unstable in fp16.
+
+**The fix (FlashAttention-2's design):** split backward into two independent kernels, each respecting its own dependency direction. No atomics anywhere.
+
+**dKdV kernel** — grid shape MATHPLACEHOLDER75ENDMATH, outer over K-block, inner scans Q and dO:
+
+\`\`\`
+               pid_k  (K-block index, along N)
+           ────────────────────────────────────►
+               0           1           2
+           ┌──────────┬──────────┬──────────┐
+pid_bh=0   │ P(0, 0)  │ P(1, 0)  │ P(2, 0)  │ ← b=0, h=0
+           ├──────────┼──────────┼──────────┤
+pid_bh=1   │ P(0, 1)  │ P(1, 1)  │ P(2, 1)  │ ← b=0, h=1
+           ├──────────┼──────────┼──────────┤
+pid_bh=2   │ P(0, 2)  │ P(1, 2)  │ P(2, 2)  │ ← b=1, h=0
+           ├──────────┼──────────┼──────────┤
+pid_bh=3   │ P(0, 3)  │ P(1, 3)  │ P(2, 3)  │ ← b=1, h=1
+           └──────────┴──────────┴──────────┘
+\`\`\`
+
+Each program keeps MATHPLACEHOLDER76ENDMATH tiles of K and V plus MATHPLACEHOLDER77ENDMATH accumulators for MATHPLACEHOLDER78ENDMATH and MATHPLACEHOLDER79ENDMATH resident in SRAM; the inner loop streams in MATHPLACEHOLDER80ENDMATH tiles of Q and dO, along with the per-row MATHPLACEHOLDER81ENDMATH (logsumexp saved from forward) and MATHPLACEHOLDER82ENDMATH.
+
+**dQ kernel** — grid shape MATHPLACEHOLDER83ENDMATH, identical to forward in layout. Outer over Q-block, inner scans K and V. Each program holds Q, dO, and a MATHPLACEHOLDER84ENDMATH accumulator in SRAM, and streams K, V through the inner loop.
+
+### Cross-Kernel Summary
+
+|  | Forward | Backward dKdV kernel | Backward dQ kernel |
+| --- | --- | --- | --- |
+| Reduction axis | K, V | Q, dO | K, V |
+| Output axis | Q | K, V | Q |
+| Grid shape | MATHPLACEHOLDER85ENDMATH | MATHPLACEHOLDER86ENDMATH | MATHPLACEHOLDER87ENDMATH |
+| Outer (grid) | Q-block | K-block | Q-block |
+| Inner (loop) | scan K, V | scan Q, dO | scan K, V |
+| SRAM resident | q_tile; MATHPLACEHOLDER88ENDMATH | k_tile, v_tile; MATHPLACEHOLDER89ENDMATH | q_tile, do_tile; MATHPLACEHOLDER90ENDMATH |
+| Output | MATHPLACEHOLDER91ENDMATH | MATHPLACEHOLDER92ENDMATH | MATHPLACEHOLDER93ENDMATH |
+| Atomic add | No | No | No |
+
+> **Principle** : The output axis goes into the grid; the reduction axis goes into the inner loop. Backward splits into two kernels because MATHPLACEHOLDER94ENDMATH and MATHPLACEHOLDER95ENDMATH disagree about which axis is which, splitting eliminates all atomic reductions.
+>`;
+    const mathFormulas = [["inline", "2^{31}"], ["inline", "\\le"], ["inline", "N"], ["inline", "N \\times 32"], ["inline", "N"], ["inline", "(128, 64)"], ["inline", "\\{1, 2, 4, 8, 16\\}"], ["inline", "O[b,h,i,:] = \\text{softmax}\\left(Q[b,h,i,:] \\cdot K[b,h,:,:]^{\\top} / \\sqrt{d}\\right) \\cdot V[b,h,:,:] \\in \\mathbb{R}^{D}"], ["inline", "(b, h)"], ["inline", "(b, h)"], ["inline", "i"], ["inline", "D"], ["inline", "D"], ["inline", "K"], ["inline", "V"], ["inline", "(b, h)"], ["inline", "BQ"], ["inline", "K, V"], ["inline", "K"], ["inline", "BQ"], ["inline", "K, V"], ["inline", "pid_q"], ["inline", "pid_{bh}"], ["inline", "(batch, head)"], ["inline", "(BQ, D)"], ["inline", "K, V"], ["inline", "(batch, head)"], ["inline", "m"], ["inline", "l"], ["inline", "O"], ["inline", "(BQ, D)"], ["inline", "pid_q"], ["inline", "pid_{bh}"], ["inline", "(batch, head)"], ["inline", "K, V"], ["inline", "m"], ["inline", "l"], ["inline", "O"], ["inline", "\\text{addr}(T[b, h, n, d]) = T_{\\text{base}} + b \\cdot s_b + h \\cdot s_h + n \\cdot s_n + d \\cdot s_d"], ["inline", "N"], ["inline", "BQ"], ["inline", "BK"], ["inline", "-\\infty"], ["inline", "-\\infty"], ["inline", "0"], ["inline", "(i, j)"], ["inline", "j > i"], ["inline", "(BQ, BK)"], ["inline", "pid_q"], ["inline", "(pid_q + 1) \\cdot BQ - 1"], ["inline", "N"], ["inline", "O[b,h,i,:] = \\sum_j \\text{softmax}(QK^{\\top})[i,j] \\cdot V[j,:]"], ["inline", "i"], ["inline", "j"], ["inline", "\\Rightarrow"], ["inline", "i"], ["inline", "j"], ["inline", "(\\lceil N/B_Q \\rceil,\\ B \\cdot H)"], ["inline", "B = 2"], ["inline", "H = 2"], ["inline", "N = 384"], ["inline", "B_Q = 128"], ["inline", "(B_Q, D)"], ["inline", "(B_K, D)"], ["inline", "(m_i, l_i, O_{acc})"], ["inline", "dV[j,:] = \\sum_i P[i,j] \\cdot dO[i,:]"], ["inline", "dK[j,:] = \\sum_i dS[i,j] \\cdot Q[i,:] \\cdot \\text{scale}"], ["inline", "dQ[i,:] = \\sum_j dS[i,j] \\cdot K[j,:] \\cdot \\text{scale}"], ["inline", "dK[j]"], ["inline", "dV[j]"], ["inline", "i"], ["inline", "\\Rightarrow"], ["inline", "dQ[i]"], ["inline", "j"], ["inline", "\\Rightarrow"], ["inline", "(\\lceil N/B_K \\rceil,\\ B \\cdot H)"], ["inline", "(B_K, D)"], ["inline", "(B_K, D)"], ["inline", "dK"], ["inline", "dV"], ["inline", "(B_Q, D)"], ["inline", "L"], ["inline", "D_i = \\text{rowsum}(dO \\odot O)"], ["inline", "(\\lceil N/B_Q \\rceil,\\ B \\cdot H)"], ["inline", "dQ"], ["inline", "(\\lceil N/B_Q \\rceil,\\ B \\cdot H)"], ["inline", "(\\lceil N/B_K \\rceil,\\ B \\cdot H)"], ["inline", "(\\lceil N/B_Q \\rceil,\\ B \\cdot H)"], ["inline", "m_i, l_i, O_{acc}"], ["inline", "dK_{acc}, dV_{acc}"], ["inline", "dQ_{acc}"], ["inline", "O, L"], ["inline", "dK, dV"], ["inline", "dQ"], ["inline", "dQ"], ["inline", "dK, dV"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>

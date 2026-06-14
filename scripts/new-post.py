@@ -35,6 +35,30 @@ def convert_markdown_codeblocks(content):
     return content
 
 
+def escape_stray_tildes(content):
+    """
+    marked.js (GFM) treats single `~text~` as strikethrough. Lines like
+    "SRAM (~20 cycles) and HBM (~500 cycles)" therefore render with a
+    strike through the middle. Escape stray tildes outside of code blocks
+    so they render as literal "~".
+    """
+    code_blocks = []
+    def save_code_block(match):
+        code_blocks.append(match.group(0))
+        return f'\x00CODEBLOCK{len(code_blocks) - 1}\x00'
+
+    content = re.sub(r'```[\s\S]*?```', save_code_block, content)
+    content = re.sub(r'`[^`\n]+`', save_code_block, content)
+
+    # Leave GFM-style `~~strikethrough~~` alone; escape single `~`.
+    content = re.sub(r'(?<!~)~(?!~)', r'\\~', content)
+
+    for i, block in enumerate(code_blocks):
+        content = content.replace(f'\x00CODEBLOCK{i}\x00', block)
+
+    return content
+
+
 def protect_math_formulas(content):
     r"""
     Replace $...$ and $$...$$ with placeholders that marked.js won't touch.
@@ -264,6 +288,9 @@ def main():
 
     # Convert ```markdown blocks to <pre> with bold support
     markdown_content = convert_markdown_codeblocks(markdown_content)
+
+    # Escape stray "~" so marked.js doesn't treat them as strikethrough
+    markdown_content = escape_stray_tildes(markdown_content)
 
     # Extract math formulas and replace with placeholders
     markdown_content, math_formulas = protect_math_formulas(markdown_content)
