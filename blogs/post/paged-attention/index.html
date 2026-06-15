@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cracking PagedAttention · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Cracking PagedAttention"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Cracking PagedAttention</h1>
+      <div class="post-date">
+        <time datetime="2026-06-15">Jun 15, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+**FlashAttention** improves the efficiency of attention computation itself — minimizing HBM ↔ SRAM traffic through tiling, online softmax, and kernel fusion. For **PagedAttention**, the math is unchanged compared to FlashAttention, but it addresses a different problem, ***how the KV cache is laid out in memory during inference***. By replacing contiguous, max-length KV allocation with a paged layout of fixed-size blocks, it removes the fragmentation that otherwise caps serving throughput.
+
+The two techniques are orthogonal and complementary. vLLM uses both:
+
+- **Prefill stage.** When the full prompt is available, attention over the prompt is computed with a FlashAttention-style fused kernel, and the resulting K, V vectors are written into the paged cache.
+- **Decode stage.** As tokens are generated one at a time, the KV cache must grow incrementally. PagedAttention manages this growth — allocating physical blocks on demand and routing the attention kernel through a per-sequence block table.
+
+This blog walks through PagedAttention from first principles: what it solves, how the block table is defined and maintained, how the kernel uses it, and a concrete end-to-end decode example.
+
+## The Memory Bottleneck in LLM Serving
+
+The bottleneck of LLM serving is the **KV cache**. Every generated token needs the K and V vectors of all previous tokens in order to compute attention, and these vectors are cached so that subsequent tokens do not redo the prior projections. The cache size scales as
+
+MATHPLACEHOLDER0ENDMATH
+
+where MATHPLACEHOLDER3ENDMATH is the number of layers, MATHPLACEHOLDER4ENDMATH the number of heads, MATHPLACEHOLDER5ENDMATH the head dimension, and the leading 2 covers both K and V.
+
+For LLaMA-7B in \`fp16\` at \`seq_len = 2048\`, this works out to roughly 1 GB per sequence. An 80 GB A100 should in principle hold \\~70 concurrent sequences, but a naive serving system gets nowhere near that. Three independent forms of waste explain the gap:
+
+1. **Internal fragmentation.** The actual generation length is unknown until EOS, so the system must reserve \`max_seq_len\` slots up front. A request that generates only 100 tokens leaves 1948 slots wasted.
+2. **External fragmentation.** Sequences of varying lengths are released in arbitrary order, leaving holes of varying sizes. A new request larger than every hole cannot be served, even when the total free space would suffice.
+3. **Reservation waste.** During generation, the unused tail of an active request's reserved slab is locked to that request and cannot be borrowed by another.
+
+The vLLM paper measured these together at **60–80% of the total KV cache budget**. Reducing this waste is the entire point of PagedAttention.
+
+## The Core Idea: Paged KV Cache
+
+PagedAttention applies the same idea operating systems use to manage process memory: **fixed-size physical blocks, plus a per-process page table that translates logical positions to physical locations**. The mapping is direct if you think of it as OS concepts:
+
+| OS concept | PagedAttention |
+|---|---|
+| Process | One sequence |
+| Virtual address space | Logical KV cache (positions 0, 1, 2, ...) |
+| Physical memory | GPU HBM |
+| Page | KV block: fixed-size, holds K and V for MATHPLACEHOLDER6ENDMATH tokens |
+| Page table | Block table |
+
+### Physical layout: the KV pool
+
+At server startup, vLLM allocates a single large slab of HBM and divides it into MATHPLACEHOLDER7ENDMATH equal-sized **physical blocks**. Each block holds the K and V vectors for MATHPLACEHOLDER8ENDMATH tokens of one head's state:
+
+MATHPLACEHOLDER1ENDMATH
+
+With MATHPLACEHOLDER9ENDMATH, MATHPLACEHOLDER10ENDMATH, MATHPLACEHOLDER11ENDMATH, \`fp16\`, a block is 16 KB. The pool stays the same shape for the server's lifetime; only its contents are reused.
+
+### Per-sequence indirection: the block table
+
+The block table is just a 2-D int32 tensor in HBM:
+
+| Property | Value |
+|---|---|
+| Shape | \`(num_seqs, max_blocks_per_seq)\` |
+| Dtype | \`int32\` |
+| Meaning | \`block_table[s, l]\` = physical block index for logical block MATHPLACEHOLDER12ENDMATH of sequence MATHPLACEHOLDER13ENDMATH |
+| Sentinel | \`-1\` for unallocated entries |
+
+For 32 concurrent sequences with a 4096-token cap and MATHPLACEHOLDER14ENDMATH, the table is MATHPLACEHOLDER15ENDMATH KB, small enough that the row for the currently running sequence can be loaded into SRAM once and stay resident throughout the kernel.
+
+A possible state of the table for three concurrently active sequences (the numbers in each cell are physical block indices):
+
+\`\`\`
+              logical block idx →
+               0    1    2    3    4   ...
+             ┌────┬────┬────┬────┬────┬─────┐
+seq 0        │  7 │  2 │ 13 │ -1 │ -1 │ ... │   3 blocks  (48 tokens)
+             ├────┼────┼────┼────┼────┼─────┤
+seq 1        │  4 │ 11 │  8 │ 31 │ -1 │ ... │   4 blocks  (60 tokens)
+             ├────┼────┼────┼────┼────┼─────┤
+seq 2        │  0 │ 25 │ -1 │ -1 │ -1 │ ... │   2 blocks  (28 tokens)
+             └────┴────┴────┴────┴────┴─────┘
+\`\`\`
+
+A companion \`context_lens[s]\` records the exact token count, so the kernel knows where to stop and how to mask the final (potentially partial) block.
+
+### Two-level address translation
+
+To read MATHPLACEHOLDER16ENDMATH at logical position MATHPLACEHOLDER17ENDMATH of sequence MATHPLACEHOLDER18ENDMATH:
+
+\`\`\`python
+logical_block_idx   = j // B
+intra_block_offset  = j  % B
+
+phys_block_idx      = block_table[s, logical_block_idx]   # one indirection
+
+K_address           = KV_pool_K_base
+                      + phys_block_idx * block_stride
+                      + intra_block_offset * row_stride
+\`\`\`
+
+The kernel never performs this lookup per token; it iterates per *block*. One block-table lookup yields a physical block, then the full MATHPLACEHOLDER19ENDMATH tile of K and V is fetched as a single coalesced burst. **The indirection cost is amortized across MATHPLACEHOLDER20ENDMATH tokens.**
+
+## Block Table Lifecycle
+
+The block table is not pre-divided. It is built and torn down dynamically as sequences come and go. There are four stages.
+
+### Server startup (once)
+
+\`\`\`
+1. Allocate the KV pool:
+     total = HBM_available - model_weights - activations - ...
+     N = total // block_size
+
+2. Initialize the free list:
+     free_list = [0, 1, 2, ..., N-1]   # all phys blocks available
+     (typically a stack — LIFO gives better cache locality)
+
+3. Initialize the block_table tensor:
+     shape (max_num_seqs, max_blocks_per_seq), all -1
+
+4. Initialize refcount[phys_id] = 0 for all phys blocks, indicating all phys blocks are empty
+\`\`\`
+
+After startup, **the physical block indices MATHPLACEHOLDER21ENDMATH carry no semantics** — they are array offsets into the KV pool.
+
+### New sequence (triggered by Prefill)
+
+\`\`\`python
+num_blocks = ceil(prompt_len / B)
+for i in range(num_blocks):
+    phys_id = free_list.pop()
+    block_table[seq_id, i] = phys_id
+    refcount[phys_id] = 1
+\`\`\`
+
+The block table gets populated via pop from the free list. The pop order is arbitrary, so adjacent logical blocks frequently land on physically distant phys blocks.
+
+### Decode step (per generated token)
+
+\`\`\`python
+last_slot = p % B
+if last_slot == 0:                # the previous logical block is now full
+    phys_id = free_list.pop()
+    block_table[seq_id, p // B] = phys_id
+    refcount[phys_id] = 1
+# Otherwise we just write into the next slot of the existing last block.
+
+# Then write K[p], V[p] into the appropriate slot.
+\`\`\`
+
+The block table grows by exactly one entry every MATHPLACEHOLDER22ENDMATH decoded tokens; in between, the existing trailing block is refilled.
+
+### Sequence finish (EOS or cap reached)
+
+\`\`\`python
+for phys_id in block_table[seq_id]:
+    if phys_id == -1: break
+    refcount[phys_id] -= 1
+    if refcount[phys_id] == 0:
+        free_list.push(phys_id)
+block_table[seq_id, :] = -1
+\`\`\`
+
+Refcounts exist because multiple sequences may share a phys block.
+
+## Hardware Layout
+
+\`\`\`
+═══════════════════════════════════════════════════════════════════════
+                            HBM (GPU memory)
+═══════════════════════════════════════════════════════════════════════
+
+  ① KV Pool (global, fixed shape, N phys blocks)
+
+     phys 0    phys 1   phys 2    ...    phys 7    ...    phys N-1
+     ┌─────┐  ┌─────┐  ┌─────┐           ┌─────┐          ┌─────┐
+     │  K  │  │  K  │  │  K  │           │  K  │          │  K  │
+     │  V  │  │  V  │  │  V  │           │  V  │          │  V  │
+     └─────┘  └─────┘  └─────┘           └─────┘          └─────┘
+
+     Each block: 2 · B · H · D · sizeof(dtype) bytes
+     (B=16, H=8, D=64, fp16 → 16 KB per block)
+
+  ② Block Table       int32[num_seqs, max_blocks_per_seq]
+     Context Lens     int32[num_seqs]
+     Refcount         int32[N]
+
+  ③ Per-step query inputs/outputs (during decode)
+     Q : (num_seqs, H, D)        one query token per sequence
+     O : (num_seqs, H, D)        attention output for this step
+\`\`\`
+
+Inside one program (one SM running attention for one \`(sequence, head)\` pair at a decode step):
+
+\`\`\`
+SRAM, resident for the entire kernel:
+   q_tile                    (1, D)         the current query
+   block_table_row           [..]           int32 row for this seq
+   context_len               scalar
+   m_i, l_i, O_acc                          online softmax state
+
+SRAM, refreshed each inner-loop iteration:
+   k_tile                    (B, D)
+   v_tile                    (B, D)
+\`\`\`
+
+The inner loop iterates over logical blocks of this sequence:
+
+\`\`\`
+for k_logical_block in range(num_blocks):
+    phys_id = block_table_row[k_logical_block]            # one indirection
+    load k_tile, v_tile from KV_pool[phys_id]             # one coalesced burst
+    s = q_tile @ k_tile^T * scale
+    apply boundary mask if this is the last (partial) block
+    update m_i, l_i, O_acc with the standard 5-step rule
+out = O_acc / l_i
+store out
+\`\`\`
+
+The only thing PagedAttention adds over a FlashAttention-style kernel is the \`block_table_row[k_logical_block]\` lookup. The loop structure, the online softmax, and the SRAM residency pattern are otherwise identical.
+
+## End-to-End Decode Walkthrough
+
+To make the lifecycle and the kernel concrete, here is the prompt **"Why a cat cannot speak?"** going through prefill and the first three decode steps. For clarity, MATHPLACEHOLDER23ENDMATH (in reality vLLM uses 16), and we treat each word as a single token. Suppose the model generates **"Because"**, then **"they"**, then **"lack"**.
+
+### Stage 0: After prefill
+
+Prefill computes K, V for all 6 prompt tokens at once. With MATHPLACEHOLDER24ENDMATH, this requires MATHPLACEHOLDER25ENDMATH phys blocks. Suppose \`free_list.pop()\` returns 7 and then 3:
+
+\`\`\`
+block_table[seq]:   
+                    ┌────┬────┬────┬────┬─────┐
+                    │ 7  │ 3  │ -1 │ -1 │ ... │
+                    └────┴────┴────┴────┴─────┘
+                     log_0 log_1
+
+context_lens[seq] = 6
+\`\`\`
+
+Contents of the two physical blocks:
+
+\`\`\`
+phys 7  (= logical block 0):           phys 3  (= logical block 1):
+┌──────────┐                           ┌──────────┐
+│ K[0],V[0]│   "Why"                   │ K[4],V[4]│   "speak"
+├──────────┤                           ├──────────┤
+│ K[1],V[1]│   "a"                     │ K[5],V[5]│   "?"
+├──────────┤                           ├──────────┤
+│ K[2],V[2]│   "cat"                   │  empty   │
+├──────────┤                           ├──────────┤
+│ K[3],V[3]│   "cannot"                │  empty   │
+└──────────┘                           └──────────┘
+\`\`\`
+
+The output at position 5 ("?") is projected to vocabulary logits and sampled to **"Because"**. Decoding begins.
+
+### Decode step 1: input "Because", position MATHPLACEHOLDER26ENDMATH
+
+**A. Project.** MATHPLACEHOLDER27ENDMATH, then MATHPLACEHOLDER28ENDMATH.
+
+**B. Place K, V in the cache.**
+
+\`\`\`
+p = 6
+last_slot = 6 % 4 = 2          → slot 2 of logical block 1
+need_new_block = False         → block 1 still has room
+phys_id = block_table[seq, 1] = 3
+
+KV_pool[3].K[2] = k_6
+KV_pool[3].V[2] = v_6
+context_lens[seq] = 7
+\`\`\`
+
+The pool now looks like (★ marks the new write):
+
+\`\`\`
+phys 7:                                phys 3:
+┌──────────┐                           ┌──────────────┐
+│ K[0],V[0]│                           │ K[4],V[4]    │
+├──────────┤                           ├──────────────┤
+│ K[1],V[1]│                           │ K[5],V[5]    │
+├──────────┤                           ├──────────────┤
+│ K[2],V[2]│                           │ K[6],V[6]  ★ │
+├──────────┤                           ├──────────────┤
+│ K[3],V[3]│                           │  empty       │
+└──────────┘                           └──────────────┘
+
+block_table unchanged: [7, 3, -1, ...]
+\`\`\`
+
+**C. Attention.** Mathematically:
+
+MATHPLACEHOLDER2ENDMATH
+
+The kernel realizes this with two block iterations:
+
+\`\`\`
+num_blocks = ⌈7/4⌉ = 2
+SRAM resident: q_6, block_table_row = [7, 3], context_len = 7, m, l, O_acc
+
+iter 0  (logical block 0)
+  phys_id = block_table_row[0] = 7
+  load K, V from KV_pool[7]          # all 4 slots valid
+  s = q_6 · K^T / √d                 # shape (4,)
+  → 5-step online softmax update
+
+iter 1  (logical block 1, partial)
+  phys_id = block_table_row[1] = 3
+  load K, V from KV_pool[3]          # only slots 0, 1, 2 valid
+  s = q_6 · K^T / √d
+  s = where([T, T, T, F], s, -inf)   # boundary mask
+  → 5-step online softmax update
+
+out_6 = O_acc / l
+\`\`\`
+
+**D. Sample.** MATHPLACEHOLDER29ENDMATH **"they"**.
+
+### Decode step 2: input "they", position MATHPLACEHOLDER30ENDMATH
+
+**B. Place.**
+
+\`\`\`
+p = 7
+last_slot = 7 % 4 = 3          → slot 3 of logical block 1
+need_new_block = False         → block 1 has its last open slot
+phys_id = block_table[seq, 1] = 3
+
+KV_pool[3].K[3] = k_7
+KV_pool[3].V[3] = v_7
+context_lens[seq] = 8           # block 1 is now full
+\`\`\`
+
+\`\`\`
+phys 7:                                phys 3:  (now full)
+┌──────────┐                           ┌──────────────┐
+│ K[0],V[0]│                           │ K[4],V[4]    │
+├──────────┤                           ├──────────────┤
+│ K[1],V[1]│                           │ K[5],V[5]    │
+├──────────┤                           ├──────────────┤
+│ K[2],V[2]│                           │ K[6],V[6]    │
+├──────────┤                           ├──────────────┤
+│ K[3],V[3]│                           │ K[7],V[7]  ★ │
+└──────────┘                           └──────────────┘
+
+block_table unchanged: [7, 3, -1, ...]
+\`\`\`
+
+**C. Attention.** MATHPLACEHOLDER31ENDMATH, both blocks fully valid, no boundary mask needed.
+
+**D. Sample.** MATHPLACEHOLDER32ENDMATH **"lack"**.
+
+### Decode step 3: input "lack", position MATHPLACEHOLDER33ENDMATH — block table grows
+
+**B. Place.**
+
+\`\`\`
+p = 8
+last_slot = 8 % 4 = 0          → slot 0 of a new logical block
+need_new_block = True          → a new phys block must be allocated
+
+phys_id = free_list.pop()      → say 12
+block_table[seq, 2] = 12       # ★ block table grew by one entry
+refcount[12] = 1
+
+KV_pool[12].K[0] = k_8
+KV_pool[12].V[0] = v_8
+context_lens[seq] = 9
+\`\`\`
+
+\`\`\`
+block_table[seq]:   
+                    ┌────┬────┬─────┬────┬─────┐
+                    │ 7  │ 3  │ 12 ★│ -1 │ ... │
+                    └────┴────┴─────┴────┴─────┘
+
+phys 12 (just allocated):
+┌──────────────┐
+│ K[8],V[8]  ★ │
+├──────────────┤
+│  empty       │
+├──────────────┤
+│  empty       │
+├──────────────┤
+│  empty       │
+└──────────────┘
+\`\`\`
+
+Subsequent steps 9, 10, 11 will fill slots 1, 2, 3 of phys 12, after which step 12 (MATHPLACEHOLDER34ENDMATH) will trigger another \`free_list.pop()\`. **The block table grows by exactly one entry every MATHPLACEHOLDER35ENDMATH tokens.**
+
+### Summary of one decode step
+
+Every decode step does the same four things:
+
+1. **Embed and project** the input token to MATHPLACEHOLDER36ENDMATH.
+2. **Place K, V in the cache**: if \`p % B == 0\`, allocate a new phys block from the free list and extend the block table; otherwise reuse the trailing slot of the last logical block.
+3. **Run the PagedAttention kernel**: load \`block_table_row\` into SRAM, then for each logical block, look up the phys block, coalesce-load MATHPLACEHOLDER37ENDMATH K and V, and run the 5-step online softmax.
+4. **Sample** the next token.
+
+## What Paging Enables Beyond Memory Savings
+
+The memory utilization win is the headline number — vLLM reports moving KV cache utilization from \\~30% to >95%. The more durable consequence is that **sharing KV state across sequences becomes nearly free**. Once K, V live in addressable, fixed-size blocks, "sequence A and sequence B share a prefix" reduces to "their block tables share the first few entries."
+
+This makes a class of features tractable that are nearly impossible under contiguous max-length allocation:
+
+- **Prefix / prompt caching.** When many requests share the same system prompt or instruction, the prompt's KV cache exists in HBM as a single set of phys blocks. Each request's block table points to those blocks for the shared prefix and only diverges where its own tokens begin. Memory cost drops from MATHPLACEHOLDER38ENDMATH to MATHPLACEHOLDER39ENDMATH.
+- **Beam search and parallel sampling.** MATHPLACEHOLDER40ENDMATH candidate continuations of the same prompt share the prefix's phys blocks until they diverge; after divergence each beam allocates its own blocks. The saving is roughly MATHPLACEHOLDER41ENDMATH prefix length.
+- **Copy-on-write.** When a shared block must be modified by one of its sharers, the writer first allocates a fresh block, copies the contents, updates its own block table, and decrements the original's \`refcount\` — directly mirroring OS COW semantics.
+- **Swap.** Inactive sequences can have their phys blocks evicted to CPU memory and their block-table entries marked as swapped; reactivation swaps them back.
+
+None of these features are practical with contiguous, max-length KV allocations. They are all consequences of the paged layout.
+
+## Kernel: Standard Attention with One Indirection
+
+The PagedAttention kernel differs from a FlashAttention-style attention kernel in exactly one place: the K, V address computation.
+
+Standard FlashAttention inner loop:
+
+\`\`\`python
+for start_n in range(0, N, BK):
+    k = tl.load(K_base + offs_n[:, None] * stride_kn + ...)
+    v = tl.load(V_base + offs_n[:, None] * stride_vn + ...)
+    # online softmax 5 steps
+\`\`\`
+
+PagedAttention inner loop:
+
+\`\`\`python
+for k_logical_block in range(num_blocks):
+    phys_id = tl.load(block_table_ptr + k_logical_block)   # ← extra step
+    k = tl.load(KV_pool_K_base + phys_id * block_stride + ...)
+    v = tl.load(KV_pool_V_base + phys_id * block_stride + ...)
+    # online softmax 5 steps (identical to FlashAttention)
+\`\`\`
+
+Two observations:
+
+1. **The indirection happens once per block, not once per token.** The cost is amortized over MATHPLACEHOLDER42ENDMATH tokens.
+2. **K and V within a phys block remain contiguous**, so the load that fetches a MATHPLACEHOLDER43ENDMATH tile is still a single coalesced burst — exactly like the FlashAttention case.
+
+In practice, vLLM's PagedAttention kernel reuses the FlashAttention skeleton and only swaps in the indirected address computation.
+`;
+    const mathFormulas = [["display", "\\text{KV cache size} = 2 \\cdot L \\cdot H \\cdot D \\cdot \\text{seqlen} \\cdot \\text{sizeof(dtype)}"], ["display", "\\text{block size} = 2 \\cdot B \\cdot H \\cdot D \\cdot \\text{sizeof(dtype)}"], ["display", "\\text{out}_6 = \\text{softmax}\\!\\left(\\frac{q_6 \\cdot [k_0, k_1, \\ldots, k_6]^{\\top}}{\\sqrt{d}}\\right) \\cdot [v_0, v_1, \\ldots, v_6]^{\\top}"], ["inline", "L"], ["inline", "H"], ["inline", "D"], ["inline", "B"], ["inline", "N"], ["inline", "B"], ["inline", "B = 16"], ["inline", "H = 8"], ["inline", "D = 64"], ["inline", "l"], ["inline", "s"], ["inline", "B = 16"], ["inline", "32 \\times 256 \\times 4 = 32"], ["inline", "K"], ["inline", "j"], ["inline", "s"], ["inline", "(B, D)"], ["inline", "B"], ["inline", "0, \\ldots, N-1"], ["inline", "B"], ["inline", "B = 4"], ["inline", "B = 4"], ["inline", "\\lceil 6/4 \\rceil = 2"], ["inline", "p = 6"], ["inline", "x_6 = \\text{Emb}(\\text{Because}) + \\text{PE}(6)"], ["inline", "q_6 = x_6 W_Q,\\ k_6 = x_6 W_K,\\ v_6 = x_6 W_V"], ["inline", "\\text{out}_6 \\to W_O \\to \\ldots \\to \\text{logits} \\to"], ["inline", "p = 7"], ["inline", "\\lceil 8/4 \\rceil = 2"], ["inline", "\\to"], ["inline", "p = 8"], ["inline", "p = 12"], ["inline", "B"], ["inline", "q, k, v"], ["inline", "(B, D)"], ["inline", "N \\cdot \\text{prefix\\_len}"], ["inline", "\\text{prefix\\_len}"], ["inline", "K"], ["inline", "(K-1)\\times"], ["inline", "B"], ["inline", "(B, D)"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
