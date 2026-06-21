@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Constitutional AI - Harmlessness from AI Feedback · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Constitutional AI - Harmlessness from AI Feedback"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Constitutional AI - Harmlessness from AI Feedback</h1>
+      <div class="post-date">
+        <time datetime="2026-06-21">Jun 21, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+Constitutional AI is an approach by Anthropic to train AI systems that are harmless, helpful, honest, ethical, without relying on human feedback labels for harmlessness.
+
+Standard RLHF requires humans to label thousands of (response A, response B) pairs as "which is less harmful". This is expensive, slow, inconsistent across labelers, and psychologically harmful. CAI replaces these labels with AI-generated ones, guided by an explicit **constitution -** a set of natural language principles. Human work thus shifts from per-example labeling to writing the constitution once.
+
+The starting point is a "helpful-only" RLHF model. It follows instructions but may produce harmful outputs. CAI then runs in two stages - supervised tuning and RL, turning this model into one that follows the constitution.
+
+## The Constitution
+
+The constitution is a list of natural-language principles. In NeMo's \`CritiqueRevisionInstructions.json\`, each principle has a paired critique prompt and revision prompt. e.g. :
+
+\`\`\`json
+{
+    "prompt": "Identify specific ways in which the assistant's last response is harmful, unethical, racist, sexist, toxic, dangerous, or illegal.",
+    "edit_request": "Please rewrite the assistant response to remove any and all harmful, unethical, racist, sexist, toxic, dangerous, or illegal content."
+}
+\`\`\`
+
+The original Anthropic paper used about 16 such principles, covering physical safety, bias, legal risk, deception, and more. Editing principles can change model behaviour. 
+
+## Supervised Stage
+
+The output of this stage is the **SL-CAI model,** a model that has internalized the critique-revise habit.
+
+### Critique and Revision
+
+AI generates responses to harmfulness prompts using a helpful-only AI assistant, then critiques. Here's an example of a critique prompt:
+
+\`\`\`json
+"CritiqueRequest: 
+Identify specific ways in which the assistant's last response is harmful, unethical, racist, sexist, toxic, dangerous, or illegal.\\n\\nCritique:"
+\`\`\`
+
+Then revises its own responses according to a principle in the constitution. Here's an example of a revision prompt:
+
+\`\`\`json
+"RevisionRequest: 
+Please rewrite the assistant response to remove any and all harmful, unethical, racist, sexist, toxic, dangerous, or illegal content.\\n\\nRevision:"
+\`\`\`
+
+Two details from the NeMo implementation matter for quality:
+
+- **Multiple rounds.** The critique-revise loop runs 2–3 times per prompt. Each round samples a fresh principle, so different aspects of safety get addressed across rounds.
+
+- **Few-shot prompting.** A handful of example critique-revise traces (NeMo's \`few_shot_samples_example.json\`) are for guiding the output format.
+
+### Fine-Tune Original Model on Revised Responses
+
+After collecting above revised responses, fine-tunes the original model on the revised responses. The result is the SL-CAI model.
+
+## RL Stage
+
+The output of this stage is the **RL-CAI model**, which is the final aligned model.
+
+### AI Comparison Evaluations
+
+The AI generates pairs of responses to harmfulness prompts using the finetuned model, then evaluates which response is better according to a principle in the constitution. The evaluation is often prompted with chain-of-thought reasoning to improve judgment quality.
+
+The resulting AI preferences are mixed with human helpfulness preferences: **CAI only replaces *****harmlessness***** labels with AI labels**. Human helpfulness labels are still kept, because **judging helpfulness is harder for AI than judging harmfulness**.
+
+### Reward Model
+
+Now that we have the preference data, a reward model can be trained on this dataset of AI preferences and a human helpfulness preferences. The training procedure is identical to RLHF's reward modeling, where only the source of harmlessness labels differs.
+
+### RL Using The Reward Model
+
+Then AI trains with RL (PPO) using the learned reward model. This produces the RL-CAI model.
+
+## Modern Alternatives: RM-free Methods
+
+The original CAI uses PPO + a separate reward model — this is the "vanilla RLHF" stack. Since 2023, several methods have replaced the reward model entirely, making the RL stage simpler, more stable, and cheaper. 
+
+The two-stage CAI pipeline (SL critique-revise → preference learning) is intact in modern usage. What's been swapped is the second stage's backend. Without a reward model, RL-CAI is trained with DPO or GRPO, with better stability and efficiency.
+
+## References
+
+- Bai et al. (2022), [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073) — the original CAI paper from Anthropic.
+
+- Rafailov et al. (2023), [Direct Preference Optimization: Your Language Model is Secretly a Reward Model](https://arxiv.org/abs/2305.18290) — DPO.
+
+- Ethayarajh et al. (2024), [KTO: Model Alignment as Prospect Theoretic Optimization](https://arxiv.org/abs/2402.01306) — KTO.
+
+- Hong et al. (2024), [ORPO: Monolithic Preference Optimization without Reference Model](https://arxiv.org/abs/2403.07691) — ORPO.
+
+- Shao et al. (2024), [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300) — introduces GRPO.
+
+- Anthropic (2023), [Collective Constitutional AI: Aligning a Language Model with Public Input](https://www.anthropic.com/news/collective-constitutional-ai-aligning-a-language-model-with-public-input) — crowd-sourced constitution.
+
+- [HuggingFace alignment-handbook, ](https://github.com/huggingface/alignment-handbook/tree/main/recipes/constitutional-ai)[\`recipes/constitutional-ai/\`](https://github.com/huggingface/alignment-handbook/tree/main/recipes/constitutional-ai) — minimal SFT + DPO recipe for CAI. The modern reference implementation.
+
+- [NVIDIA NeMo-Aligner, ](https://github.com/NVIDIA/NeMo-Aligner/tree/main/examples/nlp/cai)[\`examples/nlp/cai/\`](https://github.com/NVIDIA/NeMo-Aligner/tree/main/examples/nlp/cai) — full 7-step pipeline including PPO + RM. The \`CritiqueRevisionInstructions.json\` and \`few_shot_samples_example.json\` referenced above are from here. (Repo archived November 2025.)
+
+- [Anthropic HH-RLHF dataset](https://github.com/anthropics/hh-rlhf) — helpful + harmless human preference data, used as a starting point for CAI training.
+
+- [NVIDIA NeMo Constitutional AI documentation](https://docs.nvidia.com/nemo-framework/user-guide/24.09/modelalignment/cai.html) — high-level walkthrough of the 7-step pipeline.
+`;
+    const mathFormulas = [];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
