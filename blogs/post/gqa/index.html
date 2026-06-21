@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cracking GQA (Group Query Attention) · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Cracking GQA (Group Query Attention)"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Cracking GQA (Group Query Attention)</h1>
+      <div class="post-date">
+        <time datetime="2026-06-21">Jun 21, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+**TL;DR.** Decode is memory-bound, and the bottleneck is the bandwidth required to drag the KV cache across HBM at every step. GQA is an architecture-level fix: shrink the number of K, V heads, share each KV head across a group of Q heads, and the KV cache, along with the decode latency, which shrinks linearly with \`group_size\`. Eight is the empirically optimal choice: enough independent KV subspaces to preserve quality, small enough to make 70B-scale models servable. The kernel side is a small patch on FlashAttention; the system side composes cleanly with PagedAttention. The whole stack is why modern LLM serving works.
+
+---
+
+While writing the previous post on PagedAttention, a natural question came to me. PagedAttention attacks the KV cache from the *system* layer, eliminating KV cache fragmentation. But what if the cache itself was structurally smaller to begin with?
+
+That question already has an answer, named **Group Query Attention (GQA)**. It is an architecture-level decision, and it is the reason every modern frontier LLM uses fewer KV heads than Q heads. The math is almost trivial. The interesting part is understanding **why** this works without hurting quality, **where** exactly the speedup comes from, and **how** GPU kernels have to be reshaped to actually realize it.
+
+A quick intro:
+
+> **GQA is an architecture-level fix for the memory bandwidth bottleneck during autoregressive decoding. It shrinks the KV cache by reducing the number of K, V heads, gives back a 4–8× decode speedup, and barely touches quality.**
+
+Three boundaries are worth pinning down up front:
+
+- **Architecture change**, not a kernel change. Training and inference use the same architecture.
+- It saves **decode** time.
+- It only changes **K and V**. The Q heads stay fully independent.
+
+## Decode Is Memory Bound
+
+Prefill and decode run on the GPU under completely different regimes. Prefill processes MATHPLACEHOLDER3ENDMATH prompt tokens simultaneously. The dominant cost is MATHPLACEHOLDER4ENDMATH, a large matmul that keeps Tensor Cores fully utilized. Prefill is **compute-bound**.
+
+**Decode** generates one token at a time. There is exactly one new query, and it must attend to all MATHPLACEHOLDER5ENDMATH previously cached K, V vectors. Per layer, per batch element:
+
+- FLOPs: MATHPLACEHOLDER6ENDMATH — the two matmuls MATHPLACEHOLDER7ENDMATH and MATHPLACEHOLDER8ENDMATH, summed over MATHPLACEHOLDER9ENDMATH Q heads.
+- HBM bytes read: MATHPLACEHOLDER10ENDMATH — the cached K and V tensors in fp16.
+
+Arithmetic intensity is therefore
+
+MATHPLACEHOLDER0ENDMATH
+
+(in FLOPs per byte, for fp16). The H100's ridge point is roughly MATHPLACEHOLDER11ENDMATH.
+
+| Mode | AI (FLOPs/byte) | vs. ridge | Compute utilization |
+|---|---|---|---|
+| MHA (group_size = 1) | 1 | 1/330 | \\~0.3% |
+| GQA (group_size = 4) | 4 | 1/82 | \\~1.2% |
+| GQA (group_size = 8) | 8 | 1/41 | \\~2.4% |
+| MQA (group_size = MATHPLACEHOLDER12ENDMATH) | MATHPLACEHOLDER13ENDMATH | e.g., 1/10 | \\~10% |
+
+**Every mode is memory-bound**, but the higher the AI, the fewer bytes you must read per FLOP — equivalently, the smaller the KV cache that gets dragged across HBM at every decode step. Cutting the KV cache scales decode latency down almost linearly.
+
+The rest of the story is just: how do we shrink the KV cache without breaking the model?
+
+## Architectures Evolution: MHA → MQA → GQA
+
+Recall that attention has three projections Q, K, V, and the number of heads is how many independent subspaces each projection is split into. The KV cache holds the K and V tensors across all past tokens.
+
+**MHA (Multi-Head Attention)**
+
+\`\`\`
+H_q = H_kv = H            (Q heads count = KV heads count)
+
+Each head h has its own Q_h, K_h, V_h.
+KV cache shape: (..., N, H, D)
+\`\`\`
+
+**MQA (Multi-Query Attention)**
+
+\`\`\`
+H_q = H, H_kv = 1         (all Q heads share one K, V head)
+
+KV cache shape: (..., N, 1, D)
+KV cache shrinks by H×.
+\`\`\`
+
+The savings are dramatic, but quality drops noticeably. With only one K, V subspace, every Q head must read off the same set of "indices" and "contents"; the model can no longer have one head specialize in syntax, another in formatting, another in entity tracking, etc. The expressiveness of the KV side collapses.
+
+**GQA (Group Query Attention)** — the compromise of the above two
+
+\`\`\`
+H_q = H, H_kv = G  (G < H; in practice G = H/4 or H/8)
+group_size = H / G
+
+The H Q heads are partitioned into G groups; each group shares one KV head.
+
+KV cache shape: (..., N, G, D)
+KV cache shrinks by group_size×.
+\`\`\`
+
+This preserves MATHPLACEHOLDER14ENDMATH independent K, V subspaces, which is enough for the model to specialize, while still reducing KV cache by a constant factor.
+
+In practice every major model has settled on MATHPLACEHOLDER15ENDMATH or MATHPLACEHOLDER16ENDMATH:
+
+| Model | MATHPLACEHOLDER17ENDMATH | MATHPLACEHOLDER18ENDMATH | group_size |
+|---|---|---|---|
+| LLaMA-2 7B | 32 | 32 | 1 (MHA) |
+| LLaMA-2 70B | 64 | 8 | 8 |
+| LLaMA-3 8B | 32 | 8 | 4 |
+| LLaMA-3 70B | 64 | 8 | 8 |
+| Mistral 7B | 32 | 8 | 4 |
+| Mixtral 8×7B | 32 | 8 | 4 |
+
+The 70B-and-up models tend to push group_size to 8; the smaller models settle around 4.
+
+## What GQA Actually Changes in the Math
+
+Only the K and V projection matrices change shape. The Q side is untouched.
+
+**MHA projections:**
+
+\`\`\`
+X ∈ R^{N × d_model}
+
+W_Q ∈ R^{d_model × (H · D)}
+W_K ∈ R^{d_model × (H · D)}
+W_V ∈ R^{d_model × (H · D)}
+
+Q = X · W_Q,  reshape → (N, H, D)
+K = X · W_K,  reshape → (N, H, D)
+V = X · W_V,  reshape → (N, H, D)
+\`\`\`
+
+**GQA projections:**
+
+\`\`\`
+W_Q ∈ R^{d_model × (H_q · D)}            ← unchanged
+W_K ∈ R^{d_model × (H_kv · D)}           ← smaller
+W_V ∈ R^{d_model × (H_kv · D)}           ← smaller
+
+Q = X · W_Q,  reshape → (N, H_q, D)
+K = X · W_K,  reshape → (N, H_kv, D)     ← only H_kv heads
+V = X · W_V,  reshape → (N, H_kv, D)
+\`\`\`
+
+Attention then routes each Q head to its group's KV head. For each Q head MATHPLACEHOLDER19ENDMATH:
+
+MATHPLACEHOLDER1ENDMATH
+
+MATHPLACEHOLDER2ENDMATH
+
+The Q side stays fully independent: each Q head keeps its own projection. The K, V side shrinks, and the same K, V is consumed by \`group_size\` Q heads. Intuitively, the model now has fewer *ways to index and store information*, but the queries that look it up are still as varied as before.
+
+## Kernel Design: Slicing the Grid Along MATHPLACEHOLDER20ENDMATH
+
+A smaller KV cache does not automatically translate to faster decode. The attention kernel has to take advantage of the structure.
+
+Slice the grid along MATHPLACEHOLDER21ENDMATH, packing a whole group of Q heads into a single program:
+
+\`\`\`python
+grid = (B, H_kv)                          ← one program per KV head
+
+Inside each program:
+   load q_tile  shape (group_size, D)     ← all Q heads in this group
+   for each K block:
+       load k_tile, v_tile shape (BK, D)  ← shared K, V — loaded once
+       s = q_tile @ k_tile^T              ← shape (group_size, BK)
+       5-step online softmax updates      ← group_size copies of (m, l, O)
+   out shape (group_size, D)              ← write back the group's outputs
+\`\`\`
+
+K and V cross HBM **once per K block** and are consumed by all \`group_size\` Q heads in the program. This is the moment when the architectural saving (smaller KV cache) is converted into a runtime saving (smaller HBM read).
+
+vLLM, FlashAttention-2, xformers, and PyTorch SDPA all use this grid layout. Inside a single program, the SRAM picture is the same as a FlashAttention kernel, only widened on the Q axis:
+
+\`\`\`
+SRAM (one program, batch b, KV head h_kv):
+
+   q_tile        shape (group_size, D)   ← the group's Q heads
+   k_tile        shape (BK, D)
+   v_tile        shape (BK, D)
+   m, l, O_acc   shape (group_size, ...) ← group_size copies of online state
+
+Inner loop iteration:
+   s = q_tile @ k_tile^T                 shape (group_size, BK)
+   5-step rule (s, m, p, e, lO) — unchanged from FlashAttention
+   only q changed from (1, D) to (group_size, D)
+
+Output (group_size, D), written into O[b, h_kv*gs : (h_kv+1)*gs, :]
+\`\`\`
+
+The 5-step online softmax does not change at all. Every shape simply gains a \`group_size\` axis where there used to be a singleton. Adapting a FlashAttention kernel to GQA is a few-line patch.
+
+## What GQA Doesn't Do
+
+It is worth being precise about the limits.
+
+- **Prefill speedup.** Prefill is compute-bound. GQA saves a small amount of FLOPs in the K, V projection but does not touch the dominant cost (MATHPLACEHOLDER22ENDMATH over MATHPLACEHOLDER23ENDMATH prompt tokens). Prefill latency barely moves.
+- **Training speedup.** Training is dominated by forward + backward FLOPs, not by reading a cache. The architectural change reduces parameter count by a small amount but does not meaningfully shorten training.
+- **Long-context blow-up.** At \`seq_len\` = 1M, even an 8× reduction leaves tens of GB of KV cache. GQA must be combined with sliding-window attention, prefix caching, or KV quantization to be tractable in that regime.
+
+GQA shines in exactly one regime: **large models, medium-to-long context, high-throughput serving**.
+`;
+    const mathFormulas = [["display", "\\text{AI}_{\\text{decode}} = \\frac{4 N D H_q}{4 N D H_{kv}} = \\frac{H_q}{H_{kv}} = \\text{group size}"], ["display", "h_{kv} = h \\;//\\; \\text{group size}"], ["display", "\\text{attn}_h = \\text{softmax}\\!\\left(\\frac{Q_h \\cdot K_{h_{kv}}^{\\top}}{\\sqrt{D}}\\right) \\cdot V_{h_{kv}}"], ["inline", "N"], ["inline", "QK^{\\top}"], ["inline", "N"], ["inline", "\\sim 4 \\cdot N \\cdot D \\cdot H_q"], ["inline", "q K^{\\top}"], ["inline", "p V"], ["inline", "H_q"], ["inline", "\\sim 4 \\cdot N \\cdot D \\cdot H_{kv}"], ["inline", "989 \\text{ TFLOPs} / 3 \\text{ TB/s} \\approx 330 \\text{ FLOPs/byte}"], ["inline", "H_q"], ["inline", "H_q"], ["inline", "G"], ["inline", "G = 4"], ["inline", "G = 8"], ["inline", "H_q"], ["inline", "H_{kv}"], ["inline", "h \\in [0, H_q)"], ["inline", "H_{kv}"], ["inline", "H_{kv}"], ["inline", "QK^{\\top}"], ["inline", "N"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
