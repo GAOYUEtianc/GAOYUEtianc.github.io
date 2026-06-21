@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Accelerate RoPE · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="How to Accelerate RoPE"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>How to Accelerate RoPE</h1>
+      <div class="post-date">
+        <time datetime="2026-06-21">Jun 21, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `# How to Accelerate RoPE
+
+## Math Behind RoPE
+
+TL;DR: RoPE treats each pair of dimensions as a 2D vector, and at position MATHPLACEHOLDER5ENDMATH the vector is rotated by an angle MATHPLACEHOLDER6ENDMATH. Since rotation has the property MATHPLACEHOLDER7ENDMATH, the attention score actually depends only on the relative position MATHPLACEHOLDER8ENDMATH.
+
+### Why Do We Need Positional Encoding
+
+The original attention MATHPLACEHOLDER9ENDMATH is position-independent, so after shuffling the order of tokens, the attention scores are unchanged. But the model needs to know the relative position of tokens, especially for long sequences.
+
+### Core Equation
+
+The 2D rotation matrix:
+
+MATHPLACEHOLDER0ENDMATH
+
+It has two key properties : 
+
+- Orthogonal : MATHPLACEHOLDER10ENDMATH
+
+- Additivity : MATHPLACEHOLDER11ENDMATH
+
+Combining these two, we get : 
+
+MATHPLACEHOLDER1ENDMATH
+
+Hence, if we rotate MATHPLACEHOLDER12ENDMATH by angle MATHPLACEHOLDER13ENDMATH and rotate MATHPLACEHOLDER14ENDMATH by angle MATHPLACEHOLDER15ENDMATH, then their inner product is equivalent to rotating one of them by angle MATHPLACEHOLDER16ENDMATH and then taking the inner product.
+
+### RoPE Operation
+
+For MATHPLACEHOLDER17ENDMATH with MATHPLACEHOLDER18ENDMATH dimensions, we group them into MATHPLACEHOLDER19ENDMATH pairs, where the MATHPLACEHOLDER20ENDMATH-th pair MATHPLACEHOLDER21ENDMATH is taken as a 2D vector.
+
+At position MATHPLACEHOLDER22ENDMATH, rotate the MATHPLACEHOLDER23ENDMATH-th pair by MATHPLACEHOLDER24ENDMATH:
+
+MATHPLACEHOLDER2ENDMATH
+
+Do the same for MATHPLACEHOLDER25ENDMATH : MATHPLACEHOLDER26ENDMATH
+
+Then the attention score becomes : 
+
+MATHPLACEHOLDER3ENDMATH
+
+Hence it depends only on MATHPLACEHOLDER27ENDMATH; the absolute positions don't matter.
+
+So what is MATHPLACEHOLDER28ENDMATH?
+
+MATHPLACEHOLDER4ENDMATH
+
+where MATHPLACEHOLDER29ENDMATH is a hyper-parameter, usually 10,000. Here’s an example when MATHPLACEHOLDER30ENDMATH:
+
+| pair MATHPLACEHOLDER31ENDMATH | MATHPLACEHOLDER32ENDMATH | radians per step | positions needed to rotate by MATHPLACEHOLDER33ENDMATH |
+|---|---|---|---|
+| 0 | MATHPLACEHOLDER34ENDMATH | MATHPLACEHOLDER35ENDMATH rad | \\~6.3 |
+| 16 | MATHPLACEHOLDER36ENDMATH | MATHPLACEHOLDER37ENDMATH rad | \\~63 |
+| 32 | MATHPLACEHOLDER38ENDMATH | MATHPLACEHOLDER39ENDMATH rad | \\~628 |
+| 48 | MATHPLACEHOLDER40ENDMATH | MATHPLACEHOLDER41ENDMATH rad | \\~3530 |
+| 63 | MATHPLACEHOLDER42ENDMATH | very slow | \\~55,600 |
+
+So the geometric meaning of MATHPLACEHOLDER43ENDMATH is a spectrum of rotation speeds, from slowest to fastest: high-frequency pairs capture position differences between nearby tokens, while low-frequency pairs capture differences between far-away tokens.
+
+Note that this rotation is applied only to Q and K, not to V — the role of V is to provide the weighted, aggregated content, while RoPE's purpose is to let the attention score carry relative-position information.
+
+## Pytorch Implementation
+
+When implementing, for the sake of simplicity and better utilization of the cos / sin cache, we construct the MATHPLACEHOLDER44ENDMATH pairs in this way : MATHPLACEHOLDER45ENDMATH , i.e., first-half & second-half pairing, instead of ‘neighbor pairing’, as this is more vectorization-friendly and faster for elementwise operations on GPU :
+
+If we cut MATHPLACEHOLDER46ENDMATH into 2 equal-length chunks : MATHPLACEHOLDER47ENDMATH , where MATHPLACEHOLDER48ENDMATH are both MATHPLACEHOLDER49ENDMATH-dim.
+
+Then we rotate each pair as :
+
+\`\`\`python
+new_x1[k] = x1[k] * cos(α) - x2[k] * sin(α)
+new_x2[k] = x1[k] * sin(α) + x2[k] * cos(α)
+\`\`\`
+
+Equivalently, in concatenated form :
+
+\`\`\`python
+new_x   = [x1*cos - x2*sin | x1*sin + x2*cos]
+        = [x1*cos | x2*cos] + [-x2*sin | x1*sin]
+        = x * cos + rotate_half(x) * sin, where rotate_half(x) = [-x2, x1]
+\`\`\`
+
+Then we can pre-compute the MATHPLACEHOLDER50ENDMATH and MATHPLACEHOLDER51ENDMATH cache, as they are independent of the data.
+
+Here are some utility functions we need :
+
+\`\`\`python
+def rotate_half(x):
+		x1, x2 = x.chunk(2, dim=-1) # cut into 2 equivalent length
+		return torch.cat([-x2, x1], dim=-1)
+		
+def precompute_rope_cache(d, max_seq_len, base=10000):
+    """The cache is only dependent on frequency and position, independent of data"""
+		# 1. Half frequencies
+		freqs = base ** (-torch.arange(0, d, 2).float() / d)   # (d/2, )
+		# 2. Every position's angle for each freq
+		t = torch.arange(max_seq_len).float()   # (max_seq_len,)
+		angles = torch.outer(t, freqs)      # (max_seq_len, d/2)
+		# 3. Copy along last dim, to make the shape consistent with split-half
+		emb = torch.cat([angles, angles], dim=-1)     # (max_seq_len, d)
+		return emb.cos(), emb.sin()
+		
+def apply_rope(x, cos, sin):
+    # x is of shape (..., seq_len, d); cos and sin are (max_seq_len, d), here it uses broadcasting
+    return x * cos + rotate_half(x) * sin
+\`\`\`
+
+When writing attention, the cos and sin from \`precompute_rope_cache\` are registered as buffers :
+
+\`\`\`python
+class Attention(nn.Module):
+		def __init__(self, d_model, n_heads, max_seq_len):
+				...
+				cos, sin = precompute_rope_cache(self.head_dim, max_seq_len)
+				self.register_buffer("cos_cache", cos)
+				self.register_buffer("sin_cache", sin)
+		
+		def forward(self, x):
+				# .... Compute shape of q, k, v : (B, n_heads, seq_len, head_dim)
+				cos = self.cos_cache[:seq_len]   # (seq_len, head_dim)
+				sin = self.sin_cache[:seq_len]
+				q = apply_rope(q, cos, sin)    # Before computing attn score
+				k = apply_rope(k, cos, sin)    # Before computing attn score
+				.....
+\`\`\`
+
+## Kernel Fusion for RoPE
+
+The bottleneck for RoPE speed is inside
+
+\`\`\`python
+def apply_rope(x, cos, sin):
+      return x * cos + rotate_half(x) * sin
+\`\`\`
+
+It actually triggers : 
+
+- chunk(2, dim=-1)          ← view,   might copy
+
+- cat([-x2, x1], dim=-1)   ← new tensor (HBM allocation + copy)
+
+- x * cos                            ← new tensor
+
+- rotate_half_x * sin        ← new tensor
+
+- x * cos + rotate_half(x) * sin     ← new tensor
+
+Hence 5 kernel launches in total, and 5+ tensors need to go back and forth between HBM and SRAM.
+
+The arithmetic intensity will be : 
+
+Every output element needs : 
+
+- FLOPs : 2 mul + 1 add
+
+- HBM bytes : read  x (2 bytes fp16) + read cos (2) + read sin (2) + write out (2) = 8 bytes
+
+- AI = 3 FLOPs / 8 bytes ≈ 0.4 FLOPs/byte
+
+The ridge of H100 is \\~330 FLOPs/byte, hence RoPE is extremely memory-bound. The core idea to accelerate is to 1. reduce the number of HBM round-trips, and 2. reduce kernel launch overhead.
+
+### Fuse the 5 Steps of \`apply_rope\` into One Kernel
+
+Put all the above 5 steps into a single Triton / CUDA kernel :
+
+\`\`\`python
+fused_rope_kernel:
+     pid = program_id(...)
+     load x_tile from HBM           ← one time
+     load cos_tile, sin_tile        ← one time
+
+		# All put in register / SRAM : 
+		x1, x2 = split(x_tile)
+		out = concat(x1*cos - x2*sin,  x1*sin + x2*cos)
+		
+		store out to HBM               ← one time
+\`\`\`
+
+Then the HBM traffic reduces from \\~5x to \\~2x; in vLLM, fused Triton RoPE is 2-3x faster than naive PyTorch.
+
+### Fuse with FlashAttention
+
+In FlashAttention3, it loads the Q tile into SRAM, then applies RoPE, then computes attention — i.e., Q does not need to be written to HBM in its ‘post-rotation’ state:
+
+\`\`\`python
+flash_attn_with_rope:
+		load q_tile, cos_tile, sin_tile      ← once
+		apply RoPE to q_tile in SRAM         ← do not write back, direct usage
+		for each k block:
+				load k_tile, cos_k, sin_k
+				apply RoPE to k_tile in SRAM
+				s = q_tile @ k_tile^T * scale
+				5-step online softmax updates
+		store out
+\`\`\`
+
+The gain is : the rotated Q and K never need to be written to HBM. RoPE becomes an inner-loop operation in FlashAttention, so there’s no extra cost.
+
+### Optimization During Decode : RoPE-on-cache-write
+
+During decoding, every step generates one new token; only one new K needs to be written into the KV cache. The naive way would be :
+
+1. Compute MATHPLACEHOLDER52ENDMATH
+
+1. Do RoPE for MATHPLACEHOLDER53ENDMATH
+
+1. Write into KV cache
+
+Optimization : Apply RoPE directly inside the kernel, so only one store is needed. vLLM further merges RoPE into the \`cache_kv\` kernel :
+
+\`\`\`python
+def write_to_cache(k_new, block_table, position, ...):
+		apply_rope_inline(k_new, position)
+		phys_id = block_table[...]
+		store k_new into KV_pool[phys_id]
+\`\`\`
+
+Hence the KV cache already stores the rotated K, so attention can directly use it — no need to recompute RoPE during inference.
+
+
+`;
+    const mathFormulas = [["display", "\nR(\\alpha) = \\begin{bmatrix} \\cos\\alpha & -\\sin\\alpha \\\\ \\sin\\alpha & \\cos\\alpha \\end{bmatrix}\n"], ["display", "\n\\langle R(\\alpha)x, R(\\beta)y \\rangle = (R(\\alpha)x)^\\top (R(\\beta)y) = x^\\top R(\\alpha)^\\top R(\\beta) y = x^\\top R(\\beta - \\alpha)\n  y\n"], ["display", "\nq_m^{(k)} = R(m\\theta_k) \\cdot q^{(k)}\n"], ["display", "\n\\langle q_m, k_n \\rangle = \\sum_{k=0}^{d/2-1} \\langle R(m\\theta_k) q^{(k)}, R(n\\theta_k) k^{(k)} \\rangle = \\sum_k \\langle q^{(k)},\n  R((n-m)\\theta_k) k^{(k)} \\rangle\n"], ["display", "\n\\theta_k = \\text{base}^{-2k/d}, \\quad k = 0, 1, \\ldots, d/2 - 1\n"], ["inline", "m"], ["inline", "m\\theta"], ["inline", "\\langle R(\\alpha)x, R(\\beta)y\\rangle = \\langle x, R(\\beta-\\alpha)y \\rangle"], ["inline", "(n-m)\\theta"], ["inline", "\\text{softmax}(QK^\\top/\\sqrt{d})V"], ["inline", "R(\\alpha)^\\top = R(-\\alpha)"], ["inline", "R(\\alpha)R(\\beta) = R(\\alpha+\\beta)"], ["inline", "x"], ["inline", "\\alpha"], ["inline", "y"], ["inline", "\\beta"], ["inline", "\\beta-\\alpha"], ["inline", "q \\in \\mathbb{R}^d"], ["inline", "d"], ["inline", "d/2"], ["inline", "k"], ["inline", "(q_{2k}, q_{2k+1})"], ["inline", "m"], ["inline", "k"], ["inline", "m \\cdot \\theta_k"], ["inline", "K"], ["inline", "k_n^{(k)} = R(n\\theta_k) \\cdot k^{(k)}"], ["inline", "n-m"], ["inline", "\\theta_k"], ["inline", "\\text{base}"], ["inline", "d=128"], ["inline", "k"], ["inline", "\\theta_k"], ["inline", "2\\pi"], ["inline", "1.0"], ["inline", "1"], ["inline", "10000^{-32/128} = 0.1"], ["inline", "0.1"], ["inline", "10000^{-64/128} = 0.01"], ["inline", "0.01"], ["inline", "10000^{-96/128} = 0.00178"], ["inline", "0.00178"], ["inline", "10000^{-126/128} \\approx 1.13 \\times 10^{-4}"], ["inline", "\\theta_k"], ["inline", "d/2"], ["inline", "(q_k, q_{k+d/2})"], ["inline", "q"], ["inline", "[x_1 \\mid x_2]"], ["inline", "x_1, x_2"], ["inline", "d/2"], ["inline", "\\cos"], ["inline", "\\sin"], ["inline", "k = x @ W_K"], ["inline", "k"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
