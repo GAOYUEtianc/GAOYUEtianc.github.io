@@ -155,6 +155,7 @@ TEMPLATE = '''<!DOCTYPE html>
     #markdown-content img {{ max-width: 100%; height: auto; }}
     #markdown-content pre {{ background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }}
     #markdown-content code {{ background: #f5f5f5; padding: 0.2em 0.4em; }}
+    #markdown-content pre code {{ background: transparent; padding: 0; }}
     #markdown-content blockquote {{ border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }}
   </style>
 
@@ -223,10 +224,12 @@ TEMPLATE = '''<!DOCTYPE html>
     mathFormulas.forEach((item, idx) => {{
       const [type, formula] = item;
       const placeholder = `MATHPLACEHOLDER${{idx}}ENDMATH`;
+      // HTML-escape so characters like `<` in formulas (e.g. x_{<t}) don't get parsed as tags by innerHTML.
+      const safe = formula.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       if (type === 'display') {{
-        html = html.replace(placeholder, `\\\\[${{formula}}\\\\]`);
+        html = html.replace(placeholder, `\\\\[${{safe}}\\\\]`);
       }} else {{
-        html = html.replace(placeholder, `\\\\(${{formula}}\\\\)`);
+        html = html.replace(placeholder, `\\\\(${{safe}}\\\\)`);
       }}
     }});
 
