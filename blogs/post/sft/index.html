@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supervised Fine-Tuning — Loss Function, Packing, Memory, and LoRA · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Supervised Fine-Tuning — Loss Function, Packing, Memory, and LoRA"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Supervised Fine-Tuning — Loss Function, Packing, Memory, and LoRA</h1>
+      <div class="post-date">
+        <time datetime="2026-06-29">Jun 29, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+SFT is the step that turns a pre-trained base model into one that follows instructions. The model architecture, loss function, and tokenizer all stay the same as pre-training, what changes is the loss masking (which tokens contribute to loss) and a few engineering details to make training efficient.
+
+This blog covers four building blocks of SFT, in the order they depend on each other:
+
+1. **Loss masking** — what tokens should compute loss, and why
+
+1. **Padding and packing** — how to batch sequences of different lengths
+
+1. **Memory** — what fits in GPU memory and what does not
+
+1. **LoRA** — how to fine-tune large models with fewer trainable parameters
+
+## Loss Masking
+
+After pretraining, the base model can do next-token prediction. The purpose of SFT is to turn continuation writing into instructed answering. Since the architecture, loss function (cross entropy), and tokenizer are unchanged, the only thing SFT does differently is decide which tokens the loss is computed on.
+
+### Which tokens should compute loss
+
+Think about inference: the input is \`[system + user]\`, which is fixed, and the model only generates the \`assistant\` answer from it. The system and user parts are given, and the model never predicts them. Training should match this, so the loss should only be computed on the tokens that the model is supposed to generate. This is called **train-inference symmetry**. In multi-turn conversation, the user parts in later rounds are also not counted in loss.
+
+Let the sequence be MATHPLACEHOLDER21ENDMATH, and define a binary mask MATHPLACEHOLDER22ENDMATH where MATHPLACEHOLDER23ENDMATH if MATHPLACEHOLDER24ENDMATH is generated by the assistant:
+
+MATHPLACEHOLDER0ENDMATH
+
+### Implementation
+
+The PyTorch convention is to set \`labels[t] = -100\` at positions where we don't want loss. \`F.cross_entropy(ignore_index=-100)\` will skip these positions, both in the loss and in the count for averaging. The \`-100\` is just the default value PyTorch picked.
+
+\`\`\`python
+input_ids = tokenizer(text)["input_ids"]
+labels = input_ids.copy()
+
+for t in range(len(input_ids)):
+    if not is_assistant_token(t):
+        labels[t] = -100
+\`\`\`
+
+### The shift trick
+
+There is one common pitfall. A causal LM's output logits at position MATHPLACEHOLDER25ENDMATH is: after seeing MATHPLACEHOLDER26ENDMATH, predict MATHPLACEHOLDER27ENDMATH. So when computing loss, we use \`logits[:-1]\` to predict \`labels[1:]\` , i.e., shift the labels by one.
+
+\`\`\`python
+shift_logits = logits[..., :-1, :].contiguous()    # (B, T-1, V)
+shift_labels = labels[..., 1:].contiguous()        # (B, T-1)
+loss = F.cross_entropy(
+    shift_logits.view(-1, shift_logits.size(-1)),   # (B*(T-1), V)
+    shift_labels.view(-1),                          # (B*(T-1))
+    ignore_index=-100,                          # skip when labels are -100
+)
+\`\`\`
+
+During SFT, never trust the train loss alone, always sanity-check the inference output.
+
+Note: some HuggingFace \`*ForCausalLM\` classes do the shift internally. 
+
+### Normalization: token-level vs sequence-level
+
+The denominator MATHPLACEHOLDER28ENDMATH in the loss formula can be computed in two ways:
+
+- **Token-level**: average over all assistant tokens in the batch. PyTorch's \`F.cross_entropy(reduction='mean')\` does this by default. Loss is dominated by long responses.
+
+- **Sequence-level**: first average within each sample, then average across samples. Each sample contributes equally, regardless of length.
+
+The choice affects what kind of behaviour the model favours. Token-level training pushes the model toward longer, more detailed responses because they dominate the gradient. Sequence-level training gives every sample equal weight, leading to a more diverse training signal.
+
+Mistral and Llama recipes mostly use token-level normalization. DeepSeek uses sequence-level. There is no universally right answer, it is a data distribution prior you should choose deliberately.
+
+## Padding & Packing
+
+Now that we’ve known how to compute the SFT loss of a sequence, but as the sequence length in the batch are different, how to put them in GPU to optimize GPU utility ?
+
+GPU likes fixed shaped rectangular tensor MATHPLACEHOLDER29ENDMATH, a batch must be of this shape to run forward. In order to turn long sequence into rectangular, there’re only 2 ways : 
+
+| Method | Description | Cons |
+|---|---|---|
+| Padding | use pad token to make all length = max_len | Waste computation resource (as pad also runs forward) |
+| Packing | Packing multiple short sequences into a long one | Complicated implementation |
+
+### Padding
+
+Pad every sequence to \`max_len\` in the batch (or to a global \`max_seq_len\`):
+
+\`\`\`javascript
+sample 0:  ████████■■■■■■■■■■■■    (8 real + 12 pad)
+sample 1:  ████████████████████    (20 real)
+sample 2:  ████■■■■■■■■■■■■■■■■    (4 real + 16 pad)
+sample 3:  ████████████■■■■■■■■    (12 real + 8 pad)
+
+■ = pad_token
+\`\`\`
+
+Pad tokens contaminate three places, each needs its own mask:
+
+**1. Attention mask.** With \`attention_mask: (B, T)\` where 1 = real, 0 = pad, the transformer combines it with the causal mask — at position MATHPLACEHOLDER30ENDMATH, valid keys are positions MATHPLACEHOLDER31ENDMATH where MATHPLACEHOLDER32ENDMATH **and** \`attention_mask[j] = 1\`.
+
+**2. Loss mask.** Pad positions get \`labels[t] = -100\`. No gradient flows through them.
+
+**3. Position id.** With right-pad, positions MATHPLACEHOLDER33ENDMATH are naturally correct because real tokens occupy MATHPLACEHOLDER34ENDMATH. With left-pad, set \`position_ids\` manually so real tokens start from 0, otherwise RoPE rotates by wrong angles and the attention pattern breaks.
+
+**Right-pad vs left-pad.** Training with right-pads, inference with left-pads:
+
+- Training: causal LM processes left-to-right, real tokens at MATHPLACEHOLDER35ENDMATH align naturally with the shift trick in loss computation.
+
+- Generation: each batched step produces the next token per sample. All samples must align at the right edge so "next position" lands at the same column across the batch. Left-pad puts pad in front, real tokens in back, all sample tails at the same position.
+
+The biggest cons for padding is waste. With 4 samples of lengths MATHPLACEHOLDER36ENDMATH padded to MATHPLACEHOLDER37ENDMATH:
+
+MATHPLACEHOLDER1ENDMATH
+
+Real datasets show 30–60% padding waste, which is the motivation for packing.
+
+### Packing
+
+Concatenate multiple sequences into one long stream:
+
+\`\`\`javascript
+packed:    AAAAAAAA|BBBBBBBBBBBBBBBBBBBB|CCCC|DDDDDDDDDDDD■■■■
+           ↑       ↑                    ↑    ↑           ↑
+           0       8                    28   32          44 (real) / 48 (max)
+\`\`\`
+
+Padding ratio drops to <10%, sometimes <1% with bin-packing.
+
+Sample boundaries are tracked by **cumulative sequence lengths** \`cu_seqlens\`:
+
+MATHPLACEHOLDER2ENDMATH
+
+For lengths MATHPLACEHOLDER38ENDMATH: \`cu_seqlens = [0, 8, 28, 32, 44]\`. Sample MATHPLACEHOLDER39ENDMATH occupies the interval MATHPLACEHOLDER40ENDMATH. This is the standard input format for FlashAttention's varlen API \`flash_attn_varlen_func\`.
+
+Three things must be correct, otherwise training silently breaks.
+
+**1. Attention mask is block-diagonal.** A token in sample A must not attend to any token in sample B. For total length MATHPLACEHOLDER41ENDMATH:
+
+MATHPLACEHOLDER3ENDMATH
+
+In picture form (4 samples):
+
+\`\`\`javascript
+      A      B      C      D
+A  [  L  |   0  |  0  |  0  ]
+B  [  0  |   L  |  0  |  0  ]   L = lower triangular
+C  [  0  |   0  |  L  |  0  ]
+D  [  0  |   0  |  0  |  L  ]
+\`\`\`
+
+Forgetting any off-diagonal zero causes cross-sample attention. Sample B "sees" sample A's tokens during forward → the model peeks at other samples' labels → **train loss drops abnormally low while eval loss stays normal**.
+
+**2. Position ids reset within each sample.** Naively using \`position_ids = [0, 1, ..., T-1]\` makes RoPE treat the packed sequence as one continuous stream. Sample B's first token gets rotated as if it were MATHPLACEHOLDER42ENDMATH positions away from sample A's first token, but A and B are independent, the attention pattern becomes nonsense.
+
+MATHPLACEHOLDER4ENDMATH
+
+For our example it’s: \`[0..7, 0..19, 0..3, 0..11]\`. Each sample's RoPE rotations match what they would be if the sample were trained alone.
+
+**3. Loss mask is still applied per-sample.** Each sample's \`labels\` is independently masked (\`-100\` on non-assistant tokens), then concatenated. \`F.cross_entropy(ignore_index=-100)\` handles the rest, hence token-level normalization is transparent under packing. Sequence-level normalization requires manually slicing by \`cu_seqlens\` and averaging per sample.
+
+**FlashAttention varlen.** Materializing the block-diagonal MATHPLACEHOLDER43ENDMATH mask is wasteful — for MATHPLACEHOLDER44ENDMATH it has 64M entries. FlashAttention's varlen API takes only \`cu_seqlens\` and handles segmentation **inside the kernel**:
+
+\`\`\`python
+from flash_attn import flash_attn_varlen_func
+
+out = flash_attn_varlen_func(
+    q, k, v,                                  # (total_tokens, n_heads, head_dim)
+    cu_seqlens_q=cu_seqlens,                  # (num_samples + 1,)
+    cu_seqlens_k=cu_seqlens,
+    max_seqlen_q=max(segment_lengths),
+    max_seqlen_k=max(segment_lengths),
+    causal=True,
+)
+\`\`\`
+
+The kernel iterates over segments and runs an independent causal FlashAttention per segment. Zero cross-sample compute, zero mask materialization.
+
+**Batch size in packed mode.** The nominal batch dimension MATHPLACEHOLDER45ENDMATH is usually 1 (the whole batch is one packed sequence). Effective batch size is controlled by \`gradient_accumulation_steps\`. 
+
+## Mixed Precision
+
+In order to take best utility of computational source, it’s important to choose proper precision. The choice is a deliberate trade-off between **dynamic range** and **precision**.
+
+### Floating point as a bit budget
+
+Every IEEE 754 float is parametrized as
+
+MATHPLACEHOLDER5ENDMATH
+
+where MATHPLACEHOLDER46ENDMATH is the sign bit, MATHPLACEHOLDER47ENDMATH is the exponent (MATHPLACEHOLDER48ENDMATH bits), MATHPLACEHOLDER49ENDMATH is the mantissa (MATHPLACEHOLDER50ENDMATH bits), and MATHPLACEHOLDER51ENDMATH. Given a fixed bit budget MATHPLACEHOLDER52ENDMATH, allocating more bits to MATHPLACEHOLDER53ENDMATH buys range, more to MATHPLACEHOLDER54ENDMATH buys precision:
+
+MATHPLACEHOLDER6ENDMATH
+
+Different formats are different choices on this trade-off.
+
+### Three formats
+
+| Format | MATHPLACEHOLDER55ENDMATH | MATHPLACEHOLDER56ENDMATH | total bits | MATHPLACEHOLDER57ENDMATH | relative precision | bytes / param |
+|---|---|---|---|---|---|---|
+| **fp32** | 8 | 23 | 32 | MATHPLACEHOLDER58ENDMATH | MATHPLACEHOLDER59ENDMATH | 4 |
+| **fp16** | 5 | 10 | 16 | MATHPLACEHOLDER60ENDMATH | MATHPLACEHOLDER61ENDMATH | 2 |
+| **bf16** | 8 | 7 | 16 | MATHPLACEHOLDER62ENDMATH | MATHPLACEHOLDER63ENDMATH | 2 |
+
+The key observation: bf16 has same range as fp32, lower precision, half the storage of fp32.
+
+### Why range matters more than precision for LLM training
+
+The numbers flowing through a transformer span a huge dynamic range:
+
+| Quantity | Typical magnitude |
+|---|---|
+| Weights | MATHPLACEHOLDER64ENDMATH |
+| Activations | MATHPLACEHOLDER65ENDMATH (after softmax, residual, LayerNorm) |
+| Gradients | MATHPLACEHOLDER66ENDMATH, sometimes smaller |
+| Adam update MATHPLACEHOLDER67ENDMATH | MATHPLACEHOLDER68ENDMATH |
+
+fp16's range maxes out at MATHPLACEHOLDER69ENDMATH , only \\~10 orders of magnitude. Activations routinely overflow to MATHPLACEHOLDER70ENDMATH (which then propagates to NaN), and gradients routinely underflow to 0. bf16's range matches fp32 at MATHPLACEHOLDER71ENDMATH, \\~76 orders of magnitude. Overflow and underflow stop being practical concerns.
+
+### Why the precision loss is acceptable
+
+Between MATHPLACEHOLDER72ENDMATH and MATHPLACEHOLDER73ENDMATH, bf16 has only MATHPLACEHOLDER74ENDMATH distinct values, with gaps of MATHPLACEHOLDER75ENDMATH. Concretely, MATHPLACEHOLDER76ENDMATH in bf16 rounds back to MATHPLACEHOLDER77ENDMATH — the small change is lost.
+
+This sounds catastrophic until you compare it to SGD's own gradient noise. The mini-batch gradient already differs from the true gradient by orders of magnitude more than this rounding error. bf16 rounding is a drop of ink in an ocean that SGD is already churning, it averages out across steps and samples. Empirically, bf16 training loss curves are indistinguishable from fp32.
+
+### Why we still keep an fp32 master copy of weights
+
+bf16 training does not put everything in bf16. The weights have two copies:
+
+- **bf16 working copy** — used in forward and backward
+
+- **fp32 master copy** — used by the optimizer to accumulate updates
+
+The reason: an Adam update step has magnitude MATHPLACEHOLDER78ENDMATH. Apply it in bf16:
+
+MATHPLACEHOLDER7ENDMATH
+
+The bf16 gap swallows the update. Over thousands of steps, the model effectively never trains. In fp32:
+
+MATHPLACEHOLDER8ENDMATH
+
+So the bf16 weights are converted from the fp32 master before every forward, but updates are always applied to fp32. This is the source of the "**16 bytes per param**" rule used in the next section:
+
+MATHPLACEHOLDER9ENDMATH
+
+## Memory Accounting
+
+How to estimate the memory required for a 7B / 70 B model’s SFT? 
+
+The memory accounting for any training can be decomposed into 4 buckets : 
+
+MATHPLACEHOLDER10ENDMATH
+
+Except for activations, the first 3 terms only scale with the number of parameters, hence if we want to optimize them, LoRA / QLoRA is a good choice by reducing trainable parameters (will introduce in next section). The activation scales with training settings including batch size, number of layers, sequence length, hidden size, hence gradient checkpointing, reducing batch sizes etc can optimize it.
+
+Following the mixed precision from last section, it can be calculated that each parameter occupies 16 bytes : 
+
+MATHPLACEHOLDER11ENDMATH
+
+### Activations: MATHPLACEHOLDER79ENDMATH
+
+Activations are the intermediate tensors saved during forward so backward can use them. Per transformer layer, the saved tensors include:
+
+\`\`\`javascript
+LayerNorm input               ~h values per token
+Q, K, V projections           ~3h per token
+Attention output              ~h per token
+FFN intermediate              ~4h–8h per token   (SwiGLU is larger)
+... LayerNorm outputs, dropout masks, ...
+\`\`\`
+
+Summing across these and across all MATHPLACEHOLDER80ENDMATH layers gives an empirical estimate of roughly **30 bytes per token per layer** in bf16:
+
+MATHPLACEHOLDER12ENDMATH
+
+**When do activations overtake the parameter side?** Substitute the Transformer parameter scaling MATHPLACEHOLDER81ENDMATH (FFN-dominated) into MATHPLACEHOLDER82ENDMATH vs activation mem:
+
+MATHPLACEHOLDER13ENDMATH
+
+For MATHPLACEHOLDER83ENDMATH, activations overtake the parameter side once MATHPLACEHOLDER84ENDMATH. This is why **long-context SFT blows up on memory** , it’s due to the activation term.
+
+### Gradient checkpointing to reduce activation memory
+
+The activation term is the easiest to attack, because the value is purely a function of how much we decide to **store** vs **recompute**. Gradient checkpointing makes this trade-off explicit.
+
+**The naive method.** During forward, every layer saves its activations so backward can read them without re-computing. Memory cost: MATHPLACEHOLDER85ENDMATH layers' worth.
+
+**With checkpointing.** Save activations at only MATHPLACEHOLDER86ENDMATH “checkpoint layers”, evenly spaced. During backward, when we reach a non-checkpoint layer, its activations have not been stored, so we re-run forward from the nearest checkpoint to recompute them. Memory drops from MATHPLACEHOLDER87ENDMATH layers to MATHPLACEHOLDER88ENDMATH layers' worth, plus the activations of the segment currently being re-materialized.
+
+**A rule of thumb: **MATHPLACEHOLDER89ENDMATH. Total memory has two parts: the checkpoint snapshots (MATHPLACEHOLDER90ENDMATH layers) and the activations recomputed during backward, which at any moment fills one segment of MATHPLACEHOLDER91ENDMATH layers:
+
+MATHPLACEHOLDER14ENDMATH
+
+This is minimized at MATHPLACEHOLDER92ENDMATH, giving total memory MATHPLACEHOLDER93ENDMATH. For MATHPLACEHOLDER94ENDMATH that is MATHPLACEHOLDER95ENDMATH layers' worth instead of MATHPLACEHOLDER96ENDMATH, roughly a 3× saving on the activation term.
+
+**The compute cost.** One extra forward pass through the recomputed segments. Roughly equivalent to one full extra forward over the whole model, so the training step time grows by MATHPLACEHOLDER97ENDMATH (forward + backward is normally MATHPLACEHOLDER98ENDMATH units of compute, and we add MATHPLACEHOLDER99ENDMATH forward). For most SFT settings, this is the best memory-vs-time trade in the toolbox.
+
+**Selective (activation) checkpointing.** Modern frameworks (Megatron-LM, FSDP, TransformerEngine) let us choose **which operations** within a layer to checkpoint. The win is asymmetric:
+
+- **Attention activations**: expensive to store (MATHPLACEHOLDER100ENDMATH in the naive case), cheap to recompute.
+
+- **FFN activations**: cheap to store, expensive to recompute.
+
+So the optimal policy is "**recompute attention, store FFN**". Memory drops without paying the full MATHPLACEHOLDER101ENDMATH time overhead and can reach MATHPLACEHOLDER102ENDMATH in practice.
+
+**FlashAttention checkpointing.** FlashAttention does not store the MATHPLACEHOLDER103ENDMATH attention matrix at all. It recomputes the necessary chunks during backward inside its kernel. This is selective checkpointing baked into the attention operator. With FlashAttention enabled, the MATHPLACEHOLDER104ENDMATH term in activation memory simply disappears.
+
+### What dominates the memory under different settings
+
+| Setting | Dominant bucket | Why |
+|---|---|---|
+| Full SFT, normal context (MATHPLACEHOLDER105ENDMATH) | **Optimizer states (**MATHPLACEHOLDER106ENDMATH**)** | Adam MATHPLACEHOLDER107ENDMATH alone is half of the MATHPLACEHOLDER108ENDMATH |
+| Full SFT, long context (MATHPLACEHOLDER109ENDMATH) | **Activations** | The MATHPLACEHOLDER110ENDMATH term overtakes the parameter side |
+| Any setting, gradient checkpointing on | **Parameter side (**MATHPLACEHOLDER111ENDMATH**)** | Activations drop by MATHPLACEHOLDER112ENDMATH, parameter side is unchanged |
+
+This table tells us **what to attack first** when running out of memory. For full SFT, optimizer states are the obvious target — and that is exactly what the next section is about.
+
+## LoRA
+
+From the last section, of the 16 bytes per param in full SFT, only the **2 bytes of bf16 working copy** exist for every parameter. The other 14 bytes (gradient, Adam MATHPLACEHOLDER113ENDMATH, Adam MATHPLACEHOLDER114ENDMATH, fp32 master) **only exist for trainable parameters**. Hence, if we freeze most of the model and only train a small component, the memory would drop significantly. A natural question : how small can the trainable component be, and still express the weight change that fine-tune needs?
+
+### Intrinsic Dimension Hypothesis
+
+In a fine-tune task, from base model to the convergence point’s weight change : 
+
+MATHPLACEHOLDER15ENDMATH
+
+Based on some observations (Aghajanyan, 2020), MATHPLACEHOLDER115ENDMATH falls in a low-rank subspace. Hence, although the free-dimension of  MATHPLACEHOLDER116ENDMATH is MATHPLACEHOLDER117ENDMATH , actually the effective dimension is much smaller than that - Usually in 10^3 scale for a million sized matrix. Intrinsic dimension can be measured by probing (Armen Aghajani, 2018).
+
+### Mathematics behind LoRA
+
+<!-- unsupported block type: heading_4 -->
+
+Decompose MATHPLACEHOLDER118ENDMATH , where
+
+MATHPLACEHOLDER119ENDMATH
+
+Any rank-MATHPLACEHOLDER120ENDMATH matrix can be decomposed by SVD into this format. Then LoRA can directly learn MATHPLACEHOLDER121ENDMATH, without explicitly constructing MATHPLACEHOLDER122ENDMATH.
+
+<!-- unsupported block type: heading_4 -->
+
+MATHPLACEHOLDER16ENDMATH
+
+where MATHPLACEHOLDER123ENDMATH is a hyperparameter. The MATHPLACEHOLDER124ENDMATH factor is a normalization that decouples our choice of MATHPLACEHOLDER125ENDMATH from the learning rate, derived in the MATHPLACEHOLDER126ENDMATH subsection below.
+
+<!-- unsupported block type: heading_4 -->
+
+|  | Parameter Size | 7B model (MATHPLACEHOLDER127ENDMATH) |
+|---|---|---|
+| Full fine-tune | MATHPLACEHOLDER128ENDMATH | MATHPLACEHOLDER129ENDMATH |
+| LoRA | MATHPLACEHOLDER130ENDMATH | MATHPLACEHOLDER131ENDMATH(< 1% N)  |
+
+### Initialization of LoRA Fine-tune : B=0, A = \`kaiming_uniform_\`
+
+<!-- unsupported block type: heading_4 -->
+
+Fine-tune must start from the base model, i.e., at MATHPLACEHOLDER132ENDMATH the model output must equal MATHPLACEHOLDER133ENDMATH. This forces MATHPLACEHOLDER134ENDMATH at MATHPLACEHOLDER135ENDMATH, so at least one of MATHPLACEHOLDER136ENDMATH and MATHPLACEHOLDER137ENDMATH must be zero at init.
+
+<!-- unsupported block type: heading_4 -->
+
+If MATHPLACEHOLDER138ENDMATH, MATHPLACEHOLDER139ENDMATH is random :
+
+- Gradient of MATHPLACEHOLDER140ENDMATH : MATHPLACEHOLDER141ENDMATH ≠ 0 → A updates in step 1
+
+- Gradient of MATHPLACEHOLDER142ENDMATH : MATHPLACEHOLDER143ENDMATH → B holds in step 1
+
+If we flip to MATHPLACEHOLDER144ENDMATH and MATHPLACEHOLDER145ENDMATH random, the dynamics are symmetric. **There is no mathematical preference between the two**. The LoRA paper picked MATHPLACEHOLDER146ENDMATH , \`nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))\` as convention.
+
+<!-- unsupported block type: heading_4 -->
+
+When we change MATHPLACEHOLDER147ENDMATH, the magnitude of MATHPLACEHOLDER148ENDMATH changes as MATHPLACEHOLDER149ENDMATH is a sum of MATHPLACEHOLDER150ENDMATH rank-1 outer products :
+
+MATHPLACEHOLDER17ENDMATH
+
+where MATHPLACEHOLDER151ENDMATH is the MATHPLACEHOLDER152ENDMATH-th column of MATHPLACEHOLDER153ENDMATH and MATHPLACEHOLDER154ENDMATH is the MATHPLACEHOLDER155ENDMATH-th row of MATHPLACEHOLDER156ENDMATH. As MATHPLACEHOLDER157ENDMATH grows, more rank-1 terms are summed, and the norm of MATHPLACEHOLDER158ENDMATH grows with MATHPLACEHOLDER159ENDMATH.
+
+If we just plug a larger MATHPLACEHOLDER160ENDMATH into the forward MATHPLACEHOLDER161ENDMATH without compensation, the effective magnitude of each gradient update grows with MATHPLACEHOLDER162ENDMATH, equivalent to silently raising the learning rate. So every time we change MATHPLACEHOLDER163ENDMATH, we would also have to re-tune the learning rate.
+
+The fix is to divide by MATHPLACEHOLDER164ENDMATH, with MATHPLACEHOLDER165ENDMATH as a free constant :
+
+MATHPLACEHOLDER18ENDMATH
+
+This keeps the effective update magnitude roughly invariant under MATHPLACEHOLDER166ENDMATH.
+
+Common default : MATHPLACEHOLDER167ENDMATH (scaling factor = 2). 
+
+### Where to Add LoRA
+
+LoRA is a drop-in module, it can be added into any linear layer. Here are some traditional selections in Transformer :
+
+| Scope | Where | Note |
+|---|---|---|
+| Attention only | MATHPLACEHOLDER168ENDMATH | Around 30% parameter coverage |
+| All linear  (QLoRA, modern default) | MATHPLACEHOLDER169ENDMATH + MATHPLACEHOLDER170ENDMATH | Full coverage, high quality, more LoRA params |
+| +Embedding / LM head | Plus vocab end | Less used as vocab end parameter size is too big |
+
+## QLoRA — Use 4-bit Quantization of Base Model
+
+Although LoRA can compress the number of trainable parameters largely, it can be noticed that the frozen base model’s parameter occupies a large portion of the memory. A nature question flows : Since it never needs an update, can we further press it?
+
+QLoRA resolves this by 4-bit quantization of the base model.
+
+### LLM Weights Are not Uniform
+
+If you directly do INT4 (16 equal-length level) to weights : 
+
+\`\`\`python
+INT4 levels:  -1.0  -0.87  -0.73  ...  -0.07  0.07  ...  0.87  1.0
+               ↑                            ↑                   ↑
+             few weights             lots of weight here    few weights
+\`\`\`
+
+After pre-training, LLM weights is nearly a Gaussian distribution with a sparse tail. INT4 will put 16 levels uniformly on [-1, 1] : The levels in the middle will be crowded, while the levels in boundary is barely used, causing a waste of bits at low density zone. 
+
+A optimal solution from information theory perspective is quantile quantization — NF4 (NormalFloat 4-bit). This is a 4-bit specifically designed for normal distribution, where 16 levels are 16 quantiles of unit Gaussian. NF4 is thus more information-theoretically optimal, which leads to lower perplexity degradation.
+
+One caveat : QLoRA trades time for space. During training, every forward / backward matmul needs an on-the-fly dequantization from NF4 to bf16, causing roughly MATHPLACEHOLDER171ENDMATH slowdown compared to LoRA. 
+
+## DoRA — Weight-Decomposed Low-Rank Adaptation
+
+DoRA is a natural extension of LoRA. The key insight : any weight matrix can be decomposed into **magnitude** MATHPLACEHOLDER172ENDMATH **direction** :
+
+MATHPLACEHOLDER19ENDMATH
+
+where MATHPLACEHOLDER173ENDMATH is a per-column magnitude vector, and MATHPLACEHOLDER174ENDMATH is the per-column L2 norm.
+
+LoRA's update MATHPLACEHOLDER175ENDMATH changes magnitude and direction at the same time, coupled together. DoRA decouples them :
+
+MATHPLACEHOLDER20ENDMATH
+
+- **Magnitude **MATHPLACEHOLDER176ENDMATH : a small trainable vector of size MATHPLACEHOLDER177ENDMATH, initialized to MATHPLACEHOLDER178ENDMATH so that at MATHPLACEHOLDER179ENDMATH DoRA exactly recovers MATHPLACEHOLDER180ENDMATH.
+
+- **Direction** : the same low-rank MATHPLACEHOLDER181ENDMATH as LoRA, but normalized per-column.
+
+### Why DoRA Beats LoRA
+
+Empirically, LoRA tends to only learn **direction** shifts, because MATHPLACEHOLDER182ENDMATH cannot easily express pure magnitude changes (each scalar magnitude shift would require coordinated changes across many MATHPLACEHOLDER183ENDMATH components). DoRA gives the magnitude its own dedicated parameter, freeing MATHPLACEHOLDER184ENDMATH to focus on direction.
+
+Result : DoRA closes most of the gap between LoRA and full fine-tuning at the same rank MATHPLACEHOLDER185ENDMATH. Extra cost is small — only MATHPLACEHOLDER186ENDMATH scalars per matrix. Like LoRA, DoRA can be merged back into MATHPLACEHOLDER187ENDMATH at deploy time for zero inference overhead.
+`;
+    const mathFormulas = [["display", "\nL_{\\text{SFT}} = -\\frac{1}{\\sum_t m_t} \\sum_{t} m_t \\cdot \\log p_\\theta(x_t \\mid x_{<t})\n"], ["display", "\n\\frac{\\text{real tokens}}{\\text{total tokens}} = \\frac{44}{80} = 55\\%\n"], ["display", "\n\\text{cu\\_seqlens} = [\\,0,\\; n_0,\\; n_0 + n_1,\\; n_0 + n_1 + n_2,\\; \\ldots\\,]\n"], ["display", "\nM_{ij} = \\begin{cases} 1 & j \\le i \\text{ AND } i, j \\text{ are in the same sample} \\\\ 0 & \\text{otherwise} \\end{cases}\n"], ["display", "\n\\text{position\\_ids} = [\\,0, 1, \\ldots, n_0 - 1,\\;\\; 0, 1, \\ldots, n_1 - 1,\\;\\; 0, 1, \\ldots, n_2 - 1,\\;\\; \\ldots\\,]\n"], ["display", "\nx = (-1)^s \\cdot 2^{e - \\text{bias}} \\cdot (1 + m / 2^M)\n"], ["display", "\nx_{\\max} \\approx 2^{2^{E-1}}, \\qquad \\text{relative precision} \\approx 2^{-M}\n"], ["display", "\n1.0 + 10^{-7} \\;\\;\\xrightarrow{\\text{bf16}}\\;\\; 1.0 \\qquad (\\text{rounded down \u2014> no update at all})\n"], ["display", "\n1.0 + 10^{-7} \\;\\;\\xrightarrow{\\text{fp32}}\\;\\; 1.0000001 \\qquad \n"], ["display", "\n\\underbrace{2}_{\\text{bf16 weight}} + \\underbrace{4}_{\\text{fp32 master}} + \\underbrace{4}_{\\text{Adam } m} + \\underbrace{4}_{\\text{Adam } v} + \\underbrace{2}_{\\text{bf16 grad}} = 16 \\text{ bytes / param}\n"], ["display", "\n\\text{GPU mem} = \\underbrace{\\text{weights}}_{O(N)} + \\underbrace{\\text{gradients}}_{O(N)} + \\underbrace{\\text{optimizer states}}_{O(N)} + \\underbrace{\\text{activations}}_{O(L \\cdot B \\cdot s \\cdot h)}\n"], ["display", "\n\\underbrace{2}_{\\text{bf16 weight}} + \\underbrace{4}_{\\text{fp32 master}} + \\underbrace{2}_{\\text{bf16 grad}} + \\underbrace{4}_{\\text{Adam } m} + \\underbrace{4}_{\\text{Adam } v} = \\boxed{16 \\text{ bytes / param}}\n"], ["display", "\n\\text{activation mem} \\approx 30 \\cdot L \\cdot B \\cdot s \\cdot h \\text{ bytes}\n"], ["display", "\n30 \\cdot L \\cdot B \\cdot s \\cdot h \\;>\\; 16 \\cdot 12 \\cdot L \\cdot h^2 \\quad\\Longleftrightarrow\\quad B \\cdot s \\;>\\; 6.4 \\cdot h\n"], ["display", "\n\\text{mem}(K) \\;\\propto\\; K + \\frac{L}{K}\n"], ["display", "\nW_{\\text{finetune}} = W_0 + \\Delta W\n"], ["display", "\ny = W_0 x + \\frac{\\alpha}{r} \\cdot B A x\n"], ["display", "\nBA = \\sum_{k=1}^{r} b_k \\, a_k^{\\top}\n"], ["display", "\ny = W_0 x + \\frac{\\alpha}{r} \\cdot B A x\n"], ["display", "\nW = m \\cdot \\frac{W}{\\|W\\|_c}\n"], ["display", "\nW_{\\text{DoRA}} = m \\cdot \\frac{W_0 + BA}{\\|W_0 + BA\\|_c}\n"], ["inline", "x = (x_0, x_1, \\ldots, x_{T-1})"], ["inline", "m_t \\in \\{0, 1\\}"], ["inline", "m_t = 1"], ["inline", "x_t"], ["inline", "t"], ["inline", "x_0, \\ldots, x_t"], ["inline", "x_{t+1}"], ["inline", "\\sum_t m_t"], ["inline", "(B, T, D)"], ["inline", "t"], ["inline", "j"], ["inline", "j \\le t"], ["inline", "0, 1, \\ldots, T-1"], ["inline", "0, 1, \\ldots, N-1"], ["inline", "0, \\ldots, N-1"], ["inline", "[8, 20, 4, 12]"], ["inline", "T = 20"], ["inline", "[8, 20, 4, 12]"], ["inline", "i"], ["inline", "[\\text{cu\\_seqlens}[i],\\; \\text{cu\\_seqlens}[i+1])"], ["inline", "T = \\sum_i n_i"], ["inline", "n_0"], ["inline", "(T, T)"], ["inline", "T = 8192"], ["inline", "B"], ["inline", "s"], ["inline", "e"], ["inline", "E"], ["inline", "m"], ["inline", "M"], ["inline", "\\text{bias} = 2^{E-1} - 1"], ["inline", "1 + E + M"], ["inline", "E"], ["inline", "M"], ["inline", "E"], ["inline", "M"], ["inline", "x_{\\max}"], ["inline", "\\sim 3.4 \\times 10^{38}"], ["inline", "\\sim 1.2 \\times 10^{-7}"], ["inline", "\\sim 6.55 \\times 10^{4}"], ["inline", "\\sim 9.8 \\times 10^{-4}"], ["inline", "\\sim 3.4 \\times 10^{38}"], ["inline", "\\sim 7.8 \\times 10^{-3}"], ["inline", "\\sim [-1, 1]"], ["inline", "\\sim [10^{-10}, 10^{10}]"], ["inline", "\\sim [10^{-7}, 10^{-3}]"], ["inline", "lr \\cdot g"], ["inline", "\\sim [10^{-9}, 10^{-6}]"], ["inline", "\\sim 6.5 \\times 10^4"], ["inline", "\\infty"], ["inline", "\\sim 10^{38}"], ["inline", "1.0"], ["inline", "2.0"], ["inline", "2^7 = 128"], ["inline", "2^{-7} \\approx 0.0078"], ["inline", "1.0 + 0.001"], ["inline", "1.0"], ["inline", "\\sim lr \\cdot g \\approx 10^{-7}"], ["inline", "O(L \\cdot B \\cdot s \\cdot h)"], ["inline", "L"], ["inline", "N \\approx 12 L h^2"], ["inline", "16N"], ["inline", "h = 4096"], ["inline", "B \\cdot s > 26\\text{k}"], ["inline", "L"], ["inline", "K"], ["inline", "L"], ["inline", "K"], ["inline", "K = \\sqrt{L}"], ["inline", "K"], ["inline", "L / K"], ["inline", "K = \\sqrt{L}"], ["inline", "\\propto 2\\sqrt{L}"], ["inline", "L = 32"], ["inline", "\\sim 11"], ["inline", "32"], ["inline", "\\approx 33\\%"], ["inline", "1 + 2 = 3"], ["inline", "1"], ["inline", "O(s^2)"], ["inline", "\\sim 33\\%"], ["inline", "\\sim 10\\%"], ["inline", "(s, s)"], ["inline", "O(s^2)"], ["inline", "B \\cdot s < 6.4 h"], ["inline", "8N"], ["inline", "m + v"], ["inline", "16N"], ["inline", "B \\cdot s > 6.4 h"], ["inline", "L B s h"], ["inline", "16N"], ["inline", "\\sqrt{L}"], ["inline", "m"], ["inline", "v"], ["inline", "\\Delta W"], ["inline", "\\Delta W \\in \\mathbb{R}^{d_{\\text{out}} \\times d_{\\text{in}}}"], ["inline", "d_{\\text{out}} \\cdot d_{\\text{in}}"], ["inline", "\\Delta W = B A"], ["inline", "A \\in \\mathbb{R}^{r \\times d_{\\text{in}}}, \\qquad B \\in \\mathbb{R}^{d_{\\text{out}} \\times r}, \\qquad r \\ll \\min(d_{\\text{in}}, d_{\\text{out}})"], ["inline", "r"], ["inline", "A, B"], ["inline", "\\Delta W"], ["inline", "\\alpha"], ["inline", "\\alpha / r"], ["inline", "r"], ["inline", "\\alpha / r"], ["inline", "r=16"], ["inline", "d_{\\text{out}} \\cdot d_{\\text{in}}"], ["inline", "\\sim 7 \\times 10^9"], ["inline", "r \\cdot (d_{\\text{in}} + d_{\\text{out}})"], ["inline", "\\sim 4 \\times 10^7"], ["inline", "t = 0"], ["inline", "W_0 x"], ["inline", "BA = 0"], ["inline", "t = 0"], ["inline", "A"], ["inline", "B"], ["inline", "A = 0"], ["inline", "B"], ["inline", "A"], ["inline", "\\partial L / \\partial A = B^{\\top} \\cdot \\partial L / \\partial y \\cdot x^{\\top}"], ["inline", "B"], ["inline", "\\partial L / \\partial B = \\partial L / \\partial y \\cdot (Ax)^{\\top} = 0"], ["inline", "B = 0"], ["inline", "A"], ["inline", "B = 0"], ["inline", "r"], ["inline", "BA"], ["inline", "BA"], ["inline", "r"], ["inline", "b_k"], ["inline", "k"], ["inline", "B"], ["inline", "a_k"], ["inline", "k"], ["inline", "A"], ["inline", "r"], ["inline", "BA"], ["inline", "r"], ["inline", "r"], ["inline", "y = W_0 x + BAx"], ["inline", "r"], ["inline", "r"], ["inline", "r"], ["inline", "\\alpha"], ["inline", "r"], ["inline", "\\alpha = 2r"], ["inline", "W_q, W_k, W_v, W_o"], ["inline", "W_q, W_k, W_v, W_o"], ["inline", "W_{\\text{up}}, W_{\\text{gate}}, W_{\\text{down}}"], ["inline", "\\sim 30\\%"], ["inline", "\\times"], ["inline", "m \\in \\mathbb{R}^{d_{\\text{out}}}"], ["inline", "\\|W\\|_c"], ["inline", "\\Delta W = BA"], ["inline", "m"], ["inline", "d_{\\text{out}}"], ["inline", "\\|W_0\\|_c"], ["inline", "t = 0"], ["inline", "W_0"], ["inline", "BA"], ["inline", "BA"], ["inline", "BA"], ["inline", "BA"], ["inline", "r"], ["inline", "d_{\\text{out}}"], ["inline", "W"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${formula}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${formula}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
