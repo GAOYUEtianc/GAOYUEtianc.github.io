@@ -224,7 +224,7 @@ TEMPLATE = '''<!DOCTYPE html>
     mathFormulas.forEach((item, idx) => {{
       const [type, formula] = item;
       const placeholder = `MATHPLACEHOLDER${{idx}}ENDMATH`;
-      // HTML-escape so characters like `<` in formulas (e.g. x_{<t}) don't get parsed as tags by innerHTML.
+      // HTML-escape so characters like `<` and `>` in formulas don't get parsed as tags by innerHTML.
       const safe = formula.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       if (type === 'display') {{
         html = html.replace(placeholder, `\\\\[${{safe}}\\\\]`);

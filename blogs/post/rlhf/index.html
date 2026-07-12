@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RLHF — Key Insights Behind PPO, DPO, ORPO, GRPO · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="RLHF — Key Insights Behind PPO, DPO, ORPO, GRPO"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content pre code { background: transparent; padding: 0; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>RLHF — Key Insights Behind PPO, DPO, ORPO, GRPO</h1>
+      <div class="post-date">
+        <time datetime="2026-07-12">Jul 12, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+I have worked in traditional RL and bandits for years before LLM came out, but when I first looked at RLHF for LLMs, something felt off. It took me a while to realize the reason : LLM RLHF isn't a direct extension of traditional RL. It's a set of workarounds for the assumptions of traditional RL that simply don't hold in LLMs. Traditional RL usually assumes there’s a well-defined reward function, an environment that can be simulated, and meaningful multi-step transitions where credit assignment matters. In LLM RLHF, the reward is usually a learned model that approximates human preference, the environment is just the policy generating its own next token, and the reward usually only arrives at the end of a generation, making credit assignment over individual tokens loose.
+
+There’s an evolution (and keep going on) on RLHF algorithms, from online PPO to offline DPO, then back to online GRPO to resolve some pitfalls caused by offline learning. To avoid getting lost in the forest of RLHF, it’s important to understand the motivations and pitfalls behind each selection. 
+
+## Reward Model
+
+In RLHF, the scoring, even by humans, is not calibrated, hence learning a pairwise reward is more suitable than a pointwise reward for alignment. Among the models that evaluate pairwise comparison results, Bradley-Terry stands out. The loss function is : 
+
+MATHPLACEHOLDER0ENDMATH
+
+where MATHPLACEHOLDER15ENDMATH, MATHPLACEHOLDER16ENDMATH are respectively the winner response and loser response, MATHPLACEHOLDER17ENDMATH is the sigmoid function. 
+
+## Full RLHF Reward with KL Penalty
+
+From the above definition of the reward model, it’s easy to observe that RM is a proxy reward trained on limited data, thus if the policy optimizes this reward, it has a high risk of finding responses with high RM score but low quality, i.e., reward hacking. Hence in order to constrain the policy distribution to stay close to the SFT model and avoid collapse, the actual RL objective needs to include a KL penalty term. 
+
+MATHPLACEHOLDER18ENDMATH
+
+where MATHPLACEHOLDER19ENDMATH controls the divergence between the SFT model and the RLHF model, and is a key hyper-parameter in RLHF tuning. In practice, PPO uses MATHPLACEHOLDER20ENDMATH, GRPO uses MATHPLACEHOLDER21ENDMATH.
+
+Looking at the KL term in this objective, a natural question comes up : the computation of true KL requires iterating over the whole vocabulary, which is unrealistic, hence we use a token-level estimate : for each generated token MATHPLACEHOLDER22ENDMATH, MATHPLACEHOLDER23ENDMATH, then sum across the tokens. As a single-sample estimator, its variance is high; in later sections, the GRPO group estimator will address this. 
+
+## RLHF Is Actually A Contextual Bandit Problem
+
+In traditional RL, an episode is usually hundreds of transitions with sparse rewards. But in LLM RLHF, an episode is the generation of one response, and the reward is only given at the end of generation by the reward model. There is no sequential horizon, and the reward ignores intermediate token-level state dynamics. Hence, RLHF can actually be formalized as a contextual bandit problem. Keeping this mindset will be helpful to understand why in PPO the advantage is reduced from a sequence of TD errors to a prompt-level baseline comparison, and why GRPO can directly cut the value network. 
+
+Thinking from the perspective of a contextual bandit, each prompt is a context, the policy picks an arm (the full response), then the environment gives a one-time reward. 
+
+## PPO (Proximal Policy Optimization) for RLHF
+
+Before the LLM era, PPO had been widely used in many cases and achieved solid performance. The loss function for PPO looks like a monster, but by breaking it down into pieces and understanding the intuition behind each piece, it won’t be that hard. 
+
+MATHPLACEHOLDER24ENDMATH
+
+Before explaining the loss function, let’s look at the training process instead. When training PPO, there are 4 networks : 
+
+| Networks | Usage | Update Or Not During PPO Training |
+|---|---|---|
+| **Policy** MATHPLACEHOLDER25ENDMATH | Generate response | Yes |
+| Value MATHPLACEHOLDER26ENDMATH | Estimate baseline, lower variance | Yes |
+| Reference MATHPLACEHOLDER27ENDMATH | Anchor for KL divergence | No (frozen SFT model) |
+| Reward MATHPLACEHOLDER28ENDMATH | Give reward to response | No (frozen reward model) |
+
+During training, there are 2 stages — Rollout and Update. 
+
+**Rollout**:
+
+1. Pick a prompt MATHPLACEHOLDER29ENDMATH from the dataset.
+
+1. Use policy MATHPLACEHOLDER30ENDMATH to generate response MATHPLACEHOLDER31ENDMATH (where MATHPLACEHOLDER32ENDMATH is a snapshot of MATHPLACEHOLDER33ENDMATH).
+
+1. Use the RM to compute the scalar reward MATHPLACEHOLDER34ENDMATH.
+
+1. Use the reference model MATHPLACEHOLDER35ENDMATH to compute each token’s MATHPLACEHOLDER36ENDMATH.
+
+1. Use the value network to compute each token position’s MATHPLACEHOLDER37ENDMATH.
+
+**Update** : 
+
+1. Using the same rollout batch, update MATHPLACEHOLDER38ENDMATH and MATHPLACEHOLDER39ENDMATH via gradient steps for K times.
+
+1. In these K steps, keep MATHPLACEHOLDER40ENDMATH unchanged, and only update MATHPLACEHOLDER41ENDMATH. 
+
+This workflow naturally answers questions about the loss terms: 
+
+- Why do we need the importance ratio MATHPLACEHOLDER42ENDMATH ?
+Because rollout uses MATHPLACEHOLDER43ENDMATH to sample, but MATHPLACEHOLDER44ENDMATH is what we’re updating, and the data is not sampled from the current policy. Hence, importance sampling is needed to fix this bias. 
+ MATHPLACEHOLDER45ENDMATH 
+
+- Why do we need clipping ? 
+After K update steps, MATHPLACEHOLDER46ENDMATH might be far from MATHPLACEHOLDER47ENDMATH, hence MATHPLACEHOLDER48ENDMATH can become very large or very small, making a single gradient step very unstable. This is why we need MATHPLACEHOLDER49ENDMATH to limit the step size. 
+
+- How is advantage MATHPLACEHOLDER50ENDMATH computed ? 
+For LLM, the reward is only given at the end of the trajectory; as mentioned before, it’s more like a contextual bandit problem. Hence GAE (Generalized Advantage Estimation) simplifies to MATHPLACEHOLDER51ENDMATH, where MATHPLACEHOLDER52ENDMATH is the actual return from rollout, and MATHPLACEHOLDER53ENDMATH is the baseline. 
+
+- How is the value network trained ? 
+The loss of MATHPLACEHOLDER54ENDMATH is : MATHPLACEHOLDER55ENDMATH, i.e., MATHPLACEHOLDER56ENDMATH is learning the return of the current rollout. Note that the accuracy of MATHPLACEHOLDER57ENDMATH is not that critical — as long as it’s a roughly reasonable baseline and the variance is reduced, it’s fine. 
+
+- Why do we need the entropy bonus MATHPLACEHOLDER58ENDMATH ?
+Without the entropy bonus, the policy might get sharper and sharper, with probability concentrated on a few tokens. This leads to degraded exploration and getting stuck at a local optimum. 
+
+- Where should the KL penalty be added ? 
+There are 2 methodologies : 
+A. **KL as reward penalty**. Subtract KL inside the reward :
+    MATHPLACEHOLDER59ENDMATH. Then advantage is computed from this reward. 
+B. **KL as loss penalty**. Add a term MATHPLACEHOLDER60ENDMATH directly to the loss. 
+    In this way, the KL term acts as a regularizer, and does not participate in advantage computation. 
+Both methodologies are widely used. 
+
+Now that we’ve understood the loss function of PPO thoroughly, what are the pros and cons of PPO in RLHF ?
+
+**Pros** : 
+
+- **Sample efficiency** : PPO is an on-policy method, but it reuses data across multiple mini-batch updates per rollout via importance sampling. 
+
+- **Stability** : The clipping mechanism prevents catastrophically large policy updates. 
+
+**Cons** : 
+
+- **Heavy memory** : 4 networks are needed during training, making PPO memory-intensive.
+
+- **Complex hyper-parameter tuning** : MATHPLACEHOLDER61ENDMATH (KL strength), MATHPLACEHOLDER62ENDMATH (clip range), K (update steps per rollout), MATHPLACEHOLDER63ENDMATH (loss weights) all interact, and small changes can shift training dynamics significantly.
+
+- **Reward hacking risk** : Even with the KL penalty, the policy can still find responses that exploit the RM. Training too long often makes things worse.
+
+- **Sensitive to reward / advantage scale** : RM outputs are uncalibrated across prompts, so reward and advantage normalization tricks are usually required to keep training stable.
+
+- **Slow training loop** : Each step involves generation (rollout), 4 network forward passes, then K update steps. Wall-clock time per gradient step is much higher than SFT / DPO.
+
+## GRPO (Group Relative Policy Optimization)
+
+Since PPO’s main limitation is caused by the 4 networks, is there a way to do online learning without value network? 
+
+The answer is for sure. As we’ve noticed, RLHF is secretly a contextual bandit problem, the MATHPLACEHOLDER64ENDMATH in PPO is to estimate a baseline for each token, while in bandit, there’s only response level reward, no token level reward, hence for a same prompt, the per-token MATHPLACEHOLDER65ENDMATH is trained from the same prompt’s averaged return. 
+
+Then an idea will naturally flow out from this observation, can we use Monte Carlo to sample multiple response from the same prompt, and use their average reward as baseline? If you’re familiar with traditional RL algorithm REINFORCE with variance reduce, you’ll realize this is exactly the trick there. 
+
+GRPO follows exactly this method, and combines with PPO. The process of baseline construction is : 
+
+For each prompt MATHPLACEHOLDER66ENDMATH
+
+- Use MATHPLACEHOLDER67ENDMATH to sample MATHPLACEHOLDER68ENDMATH responses, MATHPLACEHOLDER69ENDMATH.
+
+- Use reward model to score each response, get MATHPLACEHOLDER70ENDMATH.
+
+- Do a group level normalization : 
+
+MATHPLACEHOLDER1ENDMATH
+
+- For response MATHPLACEHOLDER71ENDMATH, all tokens there share a same MATHPLACEHOLDER72ENDMATH (from the bandit assumption)
+
+In this way, MATHPLACEHOLDER73ENDMATH is replaced by empirical group mean, thus no more value network is needed. 
+
+### GRPO Loss
+
+The loss function of GRPO is quite similar to PPO, as it also needs all stablization tricks, including KL divergence, clipping, importance ratio. The only change is MATHPLACEHOLDER74ENDMATH now becomes the above group advantage, and there’s no more value function term. 
+
+MATHPLACEHOLDER2ENDMATH
+
+Here MATHPLACEHOLDER75ENDMATH is same as PPO. 
+
+The KL estimation is slightly different from PPO, in PPO, vanilla KL estimator MATHPLACEHOLDER76ENDMATH is usually used to estimate KL, which is unbiased, but with high variance. While in GRPO, another KL estimator MATHPLACEHOLDER77ENDMATH is commonly used, which is also unbiased, with a smaller variance than the vanilla estimator. The math elegance here is the function MATHPLACEHOLDER78ENDMATH is always MATHPLACEHOLDER79ENDMATH, and is a convex function. [Schulman’s blog](http://joschu.net/blog/kl-approx.html) contains more math details about KL approximation. 
+
+### Trade-Off in GRPO
+
+GRPO cuts off value network, thus saving MATHPLACEHOLDER80ENDMATH memory. With a simpler loss function and no need to tune value network, the training is easier and more stable. 
+
+But as GRPO needs to sample MATHPLACEHOLDER81ENDMATH responses to estimate baseline, the rollout number increases with MATHPLACEHOLDER82ENDMATH, it’s thus a *trade memory with wall-clock time*. The selection of G is also an essential trade-off, as a larger MATHPLACEHOLDER83ENDMATH will make the baseline’s variance to be lower, thus making the training more stable, but it takes long rollout wall-clock. A common selection is MATHPLACEHOLDER84ENDMATH.
+
+GRPO is a silver bullet for verifiable reward use cases, like math and coding for several reasons. 
+
+- They have rule-based reward,  so no reward model is needed, thus the rollout is fast. 
+
+- Reward is binary or sparse, hence PPO’s value network is hard to learn without much signals. 
+
+- Parallel sampling is highly cost effective, as it allows running MATHPLACEHOLDER85ENDMATH rollouts within a single GPU batch, leading to exceptional throughput.
+
+## DPO (Direct Preference Optimization)
+
+GRPO has cut value networks, and we’ve known that for some cases like math and coding, a reward model might not be actually needed, so is there a more light-weight way to fully bypass reward model? The answer is DPO, and DPO actually came out before GRPO, as a offline learning silver bullet to resolve the pain points in online learning (PPO). 
+
+From an informative perspective, PPO is using human preference to train reward model, then use the reward model’s reward to optimize the policy. The human preference actually already implicitly tell us what should MATHPLACEHOLDER86ENDMATH look like, e.g, MATHPLACEHOLDER87ENDMATH means MATHPLACEHOLDER88ENDMATH should lean towards MATHPLACEHOLDER89ENDMATH. Since we only care about the final MATHPLACEHOLDER90ENDMATH, it’s possible to skip the middle step RM.
+
+### Mathematical Induction for DPO Loss
+
+<!-- unsupported block type: heading_4 -->
+
+For each prompt x, its RLHF objective is :
+
+MATHPLACEHOLDER91ENDMATH
+
+By expanding the KL and expectation : 
+
+MATHPLACEHOLDER92ENDMATH
+
+Note that MATHPLACEHOLDER93ENDMATH, by Lagrangian solution, there’s a closed form solution : 
+
+MATHPLACEHOLDER3ENDMATH
+
+where MATHPLACEHOLDER94ENDMATH is a regularization constant only dependent on MATHPLACEHOLDER95ENDMATH. 
+
+<!-- unsupported block type: heading_4 -->
+
+Take log of MATHPLACEHOLDER96ENDMATH, we can get
+
+MATHPLACEHOLDER4ENDMATH
+
+MATHPLACEHOLDER5ENDMATH
+
+Now the reward can be represented as a function of policy. 
+
+<!-- unsupported block type: heading_4 -->
+
+Plugging the above MATHPLACEHOLDER97ENDMATH into the preference model : 
+
+MATHPLACEHOLDER6ENDMATH
+
+we get : 
+
+MATHPLACEHOLDER7ENDMATH
+
+Since MATHPLACEHOLDER98ENDMATH is only dependent on MATHPLACEHOLDER99ENDMATH, this term will be canceled. Hence, 
+
+MATHPLACEHOLDER8ENDMATH
+
+Plugging back to Bradley-Terry loss, and replace MATHPLACEHOLDER100ENDMATH withMATHPLACEHOLDER101ENDMATH , which is our training policy:
+
+MATHPLACEHOLDER9ENDMATH
+
+We get the DPO loss. And obviously, we only need the policy network and reference policy network now. 
+
+### Common Pitfalls of DPO
+
+Since the DPO loss only care about the log ratio difference, there’s a common failure mode that both MATHPLACEHOLDER102ENDMATH and MATHPLACEHOLDER103ENDMATH decreases, but MATHPLACEHOLDER104ENDMATH decreases faster. 
+
+The main cause of this pitfall is that DPO is **offline** without online exploration, hence its trajectories of finding the loss decreasing path is not constrained, sometimes the path reducing both MATHPLACEHOLDER105ENDMATH and MATHPLACEHOLDER106ENDMATH is steeper. 
+
+A common fix is to add SFT loss as regularizer, or use improved versions like KTO, IPO, SimPO, which  adds regularization in different ways. 
+
+Another offline limitation is the **distribution shift** problem and the exploration ceiling. 
+
+**Offline weakness** : DPO can only classify preferences within the boundary of the static dataset. If the model becomes smarter during training and produces a better reasoning trace that doesn't exist in the dataset, the offline setup has no way to explore and reward such new behaviour. 
+
+**Online advantage** : GRPO samples on the fly. As long as the model rolls out a longer or deeper chain-of-thought (CoT) that happens to pass the compiler, the model can immediately capture this positive signal. This is the fundamental prerequisite for large models to develop self-correction ability. 
+
+## ORPO — Odds Ratio Preference Optimization
+
+Now that we need to use SFT to do instructional fine-tuning, then use DPO to learn preference, why not we combine them in a single pass and get aligned responses directly? ORPO is what makes this possible. 
+
+In last section, we’ve known that DPO needs MATHPLACEHOLDER107ENDMATH because it needs an anchor to avoid MATHPLACEHOLDER108ENDMATH collapsing. What if we directly train DPO from base model with preference data and eliminates the reference model? This method is called ORPO. 
+
+### Loss function of ORPO
+
+The loss design of ORPO is direct : SFT loss + preference loss mixture, removing the MATHPLACEHOLDER109ENDMATH term. 
+
+In DPO, the preference of chosen answer vs rejected answer is reflected by log probability ratio, which contains the  MATHPLACEHOLDER110ENDMATH term. ORPO can change the perspective, for a given prompt MATHPLACEHOLDER111ENDMATH, define the **odds** of chosen answer : 
+
+MATHPLACEHOLDER10ENDMATH
+
+, which is a self-referential measure of the prob of being selected. 
+
+The preference term of ORPO measures the odds ratio of chosen and rejected answer : 
+
+MATHPLACEHOLDER11ENDMATH
+
+Combining with the SFT loss term, the loss function of ORPO is : 
+
+MATHPLACEHOLDER12ENDMATH
+
+where the SFT term MATHPLACEHOLDER112ENDMATH is to teach the model how to follow instruction to get good answer, 
+
+MATHPLACEHOLDER13ENDMATH
+
+and the MATHPLACEHOLDER113ENDMATH term is to make the chosen response be preferred. 
+
+MATHPLACEHOLDER14ENDMATH
+
+### Use Case of ORPO
+
+Since ORPO folds SFT and preference alignment into one pass, and only keeps one network during training, it's most attractive when the pipeline needs to be simple and memory is tight. 
+
+**Good fit** : 
+
+- Small to medium open-source fine-tunes (e.g., Llama-3 8B, Qwen-2.5 community variants), where a single-stage recipe is preferred over a multi-stage RLHF stack. 
+
+- Memory-constrained training : only one network is loaded, halving the footprint compared with DPO (policy + ref) or PPO (4 networks). 
+
+- Datasets with high-quality chosen responses : since MATHPLACEHOLDER114ENDMATH is directly computed on MATHPLACEHOLDER115ENDMATH, the chosen answer is treated as the gold standard. 
+
+**Less suitable** : 
+
+- Chosen responses are only marginally better than rejected ones — the SFT signal becomes weak or even misleading. 
+
+- The alignment goal requires strong anchoring to base model behaviour — ORPO has no MATHPLACEHOLDER116ENDMATH, so drift is harder to control. 
+
+One extra thing to watch is MATHPLACEHOLDER117ENDMATH : too large lets preference dominate and erodes SFT-side format learning. Too small and the preference signal barely lands. In practice MATHPLACEHOLDER118ENDMATH, with 0.1 being the paper's default.
+
+## References
+
+- Williams, R. J. (1992). *Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning*. Machine Learning, 8, 229–256.
+
+- Schulman, J., Moritz, P., Levine, S., Jordan, M., & Abbeel, P. (2015). *High-Dimensional Continuous Control Using Generalized Advantage Estimation*. arXiv:1506.02438.
+
+- Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O. (2017). *Proximal Policy Optimization Algorithms*. arXiv:1707.06347.
+
+- Bradley, R. A., & Terry, M. E. (1952). *Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons*. Biometrika, 39(3/4), 324–345.
+
+- Ouyang, L., et al. (2022). *Training Language Models to Follow Instructions with Human Feedback* (InstructGPT). arXiv:2203.02155.
+
+- Rafailov, R., Sharma, A., Mitchell, E., Ermon, S., Manning, C. D., & Finn, C. (2023). *Direct Preference Optimization: Your Language Model is Secretly a Reward Model*. arXiv:2305.18290.
+
+- Azar, M. G., et al. (2023). *A General Theoretical Paradigm to Understand Learning from Human Preferences* (IPO). arXiv:2310.12036.
+
+- Ethayarajh, K., Xu, W., Muennighoff, N., Jurafsky, D., & Kiela, D. (2024). *KTO: Model Alignment as Prospect Theoretic Optimization*. arXiv:2402.01306.
+
+- Meng, Y., Xia, M., & Chen, D. (2024). *SimPO: Simple Preference Optimization with a Reference-Free Reward*. arXiv:2405.14734.
+
+- Hong, J., Lee, N., & Thorne, J. (2024). *ORPO: Monolithic Preference Optimization without Reference Model*. arXiv:2403.07691.
+
+- Shao, Z., et al. (2024). *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models*. arXiv:2402.03300.
+
+- DeepSeek-AI. (2025). *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv:2501.12948.
+
+- Schulman, J. *Approximating KL Divergence*. [http://joschu.net/blog/kl-approx.html](http://joschu.net/blog/kl-approx.html)
+`;
+    const mathFormulas = [["display", "\nL_{\\text{RM}} = -\\mathbb{E}_{(x, y_w, y_l)}\\left[\\log \\sigma\\left(r_\\phi(x, y_w) - r_\\phi(x, y_l)\\right)\\right]\n"], ["display", "\n\\hat{A}_i = \\frac{r_i - \\text{mean}(r_1, \\ldots, r_G)}{\\text{std}(r_1, \\ldots, r_G)}\n"], ["display", "\nL_{\\text{GRPO}} = -\\mathbb{E}\\left[\\frac{1}{G}\\sum_{i=1}^{G}\\frac{1}{|y_i|}\\sum_{t=1}^{|y_i|} \\min\\left(\\rho_{i,t}\\hat{A}_i,\\ \\text{clip}(\\rho_{i,t}, 1-\\epsilon, 1+\\epsilon)\\hat{A}_i\\right)\\right] + \\beta\\cdot D_{\\text{KL}}\n"], ["display", "\n\\boxed{\\pi^*(y \\mid x) = \\frac{1}{Z(x)} \\pi_{\\text{ref}}(y \\mid x) \\exp\\left(\\frac{r(x,\n  y)}{\\beta}\\right)}\n"], ["display", "\n\\log \\pi^*(y \\mid x) = \\log \\pi_{\\text{ref}}(y \\mid x) + \\frac{r(x, y)}{\\beta} - \\log Z(x)\n"], ["display", "\n\\boxed{r(x, y) = \\beta \\log \\frac{\\pi^*(y \\mid x)}{\\pi_{\\text{ref}}(y \\mid x)} + \\beta \\log Z(x)}\n"], ["display", "\nP(y_w \\succ y_l \\mid x) = \\sigma\\left(r(x, y_w) - r(x, y_l)\\right)\n"], ["display", "\nr(x, y_w) - r(x, y_l) = \\beta \\log \\frac{\\pi^{*}(y_w \\mid x)}{\\pi_{\\text{ref}}(y_w \\mid x)} - \\beta \\log \\frac{\\pi^{*}(y_l \\mid x)}{\\pi_{\\text{ref}}(y_l \\mid x)} + \\beta \\log Z(x) - \\beta \\log Z(x)\n"], ["display", "\nr(x, y_w) - r(x, y_l) = \\beta \\log \\frac{\\pi^{*}(y_w \\mid x)}{\\pi_{\\text{ref}}(y_w \\mid x)} - \\beta \\log \n\\frac{\\pi^{*}(y_l \\mid x)}{\\pi_{\\text{ref}}(y_l \\mid x)}\n"], ["display", "\n\\boxed{L_{\\text{DPO}} = -\\mathbb{E}_{(x, y_w, y_l)}\\left[\\log \\sigma\\left(\\beta \\log \\frac{\\pi_\\theta(y_w\n\\mid x)}{\\pi_{\\text{ref}}(y_w \\mid x)} - \\beta \\log \\frac{\\pi_\\theta(y_l \\mid x)}{\\pi_{\\text{ref}}(y_l\n\\mid x)}\\right)\\right]}\n"], ["display", "\n\\text{odds}_\\theta(y \\mid x) = \\frac{\\pi_\\theta(y \\mid x)}{1 - \\pi_\\theta(y \\mid x)}\n"], ["display", "\n\\text{OR}(y_w, y_l \\mid x) = \\frac{\\text{odds}_\\theta(y_w \\mid x)}{\\text{odds}_\\theta(y_l \\mid x)}\n"], ["display", "\n\\boxed{L_{\\text{ORPO}} = L_{\\text{SFT}}(y_w) + \\lambda \\cdot L_{\\text{OR}}(y_w, y_l)}\n"], ["display", "\nL_{\\text{SFT}}(y_w) = -\\log \\pi_\\theta(y_w \\mid x)\n"], ["display", "\nL_{\\text{OR}} = -\\log \\sigma\\left(\\log \\frac{\\text{odds}_\\theta(y_w \\mid x)}{\\text{odds}_\\theta(y_l \\mid x)}\\right)= -\\log \\sigma\\left(\\log \\frac{\\pi_\\theta(y_w)/(1 - \\pi_\\theta(y_w))}{\\pi_\\theta(y_l)/(1 - \\pi_\\theta(y_l))}\\right)\n"], ["inline", "y_w"], ["inline", "y_l"], ["inline", "\\sigma"], ["inline", "\\text{objective} = \\mathbb{E}_{x, y \\sim \\pi_\\theta}\\left[r_\\phi(x, y)\\right] - \\beta \\cdot\\mathrm{KL}\\left(\\pi_\\theta(\\cdot \\mid x) \\,\\|\\, \\pi_{\\text{ref}}(\\cdot \\mid x)\\right)"], ["inline", "\\beta"], ["inline", "\\beta \\approx 0.01-0.1"], ["inline", "\\beta\\approx 0.001"], ["inline", "y_t"], ["inline", "\\text{KL estimate} = \\log \\pi_\\theta(y_t \\mid x, y_{<t}) - \\log \\pi_{\\text{ref}}(y_t \\mid x, y_{<t})"], ["inline", "L_{\\text{PPO}} = -\\mathbb{E}\\left[\\min\\left(\\rho \\cdot \\hat{A} , \\mathrm{clip}(\\rho, 1-\\epsilon,1+\\epsilon) \\cdot \\hat{A}\\right)\\right] + c_1 \\cdot L_V - c_2 \\cdot H[\\pi]"], ["inline", "\\pi_\\theta"], ["inline", "V_\\psi"], ["inline", "\\pi_{\\text{ref}}"], ["inline", "r_\\phi"], ["inline", "x"], ["inline", "\\pi_{\\theta_\\text{old}}"], ["inline", "y"], ["inline", "\\pi_{\\theta_\\text{old}}"], ["inline", "\\pi_\\theta"], ["inline", "r_{\\phi}(x, y)"], ["inline", "\\pi_{\\text{ref}}"], ["inline", "\\log\\;\\pi_{\\text{ref}}(y_t \\mid \\ldots)"], ["inline", "V(x, y_{\\le t}) \\rightarrow \\text{baseline}"], ["inline", "\\pi_{\\theta}"], ["inline", "V_{\\psi}"], ["inline", "\\pi_{\\theta_\\text{old}}"], ["inline", "\\pi_{\\theta}"], ["inline", "\\rho"], ["inline", "\\pi_{\\theta_\\text{old}}"], ["inline", "\\pi_{\\theta}"], ["inline", "\\rho = \\frac{\\pi_\\theta(y_t \\mid \\ldots)}{\\pi_{\\theta_{\\text{old}}}(y_t \\mid \\ldots)}"], ["inline", "\\pi_{\\theta}"], ["inline", "\\pi_{\\theta_\\text{old}}"], ["inline", "\\rho"], ["inline", "\\mathrm{clip}(\\rho, 1-\\epsilon,1+\\epsilon)"], ["inline", "\\hat{A}"], ["inline", "\\hat{A}_t \\approx R - V_\\psi(x, y_{\\leq t})"], ["inline", "R"], ["inline", "V"], ["inline", "V_{\\psi}"], ["inline", "L_V = (V_\\psi(s) - R_{\\text{observed}})^2"], ["inline", "V"], ["inline", "V"], ["inline", "H[\\pi]"], ["inline", "R = r_\\phi(x, y) - \\beta \\cdot \\text{KL}(x, y)"], ["inline", "\\beta \\cdot \\text{KL}"], ["inline", "\\beta"], ["inline", "\\epsilon"], ["inline", "c_1, c_2"], ["inline", "V_\\psi(x, y_{\\le t})"], ["inline", "V_\\psi(x, y_{\\le t})"], ["inline", "x"], ["inline", "\\pi_{\\theta_{\\text{old}}}"], ["inline", "G"], ["inline", "y_1, y_2, \\ldots, y_G"], ["inline", "r_1, r_2, \\ldots, r_G"], ["inline", "i"], ["inline", "\\hat{A}_i"], ["inline", "V_\\psi"], ["inline", "\\hat{A}"], ["inline", "\\rho_{i,t} = \\frac{\\pi_\\theta(y_{i,t} \\mid \\ldots)}{\\pi_{\\theta_{\\text{old}}}(y_{i,t} \\mid \\ldots)}"], ["inline", "\\log\\frac{\\pi_\\theta}{ \\pi_{\\text{ref}}}"], ["inline", "D_{\\text{KL}}(\\pi_\\theta | \\pi_{\\text{ref}}) \\approx \\frac{\\pi_{\\text{ref}}(y_t \\mid \\ldots)}{\\pi_\\theta(y_t \\mid \\ldots)} - \\log \\frac{\\pi_{\\text{ref}}(y_t \\mid \\ldots)}{\\pi_\\theta(y_t \\mid \\ldots)} - 1"], ["inline", "r - \\log r - 1"], ["inline", "\\ge 0"], ["inline", "\\approx 25\\%"], ["inline", "G"], ["inline", "G"], ["inline", "G"], ["inline", "G = 16 \\sim 64"], ["inline", "G"], ["inline", "\\pi^{*}"], ["inline", "y_w \u227b y_l"], ["inline", "\\pi^{*}"], ["inline", "y_w"], ["inline", "\\pi^{*}"], ["inline", "\\max_{\\pi} \\mathbb{E}_{y \\sim \\pi(\\cdot \\mid x)}\\left[r(x, y)\\right] - \\beta \\cdot\\mathrm{KL}\\left(\\pi(\\cdot \\mid x) \\;| \\;\\pi_{\\text{ref}}(\\cdot \\mid x)\\right)"], ["inline", "\\max_{\\pi}  \\sum_{y} \\pi(y \\mid x) \\left[ r(x, y) - \\beta \\log \\frac{\\pi(y \\mid x)}{\\pi_{\\text{ref}}(y\\mid x)} \\right]"], ["inline", "\\sum_y \\pi(y \\mid x) = 1"], ["inline", "Z(x) = \\sum_y \\pi_{\\text{ref}}(y \\mid x) \\exp(r(x, y) / \\beta)"], ["inline", "x"], ["inline", "\\pi^*(y \\mid x)"], ["inline", "r"], ["inline", "Z(x)"], ["inline", "x"], ["inline", "\\pi^{*}"], ["inline", "\\pi_\\theta"], ["inline", "\\pi_\\theta(y_w)"], ["inline", "\\pi_\\theta(y_l)"], ["inline", "\\pi_\\theta(y_l)"], ["inline", "\\pi_\\theta(y_w)"], ["inline", "\\pi_\\theta(y_l)"], ["inline", "\\pi_{\\text{ref}}"], ["inline", "\\pi_{\\theta}"], ["inline", "\\pi_{ref}"], ["inline", "\\pi_{ref}"], ["inline", "x"], ["inline", "L_{\\text{SFT}}"], ["inline", "L_{\\text{OR}}"], ["inline", "L_{\\text{SFT}}"], ["inline", "y_w"], ["inline", "\\pi_{\\text{ref}}"], ["inline", "\\lambda"], ["inline", "\\lambda \\in [0.1, 1.0]"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      // HTML-escape so characters like `<` and `>` in formulas don't get parsed as tags by innerHTML.
+      const safe = formula.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${safe}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${safe}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
