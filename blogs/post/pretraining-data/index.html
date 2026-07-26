@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Filtering, Deduplication and Reweighting for LLM Pre-Training · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Data Filtering, Deduplication and Reweighting for LLM Pre-Training"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content pre code { background: transparent; padding: 0; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Data Filtering, Deduplication and Reweighting for LLM Pre-Training</h1>
+      <div class="post-date">
+        <time datetime="2026-07-25">Jul 25, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+The intrinsic behind pretraining is to learn the distribution of next token from corpus, hence the data quality is essential. In general, "bad data" in pretraining corpus comes in three types, and each maps to a treatment method used in modern data pipelines :
+
+- **Low quality** → ***quality filtering***
+- **Redundant (duplicates)** → ***deduplication***
+- **Skewed distribution** → ***reweighting***
+
+This blog walks through the three treatments in the order they apply in a typical pre-training pipeline.
+
+## Quality Filtering
+
+Quality filtering is the first gate in the data pipeline. In practice they are stacked from cheap to expensive filters: rule-based heuristics catch obvious junk first, then a lightweight classifier learns fuzzier patterns, and finally perplexity based filtering measures distributional distance to a clean reference.
+
+### Rule-based Heuristics
+
+Rule-based filters run in MATHPLACEHOLDER9ENDMATH per document and are trivially parallel. They compute simple statistics per document like length, character-class ratios, sentence length distribution, then naively reject anything that falls outside a pre-defined range.
+
+### Classifier-based Filtering
+
+When rules miss subtle low-quality patterns, a trained classifier can take the job. The canonical recipe for classifier uses high-effort text (Wikipedia, books) as positives and random web scrape as negatives, then trains a lightweight model like FastText for per-document quality scoring.
+
+### Perplexity-based Filtering
+
+Train a small n-gram language model (KenLM is the standard) on a clean reference corpus.
+
+Documents that receive very high perplexity are likely off-distribution, they're either garbage or valuable long-tail content, so this filter needs careful tuning to avoid throwing the latter away.
+
+Documents that receive very low perplexity are likely to have too similar distribution, with a high risk of duplication, which needs to be judged with the deduplication methods in later sections.
+
+### Safety Filtering
+
+Safety filters aim to reduce exposure to NSFW, hateful, or unsafe content. This is orthogonal to quality filtering.
+
+### Language Identification
+
+Multilingual training requires routing documents to the correct language bucket. FastText's \`lid.176\` model outputs a language tag with a confidence score, and is of low latency.
+
+## Deduplication
+
+After removing low-quality junk, the next problem is redundancy. If the same content appearing many times across the corpus, the model will tend to memorize instead of generalize. Deduplication techniques scale from exact (a byte-perfect match) to fuzzy (near-duplicates with small edits) to substring-level (shared pattern embedded in otherwise different documents).
+
+### Exact Deduplication
+
+Exact deduplication is the cheapest layer, which normalizes documents to a canonical form (Unicode NFKC, whitespace collapse, lowercase), compute a SHA-256 hash, and drop any hash we have seen before. It catches byte-perfect duplicates, but also has an obvious drawback of missing anything with even a single character difference.
+
+### Fuzzy Deduplication : MinHash + LSH
+
+To catch near-duplicates, i.e., copies that differ by a few edits, template changes, or paraphrasing, we need a similarity metric that tolerates small differences, and an indexing structure that avoids comparing all MATHPLACEHOLDER10ENDMATH document pairs. The standard solution is **MinHash** for the similarity estimate and **LSH** for the indexing.
+
+The MinHash method, in short, is to compress big text sets into short signatures, let the probability of equivalent signatures be related to Jaccard similarity. Then to further reduce time complexity, use LSH to shard the signatures, only do the comparison for docs in same bucket.
+
+#### Similarity Metric Choice : Jaccard on Shingles
+
+Each document is first turned into a set of MATHPLACEHOLDER11ENDMATH-shingles (contiguous MATHPLACEHOLDER12ENDMATH-character or MATHPLACEHOLDER13ENDMATH-token windows), and similarity between two documents is defined as the Jaccard of their shingle sets. Jaccard is natural here because it directly measures shared content ratio, and shingling makes it robust to small local edits.
+
+An example of **k-shingles** :
+
+MATHPLACEHOLDER14ENDMATH, "cat sat on mat" → {"cat", "at ", "t s", " sa", "sat", "at ", ...}
+
+Definition of **Jaccard** :
+
+MATHPLACEHOLDER0ENDMATH
+
+The selection of k is tricky, intuitively, if k is too small, lots of docs will share same tiny shingles, and Jaccard is not distinguishable; While if k is too large, lots of similar text pieces will be missed out. Commonly string level MATHPLACEHOLDER15ENDMATH; token level MATHPLACEHOLDER16ENDMATH.
+
+#### MinHash : Compressing Sets into Signatures
+
+MinHash converts each shingle set into a short fixed-length signature (typically 128 or 256 integers) with a key property : the probability that two signatures agree on any given position equals their true Jaccard similarity. This turns Jaccard estimation into cheap integer comparison.
+
+**Core theorem** : Let MATHPLACEHOLDER17ENDMATH be the universe of all possible shingles, and let MATHPLACEHOLDER18ENDMATH be a uniform random permutation, i.e., MATHPLACEHOLDER19ENDMATH assigns each element of MATHPLACEHOLDER20ENDMATH a distinct integer rank, chosen uniformly at random over all possible orderings. Define
+
+MATHPLACEHOLDER1ENDMATH
+
+which is the smallest rank among the elements of MATHPLACEHOLDER21ENDMATH. Then
+
+MATHPLACEHOLDER2ENDMATH
+
+**Proof sketch** : Consider the element in MATHPLACEHOLDER22ENDMATH with the smallest rank under MATHPLACEHOLDER23ENDMATH, call it MATHPLACEHOLDER24ENDMATH. Because MATHPLACEHOLDER25ENDMATH is uniformly random, MATHPLACEHOLDER26ENDMATH is equally likely to be any element of MATHPLACEHOLDER27ENDMATH, so
+
+MATHPLACEHOLDER3ENDMATH
+
+And MATHPLACEHOLDER28ENDMATH holds **if and only if** MATHPLACEHOLDER29ENDMATH — otherwise the two minima are attained by different elements and differ. Hence the equality above holds.
+
+**From permutation to hash functions in practice** : sampling a true random permutation over a large universe MATHPLACEHOLDER30ENDMATH is expensive to store (requires MATHPLACEHOLDER31ENDMATH entries). In practice we replace MATHPLACEHOLDER32ENDMATH with MATHPLACEHOLDER33ENDMATH independent hash functions MATHPLACEHOLDER34ENDMATH, each seeded differently. **Note that the same MATHPLACEHOLDER35ENDMATH seeds are fixed once globally and shared across all documents.**
+
+For a shingle set MATHPLACEHOLDER36ENDMATH, the MATHPLACEHOLDER37ENDMATH-th signature entry is computed by hashing every element of MATHPLACEHOLDER38ENDMATH with MATHPLACEHOLDER39ENDMATH and taking the smallest resulting integer :
+
+MATHPLACEHOLDER4ENDMATH
+
+So the full signature is a length-MATHPLACEHOLDER40ENDMATH integer array. Because a good hash function distributes elements of MATHPLACEHOLDER41ENDMATH uniformly, it behaves like a random permutation of ranks, and the theorem carries over : MATHPLACEHOLDER42ENDMATH.
+
+**Jaccard estimation from signatures** : the fraction of matching positions between two signatures is an unbiased estimator of MATHPLACEHOLDER43ENDMATH
+
+MATHPLACEHOLDER5ENDMATH
+
+Its variance is MATHPLACEHOLDER44ENDMATH, so the standard error decays as MATHPLACEHOLDER45ENDMATH. With MATHPLACEHOLDER46ENDMATH and MATHPLACEHOLDER47ENDMATH, the standard error is about MATHPLACEHOLDER48ENDMATH, which is precise enough for downstream LSH bucketing. Larger MATHPLACEHOLDER49ENDMATH gives sharper estimates but linearly increases signature storage and LSH computation cost.
+
+#### LSH Banding : Avoiding MATHPLACEHOLDER50ENDMATH Comparisons
+
+Even with short signatures, comparing every pair is still MATHPLACEHOLDER51ENDMATH. LSH partitions the signature into MATHPLACEHOLDER52ENDMATH bands of MATHPLACEHOLDER53ENDMATH rows, hashes each band into a bucket, and only compares documents that land in the same bucket in at least one band. The bucketing probability forms a steep S-curve around a tunable similarity threshold, hence high-similarity pairs almost always collide while low-similarity pairs almost never do.
+
+**Banding construction** : Given a signature of length MATHPLACEHOLDER54ENDMATH, partition it into MATHPLACEHOLDER55ENDMATH contiguous bands, each with MATHPLACEHOLDER56ENDMATH rows, satisfying MATHPLACEHOLDER57ENDMATH.
+
+\`\`\`
+signature (length m = 128):
+[ s_1 s_2 ... s_16 | s_17 ... s_32 | ... | s_113 ... s_128 ]
+     band 1              band 2              band 8          (b=8, r=16)
+\`\`\`
+
+Within each band, the MATHPLACEHOLDER58ENDMATH values are concatenated into a tuple and used as a hash key that maps the document into a bucket. Two documents A and B are declared a candidate pair **if there exists at least one band index MATHPLACEHOLDER59ENDMATH such that all MATHPLACEHOLDER60ENDMATH integers of band MATHPLACEHOLDER61ENDMATH are element-wise identical between A and B.**
+
+**Collision probability derivation** : Let MATHPLACEHOLDER62ENDMATH be the true Jaccard similarity between two documents. From the MinHash property, MATHPLACEHOLDER63ENDMATH for every MATHPLACEHOLDER64ENDMATH, and the MATHPLACEHOLDER65ENDMATH rows within a band are independent, so :
+
+- Probability that a single band has all MATHPLACEHOLDER66ENDMATH rows equal : MATHPLACEHOLDER67ENDMATH
+- Probability that a single band does not fully match : MATHPLACEHOLDER68ENDMATH
+- Probability that all MATHPLACEHOLDER69ENDMATH bands fail to match (not a candidate) : MATHPLACEHOLDER70ENDMATH
+- Probability that at least one band matches (becomes a candidate) :
+
+MATHPLACEHOLDER6ENDMATH
+
+This function is a steep S-shaped curve in MATHPLACEHOLDER71ENDMATH : for MATHPLACEHOLDER72ENDMATH well above a threshold, MATHPLACEHOLDER73ENDMATH; for MATHPLACEHOLDER74ENDMATH well below, MATHPLACEHOLDER75ENDMATH.
+
+**Threshold approximation** : The steep-jump point of the S-curve, where MATHPLACEHOLDER76ENDMATH, is approximately
+
+MATHPLACEHOLDER7ENDMATH
+
+Above this threshold, similar documents are almost certainly caught; below it, dissimilar documents are almost certainly filtered.
+
+**Parameter tuning** : Given a target Jaccard threshold MATHPLACEHOLDER77ENDMATH and a fixed MATHPLACEHOLDER78ENDMATH, iterate all MATHPLACEHOLDER79ENDMATH satisfying MATHPLACEHOLDER80ENDMATH, compute each MATHPLACEHOLDER81ENDMATH, and pick the one closest to MATHPLACEHOLDER82ENDMATH.
+
+For MATHPLACEHOLDER83ENDMATH and target MATHPLACEHOLDER84ENDMATH, choose MATHPLACEHOLDER85ENDMATH, which gives MATHPLACEHOLDER86ENDMATH. Concrete collision probabilities under this setting :
+
+| True MATHPLACEHOLDER87ENDMATH | MATHPLACEHOLDER88ENDMATH |
+|---|---|
+| 0.9  | 0.81 |
+| 0.85 | 0.46 |
+| 0.8  | 0.20 |
+| 0.7  | 0.026 |
+
+The sharp drop from MATHPLACEHOLDER89ENDMATH to MATHPLACEHOLDER90ENDMATH is the desired filtering behaviour.
+
+**Trade-offs in selection of b and r** :
+
+- Larger MATHPLACEHOLDER91ENDMATH (more bands, fewer rows per band) → lower threshold → higher recall but more false positives
+- Larger MATHPLACEHOLDER92ENDMATH (more rows per band, fewer bands) → higher threshold → higher precision but lower recall
+- Candidate set size grows roughly linearly with MATHPLACEHOLDER93ENDMATH
+
+Candidate pairs surfaced by LSH are then verified with exact Jaccard on the original shingle sets, which filters out the false positives that slipped through the banding step.
+
+#### End-to-End Pipeline of MinHash
+
+The full deduplication pipeline using MinHash is : normalize → shingle → MinHash signature → LSH bucket → candidate pair extraction → exact Jaccard verification → union-find clustering. Only the last step keeps one representative per duplicate cluster.
+
+### SimHash as an Alternative to MinHash
+
+SimHash is an alternative fingerprint scheme, where each document maps to a fixed-length bit vector, and similar documents have small Hamming distance. It uses cosine similarity semantics instead of Jaccard, and stores only one integer per document, so it is often used as a coarse first pass filter before the more expensive MinHash step.
+
+The main pain point of MinHash at large scale is storage : a signature of MATHPLACEHOLDER94ENDMATH 8-byte integers takes about 1 KB per document, so 1 billion documents need 1 TB just for signatures. SimHash produces a single 64-bit fingerprint (8 bytes) per document, more than 100 times smaller. It also supports weighted features (e.g., TF-IDF, ngram), which MinHash cannot naturally handle since it works on unweighted sets.
+
+#### SimHash Algorithm : Weighted Feature Voting
+
+Given a document represented as a collection of features MATHPLACEHOLDER95ENDMATH, where MATHPLACEHOLDER96ENDMATH is a feature (on a token or shingle) and MATHPLACEHOLDER97ENDMATH is its weight (either MATHPLACEHOLDER98ENDMATH or a TF-IDF score), SimHash produces a MATHPLACEHOLDER99ENDMATH-bit fingerprint (typically MATHPLACEHOLDER100ENDMATH) through the following steps :
+
+1. Initialize an accumulator vector MATHPLACEHOLDER101ENDMATH of length MATHPLACEHOLDER102ENDMATH.
+2. For each feature MATHPLACEHOLDER103ENDMATH, compute a MATHPLACEHOLDER104ENDMATH-bit hash MATHPLACEHOLDER105ENDMATH. For each bit position MATHPLACEHOLDER106ENDMATH :
+    - if the MATHPLACEHOLDER107ENDMATH-th bit of MATHPLACEHOLDER108ENDMATH is MATHPLACEHOLDER109ENDMATH, add MATHPLACEHOLDER110ENDMATH to MATHPLACEHOLDER111ENDMATH
+    - if the MATHPLACEHOLDER112ENDMATH-th bit of MATHPLACEHOLDER113ENDMATH is MATHPLACEHOLDER114ENDMATH, subtract MATHPLACEHOLDER115ENDMATH from MATHPLACEHOLDER116ENDMATH
+3. The final fingerprint has its MATHPLACEHOLDER117ENDMATH-th bit set to MATHPLACEHOLDER118ENDMATH if MATHPLACEHOLDER119ENDMATH, else MATHPLACEHOLDER120ENDMATH.
+
+Intuitively, each bit position is a "vote" : every feature contributes MATHPLACEHOLDER121ENDMATH to each bit slot based on its hash, and the majority sign wins. Frequent or high weight features dominate the vote.
+
+#### Core Property : Random Hyperplane Theorem
+
+The theory behind SimHash is Charikar's random hyperplane theorem. For two feature vectors MATHPLACEHOLDER122ENDMATH with angle MATHPLACEHOLDER123ENDMATH between them, the probability that their SimHash fingerprints agree at any single bit position is :
+
+MATHPLACEHOLDER8ENDMATH
+
+**Intuition** : each bit position corresponds to cutting the MATHPLACEHOLDER124ENDMATH-dimensional feature space with a random hyperplane. Two vectors fall on the same side of the cut if and only if that bit agrees. The smaller the angle MATHPLACEHOLDER125ENDMATH, the less likely a random hyperplane separates them.
+
+Since MATHPLACEHOLDER126ENDMATH, the expected Hamming distance between two fingerprints is MATHPLACEHOLDER127ENDMATH. For MATHPLACEHOLDER128ENDMATH :
+
+| Cosine Similarity | Angle MATHPLACEHOLDER129ENDMATH | Expected Hamming Distance |
+|---|---|---|
+| 0.99 | 8°  | \\~2.9  |
+| 0.95 | 18° | \\~6.5  |
+| 0.90 | 26° | \\~9.2  |
+| 0.80 | 37° | \\~13.1 |
+
+In practice, a Hamming distance MATHPLACEHOLDER130ENDMATH (for MATHPLACEHOLDER131ENDMATH) is a common threshold for near-duplicate detection.
+
+#### Pigeonhole LSH for Hamming Distance Search
+
+To find all fingerprints within Hamming distance MATHPLACEHOLDER132ENDMATH of a query without scanning all MATHPLACEHOLDER133ENDMATH documents, SimHash uses an LSH scheme based on the pigeonhole principle : if two MATHPLACEHOLDER134ENDMATH-bit fingerprints have Hamming distance MATHPLACEHOLDER135ENDMATH, then when the MATHPLACEHOLDER136ENDMATH bits are split into MATHPLACEHOLDER137ENDMATH equal blocks, **at least one block must be precisely identical**.
+
+Given this, the LSH index is built by :
+
+1. Split each fingerprint into MATHPLACEHOLDER138ENDMATH blocks of size MATHPLACEHOLDER139ENDMATH bits.
+2. Build MATHPLACEHOLDER140ENDMATH hash tables, where table MATHPLACEHOLDER141ENDMATH is keyed by block MATHPLACEHOLDER142ENDMATH's bit pattern and stores the list of document ids sharing that pattern.
+3. To query, split the query fingerprint into MATHPLACEHOLDER143ENDMATH blocks, look up each block in the corresponding table, and take the union of returned document ids as the candidate set. Finally, verify each candidate by computing the actual Hamming distance.
+
+For MATHPLACEHOLDER144ENDMATH and MATHPLACEHOLDER145ENDMATH, this means 4 tables, each keyed by a 16-bit pattern. The candidate set is usually much smaller than MATHPLACEHOLDER146ENDMATH, so per-query cost drops from MATHPLACEHOLDER147ENDMATH to a constant number of table lookups plus a small verification pass.
+
+#### When to Use SimHash vs MinHash
+
+SimHash is a good fit when :
+
+- storage is tight (billions of documents)
+- feature weights matter
+- documents are long so that a single feature change does not distort the fingerprint too much
+
+For strict shingle-based near-duplicate detection with a tunable Jaccard threshold, MinHash is more precise. A common industrial pipeline uses SimHash as a first-pass filter to shrink the candidate set, then applies MinHash + LSH for accurate verification.
+
+### Substring-level Deduplication
+
+Even after document level deduplication, two documents may share long identical passages like copyright notices, license text, template intros. Substring level deduplication uses a suffix array to locate and remove these shared blocks, and is usually the last and most expensive layer.
+
+## Reweighting
+
+Filtering and deduplication are hard decisions : a document is either kept or dropped. Reweighting is a soft alternative — assign each document (or domain) a training weight based on quality or importance, so lower-quality content contributes fewer gradient steps without being fully discarded.
+
+### Domain Reweighting
+
+A pretraining corpus is usually a mix of many domains (Wikipedia, code, books, C4 web, arXiv...), and how much weight each domain gets matters a lot for downstream performance. DoReMi automates this : instead of manually tuning weights, it trains a small proxy model together with a domain weight vector MATHPLACEHOLDER148ENDMATH, and reuses the resulting MATHPLACEHOLDER149ENDMATH to train the real target model.
+
+The training is a min-max game : the proxy model tries to lower loss across all domains, while MATHPLACEHOLDER150ENDMATH pushes more weight onto the hard domains where the model still has room to improve. To avoid always chasing domains that are inherently noisy but not learnable (e.g., random web text), DoReMi measures difficulty by excess loss over a reference model. Because "which domain is hard" mostly depends on the domain itself and not on model size, an MATHPLACEHOLDER151ENDMATH found on a small proxy transfers easily to a much larger model.
+
+### Quality-based Reweighting
+
+As mentioned in previous section, the quality score (from classifier) can be used as a filter. However, that score can also directly be used as a per-sample training weight. High quality documents contribute more per epoch, while low quality ones are down-weighted but still contribute noise robust signal.
+
+## References
+
+- Joulin, A., Grave, E., Bojanowski, P., & Mikolov, T. (2016). *Bag of Tricks for Efficient Text Classification* (FastText). arXiv:1607.01759.
+- Heafield, K. (2011). *KenLM : Faster and Smaller Language Model Queries*. Proceedings of the Sixth Workshop on Statistical Machine Translation.
+- Broder, A. Z. (1997). *On the Resemblance and Containment of Documents*. Compression and Complexity of Sequences.
+- Indyk, P., & Motwani, R. (1998). *Approximate Nearest Neighbors : Towards Removing the Curse of Dimensionality*. STOC.
+- Charikar, M. (2002). *Similarity Estimation Techniques from Rounding Algorithms*. STOC.
+- Manku, G. S., Jain, A., & Das Sarma, A. (2007). *Detecting Near-Duplicates for Web Crawling*. WWW.
+- Lee, K., Ippolito, D., Nystrom, A., Zhang, C., Eck, D., Callison-Burch, C., & Carlini, N. (2022). *Deduplicating Training Data Makes Language Models Better*. arXiv:2107.06499.
+- Xie, S. M., Pham, H., Dong, X., Du, N., Liu, H., Lu, Y., Liang, P., Le, Q. V., Ma, T., & Yu, A. W. (2023). *DoReMi : Optimizing Data Mixtures Speeds Up Language Model Pretraining*. arXiv:2305.10429.
+`;
+    const mathFormulas = [["display", "\nJ(A, B) = \\frac{|A \\cap B|}{|A \\cup B|} \\in [0, 1]\n"], ["display", "\nh^\\pi(A) = \\min_{x \\in A} \\pi(x)\n"], ["display", "\n\\boxed{\\Pr\\!\\left[h^\\pi(A) = h^\\pi(B)\\right] = J(A, B)}\n"], ["display", "\n\\Pr\\!\\left[x^* \\in A \\cap B\\right] = \\frac{|A \\cap B|}{|A \\cup B|} = J(A, B)\n"], ["display", "\n\\text{sig}(A)[i] = \\min_{x \\in A} h_i(x)\n"], ["display", "\n\\hat{J}(A, B) = \\frac{1}{m} \\sum_{i=1}^{m} \\mathbb{1}\\!\\left[\\text{sig}(A)[i] = \\text{sig}(B)[i]\\right]\n"], ["display", "\n\\boxed{P_{\\text{candidate}}(s) = 1 - (1 - s^r)^b}\n"], ["display", "\n\\tau_{S\\text{-curve}} \\approx \\left( \\frac{1}{b} \\right)^{1/r}\n"], ["display", "\n\\boxed{\\Pr\\!\\left[\\text{simhash}(u)[j] = \\text{simhash}(v)[j]\\right] = 1 - \\frac{\\theta}{\\pi}}\n"], ["inline", "O(1)"], ["inline", "N^2"], ["inline", "k"], ["inline", "k"], ["inline", "k"], ["inline", "k = 3"], ["inline", "k = 5\\text{\u2013}9"], ["inline", "k = 3\\text{\u2013}5"], ["inline", "U"], ["inline", "\\pi : U \\to \\mathbb{N}"], ["inline", "\\pi"], ["inline", "U"], ["inline", "A"], ["inline", "A \\cup B"], ["inline", "\\pi"], ["inline", "x^*"], ["inline", "\\pi"], ["inline", "x^*"], ["inline", "A \\cup B"], ["inline", "h^\\pi(A) = h^\\pi(B)"], ["inline", "x^* \\in A \\cap B"], ["inline", "U"], ["inline", "|U|"], ["inline", "\\pi"], ["inline", "m"], ["inline", "h_1, h_2, \\ldots, h_m : U \\to \\mathbb{Z}"], ["inline", "m"], ["inline", "A"], ["inline", "i"], ["inline", "A"], ["inline", "h_i"], ["inline", "m"], ["inline", "U"], ["inline", "\\Pr[\\text{sig}(A)[i] = \\text{sig}(B)[i]] = J(A, B)"], ["inline", "J"], ["inline", "J(1-J)/m"], ["inline", "O(1/\\sqrt{m})"], ["inline", "m = 128"], ["inline", "J = 0.5"], ["inline", "0.044"], ["inline", "m"], ["inline", "O(N^2)"], ["inline", "O(N^2)"], ["inline", "b"], ["inline", "r"], ["inline", "m"], ["inline", "b"], ["inline", "r"], ["inline", "b \\cdot r = m"], ["inline", "r"], ["inline", "k \\in \\{1, \\ldots, b\\}"], ["inline", "r"], ["inline", "k"], ["inline", "s = J(A, B)"], ["inline", "\\Pr[\\text{sig}(A)[i] = \\text{sig}(B)[i]] = s"], ["inline", "i"], ["inline", "r"], ["inline", "r"], ["inline", "s^r"], ["inline", "1 - s^r"], ["inline", "b"], ["inline", "(1 - s^r)^b"], ["inline", "s"], ["inline", "s"], ["inline", "P_{\\text{candidate}} \\to 1"], ["inline", "s"], ["inline", "P_{\\text{candidate}} \\to 0"], ["inline", "P_{\\text{candidate}}(s) \\approx 0.5"], ["inline", "\\tau"], ["inline", "m"], ["inline", "(b, r)"], ["inline", "b \\cdot r = m"], ["inline", "\\tau_{S\\text{-curve}} = (1/b)^{1/r}"], ["inline", "\\tau"], ["inline", "m = 128"], ["inline", "\\tau = 0.85"], ["inline", "(b, r) = (8, 16)"], ["inline", "\\tau_{S\\text{-curve}} = (1/8)^{1/16} \\approx 0.878"], ["inline", "s"], ["inline", "P_{\\text{candidate}}"], ["inline", "s = 0.9"], ["inline", "s = 0.7"], ["inline", "b"], ["inline", "r"], ["inline", "b"], ["inline", "m = 128"], ["inline", "\\{(f_1, w_1), (f_2, w_2), \\ldots, (f_n, w_n)\\}"], ["inline", "f_i"], ["inline", "w_i"], ["inline", "1"], ["inline", "d"], ["inline", "d = 64"], ["inline", "V = [0, 0, \\ldots, 0]"], ["inline", "d"], ["inline", "(f_i, w_i)"], ["inline", "d"], ["inline", "h(f_i)"], ["inline", "j \\in \\{0, 1, \\ldots, d-1\\}"], ["inline", "j"], ["inline", "h(f_i)"], ["inline", "1"], ["inline", "w_i"], ["inline", "V[j]"], ["inline", "j"], ["inline", "h(f_i)"], ["inline", "0"], ["inline", "w_i"], ["inline", "V[j]"], ["inline", "j"], ["inline", "1"], ["inline", "V[j] > 0"], ["inline", "0"], ["inline", "\\pm w_i"], ["inline", "u, v"], ["inline", "\\theta"], ["inline", "d"], ["inline", "\\theta"], ["inline", "\\theta = \\arccos(\\text{cosine similarity})"], ["inline", "\\frac{\\theta}{\\pi} \\cdot d"], ["inline", "d = 64"], ["inline", "\\theta"], ["inline", "\\le 3"], ["inline", "d = 64"], ["inline", "\\le k"], ["inline", "N"], ["inline", "d"], ["inline", "\\le k"], ["inline", "d"], ["inline", "k+1"], ["inline", "k+1"], ["inline", "\\lceil d / (k+1) \\rceil"], ["inline", "k+1"], ["inline", "i"], ["inline", "i"], ["inline", "k+1"], ["inline", "d = 64"], ["inline", "k = 3"], ["inline", "N"], ["inline", "O(N)"], ["inline", "\\alpha"], ["inline", "\\alpha"], ["inline", "\\alpha"], ["inline", "\\alpha"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      // HTML-escape so characters like `<` and `>` in formulas don't get parsed as tags by innerHTML.
+      const safe = formula.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${safe}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${safe}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
