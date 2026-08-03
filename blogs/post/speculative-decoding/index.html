@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speculative Decoding · Anna's Blog</title>
+
+  <meta name="description" content="" />
+  <meta property="og:locale" content="en"/>
+  <meta property="og:image" content="https://GAOYUEtianc.github.io/img/profile1.jpg">
+  <meta property="og:site_name" content="Anna's Blog"/>
+  <meta property="og:title" content="Speculative Decoding"/>
+
+  <!-- MathJax 3 Configuration (must be before loading MathJax) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/hyde.css">
+
+  <style type="text/css">
+    .sidebar { background-color: #BD5D38; }
+    .read-more-link a { border-color: #BD5D38; }
+    footer a, .content a, .related-posts li a:hover { color: #BD5D38; }
+    code.has-jax { font: inherit; font-size: 100%; background: inherit; border: inherit; color: #515151; }
+    #markdown-content img { max-width: 100%; height: auto; }
+    #markdown-content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; white-space: pre; word-break: normal; word-wrap: normal; }
+    #markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; }
+    #markdown-content pre code { background: transparent; padding: 0; }
+    #markdown-content blockquote { border-left: 4px solid #BD5D38; margin-left: 0; padding-left: 1em; color: #666; }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://GAOYUEtianc.github.io/blogs/css/blog.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+  <link rel="shortcut icon" href="/favicon.png">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-about">
+        <div class="author-image">
+          <img src="https://GAOYUEtianc.github.io/img/profile1.jpg" class="img-circle img-headshot center" alt="Profile">
+        </div>
+        <h1>Anna's Blog</h1>
+      </div>
+
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="https://GAOYUEtianc.github.io/blogs/">Home</a></li>
+          <li><a href="https://GAOYUEtianc.github.io/">My Webpage</a></li>
+        </ul>
+      </nav>
+
+      <section class="social-icons">
+        <a href="https://www.linkedin.com/in/yue-anna-gao-49a834107/" rel="me" title="Linkedin">
+          <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
+        <a href="https://github.com/GAOYUEtianc" rel="me" title="GitHub">
+          <i class="fab fa-github" aria-hidden="true"></i>
+        </a>
+        <a href="https://www.facebook.com/yue.gao.925" rel="me" title="Facebook">
+          <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+      </section>
+    </div>
+  </aside>
+
+  <main class="content container">
+    <div class="post">
+      <h1>Speculative Decoding</h1>
+      <div class="post-date">
+        <time datetime="2026-08-02">Aug 02, 2026</time>
+      </div>
+
+      <div id="markdown-content"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="copyright">
+      &copy; Gao Yue 2026 · <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+    </div>
+  </footer>
+
+  <script>
+    const markdownContent = `
+
+Autoregressive decoding is memory-bound, as the decoding is sequential, when decoding each token, the KV cache and model weights has to be moved from HBM to SRAM for computation, which is dominating the wall clock. 
+
+In industry, in order to accelerate inferencing, a mechanism called speculative decoding is broadly adopted. It uses a small weight draft model to decode, let the target model verify. It has the math elegancy of perfect distribution matching, and can largely boost inferencing speed given certain conditions. 
+
+## Steps of Speculative Decoding
+
+The draft model decodes token MATHPLACEHOLDER0ENDMATH, send to the target model, then the forward verification for these K tokens are parallelizable, as all of the tokens are already given. 
+
+Assume the draft model’s distribution is MATHPLACEHOLDER1ENDMATH, target model’s distribution is MATHPLACEHOLDER2ENDMATH, and for each i, denote MATHPLACEHOLDER3ENDMATH, MATHPLACEHOLDER4ENDMATH. 
+
+**Rejection rule.** For each MATHPLACEHOLDER5ENDMATH, if MATHPLACEHOLDER6ENDMATH, accept; if MATHPLACEHOLDER7ENDMATH, accept with probability MATHPLACEHOLDER8ENDMATH.
+
+**What if there are rejected tokens?** 
+
+If there are rejected tokens, let MATHPLACEHOLDER9ENDMATH be the earliest rejected token position, then let the target model decode token MATHPLACEHOLDER10ENDMATH from its residual distribution : 
+
+MATHPLACEHOLDER11ENDMATH
+
+Then restart: let the draft model re-decode from MATHPLACEHOLDER12ENDMATH.
+
+Do this iteratively until all tokens are accepted. 
+
+## Math Induction of Why Speculative Decoded Distribution Is Same as Target Model
+
+For each position MATHPLACEHOLDER13ENDMATH, the final decoded token might come from 2 cases : 
+
+- A : Accepted from the draft model 
+
+- B : The draft model sampled token at position i is rejected, it’s decoded from the target model. 
+
+Since A and B are mutually exclusive and exhaustive, by the law of total probability: 
+
+MATHPLACEHOLDER14ENDMATH
+
+**Part 1: The accepted case.** 
+
+MATHPLACEHOLDER15ENDMATH (here we abbreviate MATHPLACEHOLDER16ENDMATH),
+
+MATHPLACEHOLDER17ENDMATH
+
+Hence, MATHPLACEHOLDER18ENDMATH.
+
+**Part 2: The rejected case.** MATHPLACEHOLDER19ENDMATH
+
+MATHPLACEHOLDER20ENDMATH
+
+Note that the 1 in MATHPLACEHOLDER21ENDMATH’s formula can be written as MATHPLACEHOLDER22ENDMATH, hence MATHPLACEHOLDER23ENDMATH can be written as MATHPLACEHOLDER24ENDMATH.
+
+Then MATHPLACEHOLDER25ENDMATH. 
+
+When MATHPLACEHOLDER26ENDMATH, this is equal to MATHPLACEHOLDER27ENDMATH;
+
+When MATHPLACEHOLDER28ENDMATH, this is equal to MATHPLACEHOLDER29ENDMATH.
+
+Hence we have MATHPLACEHOLDER30ENDMATH.
+
+## When Does the Speedup Fail?
+
+Not all settings benefit from speculative decoding. To understand when, we formalize the speedup.
+
+**Notation.** Let:
+
+- MATHPLACEHOLDER31ENDMATH: average per-token acceptance rate — the probability each draft token passes the rejection test
+
+- MATHPLACEHOLDER32ENDMATH: number of draft tokens generated per round
+
+- MATHPLACEHOLDER33ENDMATH: wall-clock time for one single-token forward pass of the target model
+
+- MATHPLACEHOLDER34ENDMATH: wall-clock time for one single-token forward pass of the draft model
+
+**Key assumption.** Verifying MATHPLACEHOLDER35ENDMATH draft tokens in one parallel target pass takes approximately MATHPLACEHOLDER36ENDMATH (not MATHPLACEHOLDER37ENDMATH), because decoding is memory-bandwidth-bound — weight loading from HBM dominates, and the extra compute for MATHPLACEHOLDER38ENDMATH tokens is parallelized at negligible marginal cost. This assumption breaks when MATHPLACEHOLDER39ENDMATH is large enough that attention over the growing context becomes compute-bound.
+
+### Expected Tokens Per Round
+
+Let the first rejection occur at draft position MATHPLACEHOLDER40ENDMATH (1-indexed), with probability MATHPLACEHOLDER41ENDMATH for MATHPLACEHOLDER42ENDMATH. If all MATHPLACEHOLDER43ENDMATH tokens are accepted (probability MATHPLACEHOLDER44ENDMATH), the target model additionally emits one bonus token. The total expected output per round is:
+
+MATHPLACEHOLDER45ENDMATH
+
+The closed form follows by recognizing MATHPLACEHOLDER46ENDMATH as the derivative of the finite geometric series MATHPLACEHOLDER47ENDMATH with respect to MATHPLACEHOLDER48ENDMATH.
+
+### Speedup Formula
+
+The time per round is:
+
+MATHPLACEHOLDER49ENDMATH
+
+The speedup relative to standard autoregressive decoding (1 token per MATHPLACEHOLDER50ENDMATH) is:
+
+MATHPLACEHOLDER51ENDMATH
+
+Speedup MATHPLACEHOLDER52ENDMATH requires:
+
+MATHPLACEHOLDER53ENDMATH
+
+**Simple case **MATHPLACEHOLDER54ENDMATH**.**
+
+MATHPLACEHOLDER55ENDMATH
+
+The acceptance rate must exceed the *relative cost* of running the draft model. If the draft model is 10MATHPLACEHOLDER56ENDMATH faster than the target (MATHPLACEHOLDER57ENDMATH), we only need MATHPLACEHOLDER58ENDMATH. If it is only 2MATHPLACEHOLDER59ENDMATH faster, we need MATHPLACEHOLDER60ENDMATH.
+
+### Three Failure Modes
+
+**1. Low acceptance rate (**MATHPLACEHOLDER61ENDMATH** too small).** When the draft and target distributions diverge due to domain mismatch, difficult reasoning chains, temperature config difference, most tokens are rejected and resampled from the residual. Each round wastes MATHPLACEHOLDER62ENDMATH with little gain. In the limit MATHPLACEHOLDER63ENDMATH:
+
+MATHPLACEHOLDER64ENDMATH
+
+**2. Draft model not fast enough (**MATHPLACEHOLDER65ENDMATH** too large).** As MATHPLACEHOLDER66ENDMATH (draft model as slow as target), even with perfect acceptance MATHPLACEHOLDER67ENDMATH:
+
+MATHPLACEHOLDER68ENDMATH
+
+With any MATHPLACEHOLDER69ENDMATH, speedup falls strictly below 1. A useful rule of thumb: the draft model should be at least MATHPLACEHOLDER70ENDMATH times faster than the target to break even.
+
+**3. **MATHPLACEHOLDER71ENDMATH** too large for the given **MATHPLACEHOLDER72ENDMATH**.** Draft tokens at late positions are accepted with probability MATHPLACEHOLDER73ENDMATH, which decays exponentially. For moderate MATHPLACEHOLDER74ENDMATH, over-speculating wastes draft compute while acceptance quickly vanishes. The optimal MATHPLACEHOLDER75ENDMATH satisfies the first-order condition (setting MATHPLACEHOLDER76ENDMATH):
+
+MATHPLACEHOLDER77ENDMATH
+
+This has no closed form, but the intuition is clear: optimal MATHPLACEHOLDER78ENDMATH increases with both MATHPLACEHOLDER79ENDMATH and MATHPLACEHOLDER80ENDMATH. In practice, MATHPLACEHOLDER81ENDMATH is effective when MATHPLACEHOLDER82ENDMATH–MATHPLACEHOLDER83ENDMATH with a well-matched draft model.
+`;
+    const mathFormulas = [["inline", "x_1, \u2026, x_K"], ["inline", "q"], ["inline", "p"], ["inline", "p_i = P_{\\text{target}}[x_i | x_0, x_1, \u2026., x_{i-1}]"], ["inline", "q_i = P_{\\text{draft}}[x_i | x_0, x_1, \u2026., x_{i-1}]"], ["inline", "i"], ["inline", "p_i \\ge q_i"], ["inline", "p_i < q_i"], ["inline", "\\frac{p_i}{q_i}"], ["inline", "x_j"], ["inline", "x_j"], ["inline", "P_{\\text{residual}}(x) = \\frac{max(0, p(x)-q(x))}{\\sum_k max(0, p(k)-q(k))}"], ["inline", "x_0,\u2026, x_j"], ["inline", "i"], ["inline", "P[x_i = x] = P[x_i = x | A] \\cdot P(A) + P[x_i = x | B] \\cdot P(B)"], ["inline", "P(A) = min (1, \\frac{p(x)}{q(x)})"], ["inline", "p(x|x_0, \u2026, x_{i-1})"], ["inline", "P[x_i = x | A] = q(x)"], ["inline", "P[x_i = x | A] \\cdot P(A) = min(q(x), p(x))"], ["inline", "P(B) = 1 - \\sum_{k}P(x_i = k, A)=1 - \\sum_k min(q(k), p(k))"], ["inline", "P[x_i = x | B] = \\frac{max(0, p(x)-q(x))}{\\sum_k max(0, p(k)-q(k))}"], ["inline", "P(B)"], ["inline", "\\sum_k q(k)"], ["inline", "P(B)"], ["inline", "\\sum_k q(k) - min(q(k), p(k)) = \\sum_k max (0, p(k)-q(k))"], ["inline", "P[x_i = x | A] \\cdot P(A) + P[x_i = x | B] \\cdot P(B) = min(q(x), p(x)) + max(0, p(x)-q(x))"], ["inline", "q(x) \\ge p(x)"], ["inline", "p(x) + 0 = p(x)"], ["inline", "q(x) < p(x)"], ["inline", "q(x) + p(x) - q(x) = p(x)"], ["inline", "P[x_i = x] = p(x)"], ["inline", "\\alpha \\in [0,1]"], ["inline", "K"], ["inline", "T_{\\text{target}}"], ["inline", "T_{\\text{draft}}"], ["inline", "K"], ["inline", "T_{\\text{target}}"], ["inline", "K \\cdot T_{\\text{target}}"], ["inline", "K"], ["inline", "K"], ["inline", "j"], ["inline", "\\alpha^{j-1}(1-\\alpha)"], ["inline", "j = 1, \\ldots, K"], ["inline", "K"], ["inline", "\\alpha^K"], ["inline", "E[\\text{tokens per round}] = \\sum_{j=1}^{K} j \\cdot \\alpha^{j-1}(1-\\alpha) \\;+\\; (K+1)\\,\\alpha^K \\;=\\; \\frac{1 - \\alpha^{K+1}}{1 - \\alpha}"], ["inline", "\\sum_{j=1}^{K} j\\,\\alpha^{j-1}"], ["inline", "\\sum_{j=1}^{K} \\alpha^j"], ["inline", "\\alpha"], ["inline", "T_{\\text{round}} = K \\cdot T_{\\text{draft}} + T_{\\text{target}}"], ["inline", "T_{\\text{target}}"], ["inline", "\\text{Speedup}(K,\\,\\alpha) = \\frac{E[\\text{tokens per round}]}{T_{\\text{round}}} \\cdot T_{\\text{target}} = \\frac{1 - \\alpha^{K+1}}{1 - \\alpha} \\cdot \\frac{T_{\\text{target}}}{K \\cdot T_{\\text{draft}} + T_{\\text{target}}}"], ["inline", "> 1"], ["inline", "\\frac{1 - \\alpha^{K+1}}{1 - \\alpha} \\;>\\; 1 + K \\cdot \\frac{T_{\\text{draft}}}{T_{\\text{target}}}"], ["inline", "K = 1"], ["inline", "\\text{Speedup} = \\frac{1 + \\alpha}{1 + T_{\\text{draft}}/T_{\\text{target}}} > 1 \\;\\iff\\; \\alpha > \\frac{T_{\\text{draft}}}{T_{\\text{target}}}"], ["inline", "\\times"], ["inline", "T_{\\text{draft}}/T_{\\text{target}} = 0.1"], ["inline", "\\alpha > 10\\%"], ["inline", "\\times"], ["inline", "\\alpha > 50\\%"], ["inline", "\\alpha"], ["inline", "K \\cdot T_{\\text{draft}}"], ["inline", "\\alpha \\to 0"], ["inline", "\\text{Speedup} \\;\\to\\; \\frac{T_{\\text{target}}}{K \\cdot T_{\\text{draft}} + T_{\\text{target}}} < 1"], ["inline", "T_{\\text{draft}} / T_{\\text{target}}"], ["inline", "T_{\\text{draft}} \\to T_{\\text{target}}"], ["inline", "\\alpha = 1"], ["inline", "\\text{Speedup} = \\frac{K+1}{K+1} = 1"], ["inline", "\\alpha < 1"], ["inline", "1/\\alpha"], ["inline", "K"], ["inline", "\\alpha"], ["inline", "\\alpha^K"], ["inline", "\\alpha"], ["inline", "K^*"], ["inline", "\\partial\\,\\text{Speedup}/\\partial K = 0"], ["inline", "(-\\ln \\alpha)\\;\\alpha^{K^*+1}\\!\\left(K^* T_{\\text{draft}} + T_{\\text{target}}\\right) = \\left(1 - \\alpha^{K^*+1}\\right) T_{\\text{draft}}"], ["inline", "K^*"], ["inline", "\\alpha"], ["inline", "T_{\\text{target}}/T_{\\text{draft}}"], ["inline", "K \\in [3, 8]"], ["inline", "\\alpha \\approx 0.7"], ["inline", "0.9"]];
+
+    // First render markdown
+    let html = marked.parse(markdownContent);
+
+    // Then restore math formulas (marked.js never saw them)
+    mathFormulas.forEach((item, idx) => {
+      const [type, formula] = item;
+      const placeholder = `MATHPLACEHOLDER${idx}ENDMATH`;
+      // HTML-escape so characters like `<` and `>` in formulas don't get parsed as tags by innerHTML.
+      const safe = formula.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (type === 'display') {
+        html = html.replace(placeholder, `\\[${safe}\\]`);
+      } else {
+        html = html.replace(placeholder, `\\(${safe}\\)`);
+      }
+    });
+
+    document.getElementById('markdown-content').innerHTML = html;
+
+    // MathJax 3 typesetting - wait for MathJax to be ready
+    function typesetMath() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([document.getElementById('markdown-content')]);
+      }
+    }
+
+    // MathJax loads async, so we need to wait for it
+    if (window.MathJax && MathJax.startup) {
+      MathJax.startup.promise.then(typesetMath);
+    } else {
+      // Fallback: wait for window load
+      window.addEventListener('load', function() {
+        setTimeout(typesetMath, 100);
+      });
+    }
+  </script>
+</body>
+</html>
